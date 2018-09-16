@@ -48,9 +48,11 @@ TODO:
 package sltime
 
 import (
+	"fmt"
 	"go/build"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -81,9 +83,21 @@ func LoadTimeModule() (skylark.StringDict, error) {
 			"time_":     skylark.NewBuiltin("time", time_),
 			"zero_":     Time{},
 		}
-		filename := DataFile("time", "time.sky")
+
+		// embed file into binary to remove any file dependencies
+		file := strings.NewReader(`
+time = struct(
+	time = time_,
+	duration = duration_,
+	location = location_,
+	now = now_,
+	zero = zero_,
+)
+`)
+
+		// filename := DataFile("time", "time.sky")
 		thread := new(skylark.Thread)
-		timeModule, timeError = skylark.ExecFile(thread, filename, nil, predeclared)
+		timeModule, timeError = skylark.ExecFile(thread, "time.sky", file, predeclared)
 	})
 	return timeModule, timeError
 }
@@ -162,9 +176,43 @@ func (d Duration) Attr(name string) (skylark.Value, error) {
 	return builtinAttr(d, name, durationMethods)
 }
 func (d Duration) AttrNames() []string { return builtinAttrNames(durationMethods) }
-func (d Duration) Binary(op syntax.Token, y skylark.Value, side skylark.Side) (skylark.Value, error) {
-	// duration - time = duration
-	// duration + time = time
+func (d Duration) Binary(op syntax.Token, y_ skylark.Value, side skylark.Side) (skylark.Value, error) {
+	x := time.Duration(d)
+	var y time.Duration
+	switch y_.(type) {
+	case skylark.Int:
+		i, ok := y_.(skylark.Int).Int64()
+		if !ok {
+			return nil, fmt.Errorf("duration binary operation: couldn't parse int")
+		}
+		y = time.Duration(i)
+	case Duration:
+		y = time.Duration(d)
+	case Time:
+		y := time.Time(y_.(Time))
+		switch op {
+		case syntax.PLUS:
+			// duration + time = time
+			return Time(y.Add(x)), nil
+		case syntax.MINUS:
+			// duration - time = duration
+			return nil, nil
+		}
+	default:
+		return nil, nil
+	}
+
+	switch op {
+	case syntax.PLUS:
+		return Duration(x + y), nil
+	case syntax.MINUS:
+		return Duration(x - y), nil
+	case syntax.SLASH:
+		return Duration(x / y), nil
+	case syntax.STAR:
+		return Duration(x * y), nil
+	}
+
 	return nil, nil
 }
 
@@ -200,16 +248,14 @@ func (t Time) Binary(op syntax.Token, y_ skylark.Value, side skylark.Side) (skyl
 
 	switch y_.(type) {
 	case Duration:
-		// y := time.Duration(y_.(Duration))
+		y := time.Duration(y_.(Duration))
 		switch op {
 		// time + duration = time
 		case syntax.PLUS:
-			// return Time(x.Add(y)), nil
-			return nil, nil
+			return Time(x.Add(y)), nil
 		// time - duration = time
 		case syntax.MINUS:
-			// return Time(x.Sub(y)), nil
-			return nil, nil
+			return Time(x.Add(-y)), nil
 		}
 	case Time:
 		y := time.Time(y_.(Time))
@@ -221,10 +267,9 @@ func (t Time) Binary(op syntax.Token, y_ skylark.Value, side skylark.Side) (skyl
 			}
 			return Duration(y.Sub(x)), nil
 		}
-	default:
-		// dunno, bail
-		return nil, nil
 	}
+
+	// dunno, bail
 	return nil, nil
 }
 

@@ -1,8 +1,0 @@
-
-time = struct(
-    time = time_,
-    duration = duration_,
-    location = location_,
-    now = now_,
-    zero = zero_,
-)
