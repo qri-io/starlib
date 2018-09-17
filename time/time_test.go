@@ -1,4 +1,4 @@
-package sltime
+package time
 
 import (
 	"fmt"

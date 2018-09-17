@@ -45,7 +45,7 @@ TODO:
 - strftime formatting
 - constructor from 6 components + location
 */
-package sltime
+package time
 
 import (
 	"fmt"
@@ -187,7 +187,7 @@ func (d Duration) Binary(op syntax.Token, y_ skylark.Value, side skylark.Side) (
 		}
 		y = time.Duration(i)
 	case Duration:
-		y = time.Duration(d)
+		y = time.Duration(y_.(Duration))
 	case Time:
 		y := time.Time(y_.(Time))
 		switch op {
@@ -208,6 +208,9 @@ func (d Duration) Binary(op syntax.Token, y_ skylark.Value, side skylark.Side) (
 	case syntax.MINUS:
 		return Duration(x - y), nil
 	case syntax.SLASH:
+		if int64(y) == 0 {
+			return nil, fmt.Errorf("cannot divide duration by zero")
+		}
 		return Duration(x / y), nil
 	case syntax.STAR:
 		return Duration(x * y), nil
