@@ -1,14 +1,19 @@
-package time
+package xlsx
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/google/skylark"
 	"github.com/google/skylark/skylarktest"
 )
 
-func TestFile(t *testing.T) {
+func TestFromURL(t *testing.T) {
+	s := httptest.NewServer(http.FileServer(http.Dir("testdata")))
+	skylark.Universe["test_server_url"] = skylark.String(s.URL)
+
 	thread := &skylark.Thread{Load: newLoader()}
 	skylarktest.SetReporter(thread, t)
 

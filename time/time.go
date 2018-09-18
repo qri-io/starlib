@@ -71,9 +71,9 @@ var (
 	timeError  error
 )
 
-// LoadTimeModule loads the time module.
+// LoadModule loads the time module.
 // It is concurrency-safe and idempotent.
-func LoadTimeModule() (skylark.StringDict, error) {
+func LoadModule() (skylark.StringDict, error) {
 	once.Do(func() {
 		predeclared := skylark.StringDict{
 			"duration_": skylark.NewBuiltin("duration", duration_),

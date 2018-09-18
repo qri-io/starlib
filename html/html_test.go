@@ -1,4 +1,4 @@
-package time
+package html
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/google/skylark/skylarktest"
 )
 
-func TestFile(t *testing.T) {
+func TestModule(t *testing.T) {
 	thread := &skylark.Thread{Load: newLoader()}
 	skylarktest.SetReporter(thread, t)
 
@@ -24,7 +24,7 @@ func newLoader() func(thread *skylark.Thread, module string) (skylark.StringDict
 	return func(thread *skylark.Thread, module string) (skylark.StringDict, error) {
 		switch module {
 		case ModuleName:
-			return LoadModule()
+			return skylark.StringDict{"html": skylark.NewBuiltin("html", NewDocument)}, nil
 		case "assert.sky":
 			return skylarktest.LoadAssertModule()
 		}
