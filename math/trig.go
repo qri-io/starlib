@@ -78,8 +78,6 @@ func tan(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs 
 	return skylark.Float(math.Tan(float64(x))), nil
 }
 
-const oneRad = math.Pi / 180
-
 // degrees(x) - Convert angle x from radians to degrees.
 func degrees(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
 	var x skylark.Float

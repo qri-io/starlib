@@ -60,10 +60,15 @@ var (
 	mathModule skylark.StringDict
 )
 
+const tau = math.Pi * 2
+const oneRad = tau / 360
+
 // LoadModule loads the math module.
 // It is concurrency-safe and idempotent.
 func LoadModule() (skylark.StringDict, error) {
 	once.Do(func() {
+		inf := math.Inf(1)
+		nan := math.NaN()
 		mathModule = skylark.StringDict{
 			"math": skylarkstruct.FromStringDict(skylarkstruct.Default, skylark.StringDict{
 				"ceil":  skylark.NewBuiltin("ceil", ceil),
@@ -91,6 +96,13 @@ func LoadModule() (skylark.StringDict, error) {
 				"cosh":  skylark.NewBuiltin("cosh", cosh),
 				"sinh":  skylark.NewBuiltin("sinh", sinh),
 				"tanh":  skylark.NewBuiltin("tanh", tanh),
+
+				"e":   skylark.Float(math.E),
+				"pi":  skylark.Float(math.Pi),
+				"tau": skylark.Float(tau),
+				"phi": skylark.Float(math.Phi),
+				"inf": skylark.Float(inf),
+				"nan": skylark.Float(nan),
 			}),
 		}
 	})
@@ -115,7 +127,7 @@ func ceil(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs
 	return skylark.Float(math.Ceil(float64(x))), nil
 }
 
-//
+// Return the absolute value of x
 func fabs(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
 	var x skylark.Float
 	if err := skylark.UnpackArgs("fabs", args, kwargs, "x", &x); err != nil {
@@ -133,6 +145,7 @@ func exp(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs 
 	return skylark.Float(math.Exp(float64(x))), nil
 }
 
+// Return the square root of x
 func sqrt(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
 	var x skylark.Float
 	if err := skylark.UnpackArgs("sqrt", args, kwargs, "x", &x); err != nil {
