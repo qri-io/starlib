@@ -150,7 +150,7 @@ func time_(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwarg
 		return Time(t), nil
 	}
 
-	loc, err := time.LoadLocation(location.String())
+	loc, err := time.LoadLocation(string(location))
 	if err != nil {
 		return nil, err
 	}
