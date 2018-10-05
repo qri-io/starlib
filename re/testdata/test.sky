@@ -1,10 +1,10 @@
 load("re.sky", "re")
 load("assert.sky", "assert")
 
-pattern = "(\w*)\s(ADD|REM|DEL|EXT|TRF)\s(.*)\s(NAT|INT)\s(.*)\s(\(\w{2}\))\s(.*)"
+pattern = "(\w*)\s*(ADD|REM|DEL|EXT|TRF)\s*(.*)\s*(NAT|INT)\s*(.*)\s*(\(\w{2}\))\s*(.*)"
 test = "EDM ADD FROM INJURED NAT Jordan BEAULIEU (DB) Western University"
 
-assert.eq(re.match(pattern,test), [("EDM ADD FROM INJURED NAT Jordan BEAULIEU (DB) Western University", "EDM", "ADD", "FROM INJURED", "NAT", "Jordan BEAULIEU", "(DB)", "Western University")])
+assert.eq(re.match(pattern,test), [(test, "EDM", "ADD", "FROM INJURED ", "NAT", "Jordan BEAULIEU ", "(DB)", "Western University")])
 assert.eq(re.sub(pattern, "", test), "")
 
 # assert.eq()
