@@ -6,8 +6,10 @@ import (
 	"github.com/google/skylark"
 	"github.com/qri-io/starlib/html"
 	"github.com/qri-io/starlib/http"
+	"github.com/qri-io/starlib/re"
 	"github.com/qri-io/starlib/time"
 	"github.com/qri-io/starlib/xlsx"
+	"github.com/qri-io/starlib/zipfile"
 )
 
 // Loader presents the starlib library as a loader
@@ -21,6 +23,10 @@ func Loader(thread *skylark.Thread, module string) (dict skylark.StringDict, err
 		return xlsx.LoadModule()
 	case html.ModuleName:
 		return html.LoadModule()
+	case zipfile.ModuleName:
+		return zipfile.LoadModule()
+	case re.ModuleName:
+		return re.LoadModule()
 	}
 
 	return nil, fmt.Errorf("invalid module")
