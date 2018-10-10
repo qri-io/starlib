@@ -5,13 +5,13 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/google/skylark"
-	"github.com/google/skylark/skylarktest"
+	starlark "github.com/google/skylark"
+	starlarktest "github.com/google/skylark/skylarktest"
 )
 
 func TestFile(t *testing.T) {
-	thread := &skylark.Thread{Load: newLoader()}
-	skylarktest.SetReporter(thread, t)
+	thread := &starlark.Thread{Load: newLoader()}
+	starlarktest.SetReporter(thread, t)
 
 	zipBytes, err := ioutil.ReadFile("testdata/hello_world.zip")
 	if err != nil {
@@ -19,8 +19,8 @@ func TestFile(t *testing.T) {
 	}
 
 	// Execute test file
-	_, err = skylark.ExecFile(thread, "testdata/test.sky", nil, skylark.StringDict{
-		"hello_world_zip": skylark.String(zipBytes),
+	_, err = starlark.ExecFile(thread, "testdata/test.sky", nil, starlark.StringDict{
+		"hello_world_zip": starlark.String(zipBytes),
 	})
 	if err != nil {
 		t.Error(err)
@@ -28,13 +28,13 @@ func TestFile(t *testing.T) {
 }
 
 // load implements the 'load' operation as used in the evaluator tests.
-func newLoader() func(thread *skylark.Thread, module string) (skylark.StringDict, error) {
-	return func(thread *skylark.Thread, module string) (skylark.StringDict, error) {
+func newLoader() func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
+	return func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
 		switch module {
 		case ModuleName:
 			return LoadModule()
 		case "assert.sky":
-			return skylarktest.LoadAssertModule()
+			return starlarktest.LoadAssertModule()
 		}
 
 		return nil, fmt.Errorf("invalid module")

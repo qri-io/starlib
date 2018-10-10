@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/google/skylark"
-	"github.com/google/skylark/skylarktest"
-	"github.com/qri-io/dataset"
+	starlark "github.com/google/skylark"
+	starlarktest "github.com/google/skylark/skylarktest"
+	dataset "github.com/qri-io/dataset"
 )
 
 func TestNewModule(t *testing.T) {
@@ -17,34 +17,34 @@ func TestNewModule(t *testing.T) {
 		w.Header().Set("Date", "Mon, 01 Jun 2000 00:00:00 GMT")
 		w.Write([]byte(`{"hello":"world"}`))
 	}))
-	skylark.Universe["test_server_url"] = skylark.String(ts.URL)
+	starlark.Universe["test_server_url"] = starlark.String(ts.URL)
 
 	ds := &dataset.Dataset{
 		Transform: &dataset.Transform{
-			Syntax: "skylark",
+			Syntax: "starlark",
 			Config: map[string]interface{}{
 				"foo": "bar",
 			},
 		},
 	}
-	thread := &skylark.Thread{Load: newLoader(ds)}
-	skylarktest.SetReporter(thread, t)
+	thread := &starlark.Thread{Load: newLoader(ds)}
+	starlarktest.SetReporter(thread, t)
 
 	// Execute test file
-	_, err := skylark.ExecFile(thread, "testdata/test.sky", nil, nil)
+	_, err := starlark.ExecFile(thread, "testdata/test.sky", nil, nil)
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 // load implements the 'load' operation as used in the evaluator tests.
-func newLoader(ds *dataset.Dataset) func(thread *skylark.Thread, module string) (skylark.StringDict, error) {
-	return func(thread *skylark.Thread, module string) (skylark.StringDict, error) {
+func newLoader(ds *dataset.Dataset) func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
+	return func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
 		switch module {
 		case ModuleName:
 			return LoadModule()
 		case "assert.sky":
-			return skylarktest.LoadAssertModule()
+			return starlarktest.LoadAssertModule()
 		}
 
 		return nil, fmt.Errorf("invalid module")

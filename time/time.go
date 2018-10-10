@@ -56,31 +56,31 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/skylark"
-	"github.com/google/skylark/skylarkstruct"
-	"github.com/google/skylark/syntax"
+	starlark "github.com/google/skylark"
+	starlarkstruct "github.com/google/skylark/skylarkstruct"
+	syntax "github.com/google/skylark/syntax"
 )
 
 // ModuleName defines the expected name for this Module when used
-// in skylark's load() function, eg: load('time.sky', 'time')
+// in starlark's load() function, eg: load('time.sky', 'time')
 const ModuleName = "time.sky"
 
 var (
 	once       sync.Once
-	timeModule skylark.StringDict
+	timeModule starlark.StringDict
 	timeError  error
 )
 
 // LoadModule loads the time module.
 // It is concurrency-safe and idempotent.
-func LoadModule() (skylark.StringDict, error) {
+func LoadModule() (starlark.StringDict, error) {
 	once.Do(func() {
-		predeclared := skylark.StringDict{
-			"duration_": skylark.NewBuiltin("duration", duration_),
-			"location_": skylark.NewBuiltin("location", location_),
-			"now_":      skylark.NewBuiltin("now", now_),
-			"struct":    skylark.NewBuiltin("struct", skylarkstruct.Make),
-			"time_":     skylark.NewBuiltin("time", time_),
+		predeclared := starlark.StringDict{
+			"duration_": starlark.NewBuiltin("duration", duration_),
+			"location_": starlark.NewBuiltin("location", location_),
+			"now_":      starlark.NewBuiltin("now", now_),
+			"struct":    starlark.NewBuiltin("struct", starlarkstruct.Make),
+			"time_":     starlark.NewBuiltin("time", time_),
 			"zero_":     Time{},
 		}
 
@@ -96,8 +96,8 @@ time = struct(
 `)
 
 		// filename := DataFile("time", "time.sky")
-		thread := new(skylark.Thread)
-		timeModule, timeError = skylark.ExecFile(thread, "time.sky", file, predeclared)
+		thread := new(starlark.Thread)
+		timeModule, timeError = starlark.ExecFile(thread, "time.sky", file, predeclared)
 	})
 	return timeModule, timeError
 }
@@ -106,9 +106,9 @@ time = struct(
 // so that it can be overridden
 var NowFunc = func() time.Time { return time.Now() }
 
-func duration_(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	var x skylark.String
-	if err := skylark.UnpackArgs("duration", args, kwargs, "x", &x); err != nil {
+func duration_(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var x starlark.String
+	if err := starlark.UnpackArgs("duration", args, kwargs, "x", &x); err != nil {
 		return nil, err
 	}
 
@@ -120,9 +120,9 @@ func duration_(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, k
 	return Duration(d), nil
 }
 
-func location_(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	var x skylark.String
-	if err := skylark.UnpackArgs("location", args, kwargs, "x", &x); err != nil {
+func location_(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var x starlark.String
+	if err := starlark.UnpackArgs("location", args, kwargs, "x", &x); err != nil {
 		return nil, err
 	}
 	loc, err := time.LoadLocation(string(x))
@@ -130,15 +130,15 @@ func location_(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, k
 		return nil, err
 	}
 
-	return skylark.String(loc.String()), nil
+	return starlark.String(loc.String()), nil
 }
 
-func time_(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func time_(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
-		x, location skylark.String
-		format      = skylark.String(time.RFC3339)
+		x, location starlark.String
+		format      = starlark.String(time.RFC3339)
 	)
-	if err := skylark.UnpackArgs("time", args, kwargs, "x", &x, "format?", &format, "location", &location); err != nil {
+	if err := starlark.UnpackArgs("time", args, kwargs, "x", &x, "format?", &format, "location", &location); err != nil {
 		return nil, err
 	}
 
@@ -161,7 +161,7 @@ func time_(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwarg
 	return Time(t), nil
 }
 
-func now_(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func now_(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	return Time(NowFunc()), nil
 }
 
@@ -171,17 +171,17 @@ func (d Duration) String() string        { return time.Duration(d).String() }
 func (d Duration) Type() string          { return "duration" }
 func (d Duration) Freeze()               {} // immutable
 func (d Duration) Hash() (uint32, error) { return hashString(d.String()), nil }
-func (d Duration) Truth() skylark.Bool   { return d > 0 }
-func (d Duration) Attr(name string) (skylark.Value, error) {
+func (d Duration) Truth() starlark.Bool  { return d > 0 }
+func (d Duration) Attr(name string) (starlark.Value, error) {
 	return builtinAttr(d, name, durationMethods)
 }
 func (d Duration) AttrNames() []string { return builtinAttrNames(durationMethods) }
-func (d Duration) Binary(op syntax.Token, y_ skylark.Value, side skylark.Side) (skylark.Value, error) {
+func (d Duration) Binary(op syntax.Token, y_ starlark.Value, side starlark.Side) (starlark.Value, error) {
 	x := time.Duration(d)
 	var y time.Duration
 	switch y_.(type) {
-	case skylark.Int:
-		i, ok := y_.(skylark.Int).Int64()
+	case starlark.Int:
+		i, ok := y_.(starlark.Int).Int64()
 		if !ok {
 			return nil, fmt.Errorf("duration binary operation: couldn't parse int")
 		}
@@ -228,14 +228,14 @@ var durationMethods = map[string]builtinMethod{
 
 type Time time.Time
 
-func (t Time) String() string                          { return time.Time(t).String() }
-func (t Time) Type() string                            { return "time" }
-func (t Time) Freeze()                                 {} // immutable
-func (t Time) Hash() (uint32, error)                   { return hashString(t.String()), nil }
-func (t Time) Truth() skylark.Bool                     { return skylark.Bool(time.Time(t).IsZero()) }
-func (t Time) Attr(name string) (skylark.Value, error) { return builtinAttr(t, name, timeMethods) }
-func (t Time) AttrNames() []string                     { return builtinAttrNames(timeMethods) }
-func (t Time) CompareSameType(op syntax.Token, y_ skylark.Value, depth int) (bool, error) {
+func (t Time) String() string                           { return time.Time(t).String() }
+func (t Time) Type() string                             { return "time" }
+func (t Time) Freeze()                                  {} // immutable
+func (t Time) Hash() (uint32, error)                    { return hashString(t.String()), nil }
+func (t Time) Truth() starlark.Bool                     { return starlark.Bool(time.Time(t).IsZero()) }
+func (t Time) Attr(name string) (starlark.Value, error) { return builtinAttr(t, name, timeMethods) }
+func (t Time) AttrNames() []string                      { return builtinAttrNames(timeMethods) }
+func (t Time) CompareSameType(op syntax.Token, y_ starlark.Value, depth int) (bool, error) {
 	x := time.Time(t)
 	y := time.Time(y_.(Time))
 	cp := 0
@@ -246,7 +246,7 @@ func (t Time) CompareSameType(op syntax.Token, y_ skylark.Value, depth int) (boo
 	}
 	return threeway(op, cp), nil
 }
-func (t Time) Binary(op syntax.Token, y_ skylark.Value, side skylark.Side) (skylark.Value, error) {
+func (t Time) Binary(op syntax.Token, y_ starlark.Value, side starlark.Side) (starlark.Value, error) {
 	x := time.Time(t)
 
 	switch y_.(type) {
@@ -265,7 +265,7 @@ func (t Time) Binary(op syntax.Token, y_ skylark.Value, side skylark.Side) (skyl
 		switch op {
 		// time - time = duration
 		case syntax.MINUS:
-			if side == skylark.Left {
+			if side == starlark.Left {
 				return Duration(x.Sub(y)), nil
 			}
 			return Duration(y.Sub(x)), nil
@@ -287,54 +287,54 @@ var timeMethods = map[string]builtinMethod{
 }
 
 // TODO - consider using a higher order function to generate these
-func time_year(fnname string, recv_ skylark.Value, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func time_year(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	recv := time.Time(recv_.(Time))
-	return skylark.MakeInt(recv.Year()), nil
+	return starlark.MakeInt(recv.Year()), nil
 }
 
-func time_month(fnname string, recv_ skylark.Value, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func time_month(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	recv := time.Time(recv_.(Time))
-	return skylark.MakeInt(int(recv.Month())), nil
+	return starlark.MakeInt(int(recv.Month())), nil
 }
 
-func time_day(fnname string, recv_ skylark.Value, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func time_day(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	recv := time.Time(recv_.(Time))
-	return skylark.MakeInt(recv.Day()), nil
+	return starlark.MakeInt(recv.Day()), nil
 }
 
-func time_hour(fnname string, recv_ skylark.Value, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func time_hour(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	recv := time.Time(recv_.(Time))
-	return skylark.MakeInt(recv.Hour()), nil
+	return starlark.MakeInt(recv.Hour()), nil
 }
 
-func time_minute(fnname string, recv_ skylark.Value, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func time_minute(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	recv := time.Time(recv_.(Time))
-	return skylark.MakeInt(recv.Minute()), nil
+	return starlark.MakeInt(recv.Minute()), nil
 }
 
-func time_second(fnname string, recv_ skylark.Value, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func time_second(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	recv := time.Time(recv_.(Time))
-	return skylark.MakeInt(recv.Second()), nil
+	return starlark.MakeInt(recv.Second()), nil
 }
 
-func time_nanosecond(fnname string, recv_ skylark.Value, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func time_nanosecond(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	recv := time.Time(recv_.(Time))
-	return skylark.MakeInt(recv.Nanosecond()), nil
+	return starlark.MakeInt(recv.Nanosecond()), nil
 }
 
-type builtinMethod func(fnname string, recv skylark.Value, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error)
+type builtinMethod func(fnname string, recv starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error)
 
-func builtinAttr(recv skylark.Value, name string, methods map[string]builtinMethod) (skylark.Value, error) {
+func builtinAttr(recv starlark.Value, name string, methods map[string]builtinMethod) (starlark.Value, error) {
 	method := methods[name]
 	if method == nil {
 		return nil, nil // no such method
 	}
 
 	// Allocate a closure over 'method'.
-	impl := func(thread *skylark.Thread, b *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+	impl := func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		return method(b.Name(), b.Receiver(), args, kwargs)
 	}
-	return skylark.NewBuiltin(name, impl).BindReceiver(recv), nil
+	return starlark.NewBuiltin(name, impl).BindReceiver(recv), nil
 }
 
 func builtinAttrNames(methods map[string]builtinMethod) []string {

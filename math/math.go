@@ -47,17 +47,17 @@ import (
 	"math"
 	"sync"
 
-	"github.com/google/skylark"
-	"github.com/google/skylark/skylarkstruct"
+	starlark "github.com/google/skylark"
+	starlarkstruct "github.com/google/skylark/skylarkstruct"
 )
 
 // ModuleName defines the expected name for this Module when used
-// in skylark's load() function, eg: load('math.sky', 'math')
+// in starlark's load() function, eg: load('math.sky', 'math')
 const ModuleName = "math.sky"
 
 var (
 	once       sync.Once
-	mathModule skylark.StringDict
+	mathModule starlark.StringDict
 )
 
 const tau = math.Pi * 2
@@ -65,44 +65,44 @@ const oneRad = tau / 360
 
 // LoadModule loads the math module.
 // It is concurrency-safe and idempotent.
-func LoadModule() (skylark.StringDict, error) {
+func LoadModule() (starlark.StringDict, error) {
 	once.Do(func() {
 		inf := math.Inf(1)
 		nan := math.NaN()
-		mathModule = skylark.StringDict{
-			"math": skylarkstruct.FromStringDict(skylarkstruct.Default, skylark.StringDict{
-				"ceil":  skylark.NewBuiltin("ceil", ceil),
-				"fabs":  skylark.NewBuiltin("fabs", fabs),
-				"floor": skylark.NewBuiltin("floor", floor),
+		mathModule = starlark.StringDict{
+			"math": starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
+				"ceil":  starlark.NewBuiltin("ceil", ceil),
+				"fabs":  starlark.NewBuiltin("fabs", fabs),
+				"floor": starlark.NewBuiltin("floor", floor),
 
-				"exp":  skylark.NewBuiltin("exp", exp),
-				"sqrt": skylark.NewBuiltin("sqrt", sqrt),
+				"exp":  starlark.NewBuiltin("exp", exp),
+				"sqrt": starlark.NewBuiltin("sqrt", sqrt),
 
-				"acos":  skylark.NewBuiltin("acos", acos),
-				"asin":  skylark.NewBuiltin("asin", asin),
-				"atan":  skylark.NewBuiltin("atan", atan),
-				"atan2": skylark.NewBuiltin("atan2", atan2),
-				"cos":   skylark.NewBuiltin("cos", cos),
-				"hypot": skylark.NewBuiltin("hypot", hypot),
-				"sin":   skylark.NewBuiltin("sin", sin),
-				"tan":   skylark.NewBuiltin("tan", tan),
+				"acos":  starlark.NewBuiltin("acos", acos),
+				"asin":  starlark.NewBuiltin("asin", asin),
+				"atan":  starlark.NewBuiltin("atan", atan),
+				"atan2": starlark.NewBuiltin("atan2", atan2),
+				"cos":   starlark.NewBuiltin("cos", cos),
+				"hypot": starlark.NewBuiltin("hypot", hypot),
+				"sin":   starlark.NewBuiltin("sin", sin),
+				"tan":   starlark.NewBuiltin("tan", tan),
 
-				"degrees": skylark.NewBuiltin("degrees", degrees),
-				"radians": skylark.NewBuiltin("radians", radians),
+				"degrees": starlark.NewBuiltin("degrees", degrees),
+				"radians": starlark.NewBuiltin("radians", radians),
 
-				"acosh": skylark.NewBuiltin("acosh", acosh),
-				"asinh": skylark.NewBuiltin("asinh", asinh),
-				"atanh": skylark.NewBuiltin("atanh", atanh),
-				"cosh":  skylark.NewBuiltin("cosh", cosh),
-				"sinh":  skylark.NewBuiltin("sinh", sinh),
-				"tanh":  skylark.NewBuiltin("tanh", tanh),
+				"acosh": starlark.NewBuiltin("acosh", acosh),
+				"asinh": starlark.NewBuiltin("asinh", asinh),
+				"atanh": starlark.NewBuiltin("atanh", atanh),
+				"cosh":  starlark.NewBuiltin("cosh", cosh),
+				"sinh":  starlark.NewBuiltin("sinh", sinh),
+				"tanh":  starlark.NewBuiltin("tanh", tanh),
 
-				"e":   skylark.Float(math.E),
-				"pi":  skylark.Float(math.Pi),
-				"tau": skylark.Float(tau),
-				"phi": skylark.Float(math.Phi),
-				"inf": skylark.Float(inf),
-				"nan": skylark.Float(nan),
+				"e":   starlark.Float(math.E),
+				"pi":  starlark.Float(math.Pi),
+				"tau": starlark.Float(tau),
+				"phi": starlark.Float(math.Phi),
+				"inf": starlark.Float(inf),
+				"nan": starlark.Float(nan),
 			}),
 		}
 	})
@@ -110,46 +110,46 @@ func LoadModule() (skylark.StringDict, error) {
 }
 
 // Return the floor of x, the largest integer less than or equal to x.
-func floor(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	var x skylark.Float
-	if err := skylark.UnpackArgs("floor", args, kwargs, "x", &x); err != nil {
+func floor(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var x starlark.Float
+	if err := starlark.UnpackArgs("floor", args, kwargs, "x", &x); err != nil {
 		return nil, err
 	}
-	return skylark.Float(math.Floor(float64(x))), nil
+	return starlark.Float(math.Floor(float64(x))), nil
 }
 
 // Return the ceiling of x, the smallest integer greater than or equal to x
-func ceil(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	var x skylark.Float
-	if err := skylark.UnpackArgs("ceil", args, kwargs, "x", &x); err != nil {
+func ceil(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var x starlark.Float
+	if err := starlark.UnpackArgs("ceil", args, kwargs, "x", &x); err != nil {
 		return nil, err
 	}
-	return skylark.Float(math.Ceil(float64(x))), nil
+	return starlark.Float(math.Ceil(float64(x))), nil
 }
 
 // Return the absolute value of x
-func fabs(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	var x skylark.Float
-	if err := skylark.UnpackArgs("fabs", args, kwargs, "x", &x); err != nil {
+func fabs(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var x starlark.Float
+	if err := starlark.UnpackArgs("fabs", args, kwargs, "x", &x); err != nil {
 		return nil, err
 	}
-	return skylark.Float(math.Abs(float64(x))), nil
+	return starlark.Float(math.Abs(float64(x))), nil
 }
 
 // Return e raised to the power x, where e = 2.718281… is the base of natural logarithms.
-func exp(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	var x skylark.Float
-	if err := skylark.UnpackArgs("exp", args, kwargs, "x", &x); err != nil {
+func exp(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var x starlark.Float
+	if err := starlark.UnpackArgs("exp", args, kwargs, "x", &x); err != nil {
 		return nil, err
 	}
-	return skylark.Float(math.Exp(float64(x))), nil
+	return starlark.Float(math.Exp(float64(x))), nil
 }
 
 // Return the square root of x
-func sqrt(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	var x skylark.Float
-	if err := skylark.UnpackArgs("sqrt", args, kwargs, "x", &x); err != nil {
+func sqrt(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var x starlark.Float
+	if err := starlark.UnpackArgs("sqrt", args, kwargs, "x", &x); err != nil {
 		return nil, err
 	}
-	return skylark.Float(math.Sqrt(float64(x))), nil
+	return starlark.Float(math.Sqrt(float64(x))), nil
 }

@@ -1,22 +1,22 @@
-// Package xlsx implements excel file readers in skylark
+// Package xlsx implements excel file readers in starlark
 package xlsx
 
 import (
 	"net/http"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
-	"github.com/google/skylark"
-	"github.com/google/skylark/skylarkstruct"
+	starlark "github.com/google/skylark"
+	starlarkstruct "github.com/google/skylark/skylarkstruct"
 )
 
 // ModuleName defines the expected name for this Module when used
-// in skylark's load() function, eg: load('xlsx.sky', 'xlsx')
+// in starlark's load() function, eg: load('xlsx.sky', 'xlsx')
 const ModuleName = "xlsx.sky"
 
 // LoadModule creates an xlsx Module
-func LoadModule() (skylark.StringDict, error) {
+func LoadModule() (starlark.StringDict, error) {
 	m := &Module{}
-	ns := skylark.StringDict{
+	ns := starlark.StringDict{
 		"xlsx": m.Struct(),
 	}
 	return ns, nil
@@ -27,22 +27,22 @@ func LoadModule() (skylark.StringDict, error) {
 type Module struct {
 }
 
-// Struct returns this module's methods as a skylark Struct
-func (m *Module) Struct() *skylarkstruct.Struct {
-	return skylarkstruct.FromStringDict(skylarkstruct.Default, m.StringDict())
+// Struct returns this module's methods as a starlark Struct
+func (m *Module) Struct() *starlarkstruct.Struct {
+	return starlarkstruct.FromStringDict(starlarkstruct.Default, m.StringDict())
 }
 
-// StringDict returns all module methods in a skylark.StringDict
-func (m *Module) StringDict() skylark.StringDict {
-	return skylark.StringDict{
-		"get_url": skylark.NewBuiltin("get_url", m.GetURL),
+// StringDict returns all module methods in a starlark.StringDict
+func (m *Module) StringDict() starlark.StringDict {
+	return starlark.StringDict{
+		"get_url": starlark.NewBuiltin("get_url", m.GetURL),
 	}
 }
 
 // GetURL gets a file for a given URL
-func (m *Module) GetURL(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func (m *Module) GetURL(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var url string
-	if err := skylark.UnpackPositionalArgs("get_url", args, kwargs, 1, &url); err != nil {
+	if err := starlark.UnpackPositionalArgs("get_url", args, kwargs, 1, &url); err != nil {
 		return nil, err
 	}
 
@@ -70,39 +70,39 @@ type File struct {
 	xlsx *excelize.File
 }
 
-// Struct turns a file into a *skylark.Struct
-func (f *File) Struct() *skylarkstruct.Struct {
-	return skylarkstruct.FromStringDict(skylarkstruct.Default, skylark.StringDict{
-		"get_sheets": skylark.NewBuiltin("get_sheets", f.GetSheets),
-		"get_rows":   skylark.NewBuiltin("get_rows", f.GetRows),
+// Struct turns a file into a *starlark.Struct
+func (f *File) Struct() *starlarkstruct.Struct {
+	return starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
+		"get_sheets": starlark.NewBuiltin("get_sheets", f.GetSheets),
+		"get_rows":   starlark.NewBuiltin("get_rows", f.GetRows),
 	})
 }
 
 // GetSheets returns a map of ints to sheet names, sheet numbers are 1-based
-func (f *File) GetSheets(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	sheets := &skylark.Dict{}
+func (f *File) GetSheets(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	sheets := &starlark.Dict{}
 	for idx, name := range f.xlsx.GetSheetMap() {
-		sheets.Set(skylark.MakeInt(idx), skylark.String(name))
+		sheets.Set(starlark.MakeInt(idx), starlark.String(name))
 	}
 	return sheets, nil
 }
 
 // GetRows grabs rows for a given sheet
-func (f *File) GetRows(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func (f *File) GetRows(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var sheet string
-	if err := skylark.UnpackPositionalArgs("get_rows", args, kwargs, 1, &sheet); err != nil {
+	if err := starlark.UnpackPositionalArgs("get_rows", args, kwargs, 1, &sheet); err != nil {
 		return nil, err
 	}
 
 	xRows := f.xlsx.GetRows(sheet)
-	rows := make([]skylark.Value, len(xRows))
+	rows := make([]starlark.Value, len(xRows))
 	for i, xRow := range xRows {
-		col := make([]skylark.Value, len(xRow))
+		col := make([]starlark.Value, len(xRow))
 		for j, xCell := range xRow {
-			col[j] = skylark.String(xCell)
+			col[j] = starlark.String(xCell)
 		}
-		rows[i] = skylark.NewList(col)
+		rows[i] = starlark.NewList(col)
 	}
 
-	return skylark.NewList(rows), nil
+	return starlark.NewList(rows), nil
 }

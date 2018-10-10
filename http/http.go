@@ -9,13 +9,13 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/skylark"
-	"github.com/google/skylark/skylarkstruct"
-	"github.com/qri-io/starlib/util"
+	starlark "github.com/google/skylark"
+	starlarkstruct "github.com/google/skylark/skylarkstruct"
+	util "github.com/qri-io/starlib/util"
 )
 
 // ModuleName defines the expected name for this Module when used
-// in skylark's load() function, eg: load('http.sky', 'http')
+// in starlark's load() function, eg: load('http.sky', 'http')
 const ModuleName = "http.sky"
 
 var (
@@ -28,12 +28,12 @@ var (
 )
 
 // LoadModule creates an http Module
-func LoadModule() (skylark.StringDict, error) {
+func LoadModule() (starlark.StringDict, error) {
 	var m = &Module{cli: Client}
 	if Guard != nil {
 		m.rg = Guard
 	}
-	ns := skylark.StringDict{
+	ns := starlark.StringDict{
 		"http": m.Struct(),
 	}
 	return ns, nil
@@ -53,36 +53,36 @@ type Module struct {
 	rg  RequestGuard
 }
 
-// Struct returns this module's methods as a skylark Struct
-func (m *Module) Struct() *skylarkstruct.Struct {
-	return skylarkstruct.FromStringDict(skylarkstruct.Default, m.StringDict())
+// Struct returns this module's methods as a starlark Struct
+func (m *Module) Struct() *starlarkstruct.Struct {
+	return starlarkstruct.FromStringDict(starlarkstruct.Default, m.StringDict())
 }
 
-// StringDict returns all module methods in a skylark.StringDict
-func (m *Module) StringDict() skylark.StringDict {
-	return skylark.StringDict{
-		"get":     skylark.NewBuiltin("get", m.reqMethod("get")),
-		"put":     skylark.NewBuiltin("put", m.reqMethod("put")),
-		"post":    skylark.NewBuiltin("post", m.reqMethod("post")),
-		"delete":  skylark.NewBuiltin("delete", m.reqMethod("delete")),
-		"patch":   skylark.NewBuiltin("patch", m.reqMethod("patch")),
-		"options": skylark.NewBuiltin("options", m.reqMethod("options")),
+// StringDict returns all module methods in a starlark.StringDict
+func (m *Module) StringDict() starlark.StringDict {
+	return starlark.StringDict{
+		"get":     starlark.NewBuiltin("get", m.reqMethod("get")),
+		"put":     starlark.NewBuiltin("put", m.reqMethod("put")),
+		"post":    starlark.NewBuiltin("post", m.reqMethod("post")),
+		"delete":  starlark.NewBuiltin("delete", m.reqMethod("delete")),
+		"patch":   starlark.NewBuiltin("patch", m.reqMethod("patch")),
+		"options": starlark.NewBuiltin("options", m.reqMethod("options")),
 	}
 }
 
-// reqMethod is a factory function for generating skylark builtin functions for different http request methods
-func (m *Module) reqMethod(method string) func(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	return func(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+// reqMethod is a factory function for generating starlark builtin functions for different http request methods
+func (m *Module) reqMethod(method string) func(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return func(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var (
-			urlv     skylark.String
-			params   = &skylark.Dict{}
-			headers  = &skylark.Dict{}
-			data     = &skylark.Dict{}
-			auth     skylark.Tuple
-			jsondata skylark.Value
+			urlv     starlark.String
+			params   = &starlark.Dict{}
+			headers  = &starlark.Dict{}
+			data     = &starlark.Dict{}
+			auth     starlark.Tuple
+			jsondata starlark.Value
 		)
 
-		if err := skylark.UnpackArgs(method, args, kwargs, "url", &urlv, "params?", &params, "headers", &headers, "data", &data, "json", &jsondata, "auth", &auth); err != nil {
+		if err := starlark.UnpackArgs(method, args, kwargs, "url", &urlv, "params?", &params, "headers", &headers, "data", &data, "json", &jsondata, "auth", &auth); err != nil {
 			return nil, err
 		}
 
@@ -124,7 +124,7 @@ func (m *Module) reqMethod(method string) func(thread *skylark.Thread, _ *skylar
 	}
 }
 
-func setQueryParams(rawurl *string, params *skylark.Dict) error {
+func setQueryParams(rawurl *string, params *starlark.Dict) error {
 	keys := params.Keys()
 	if len(keys) == 0 {
 		return nil
@@ -162,7 +162,7 @@ func setQueryParams(rawurl *string, params *skylark.Dict) error {
 	return nil
 }
 
-func setAuth(req *http.Request, auth skylark.Tuple) error {
+func setAuth(req *http.Request, auth starlark.Tuple) error {
 	if len(auth) == 0 {
 		return nil
 	} else if len(auth) == 2 {
@@ -180,7 +180,7 @@ func setAuth(req *http.Request, auth skylark.Tuple) error {
 	return fmt.Errorf("expected two values for auth params tuple")
 }
 
-func setHeaders(req *http.Request, headers *skylark.Dict) error {
+func setHeaders(req *http.Request, headers *starlark.Dict) error {
 	keys := headers.Keys()
 	if len(keys) == 0 {
 		return nil
@@ -210,7 +210,7 @@ func setHeaders(req *http.Request, headers *skylark.Dict) error {
 	return nil
 }
 
-func setBody(req *http.Request, data *skylark.Dict, jsondata skylark.Value) error {
+func setBody(req *http.Request, data *starlark.Dict, jsondata starlark.Value) error {
 	if jsondata != nil && jsondata.String() != "" {
 		req.Header.Set("Content-Type", "application/json")
 
@@ -257,37 +257,37 @@ func setBody(req *http.Request, data *skylark.Dict, jsondata skylark.Value) erro
 }
 
 // Response represents an HTTP response, wrapping a go http.Response with
-// skylark methods
+// starlark methods
 type Response struct {
 	http.Response
 }
 
-// Struct turns a response into a *skylark.Struct
-func (r *Response) Struct() *skylarkstruct.Struct {
-	return skylarkstruct.FromStringDict(skylarkstruct.Default, skylark.StringDict{
-		"url":         skylark.String(r.Request.URL.String()),
-		"status_code": skylark.MakeInt(r.StatusCode),
+// Struct turns a response into a *starlark.Struct
+func (r *Response) Struct() *starlarkstruct.Struct {
+	return starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
+		"url":         starlark.String(r.Request.URL.String()),
+		"status_code": starlark.MakeInt(r.StatusCode),
 		"headers":     r.HeadersDict(),
-		"encoding":    skylark.String(strings.Join(r.TransferEncoding, ",")),
+		"encoding":    starlark.String(strings.Join(r.TransferEncoding, ",")),
 
-		"text":    skylark.NewBuiltin("text", r.Text),
-		"content": skylark.NewBuiltin("content", r.Text),
+		"text":    starlark.NewBuiltin("text", r.Text),
+		"content": starlark.NewBuiltin("content", r.Text),
 
-		"json": skylark.NewBuiltin("json", r.JSON),
+		"json": starlark.NewBuiltin("json", r.JSON),
 	})
 }
 
 // HeadersDict flops
-func (r *Response) HeadersDict() *skylark.Dict {
-	d := new(skylark.Dict)
+func (r *Response) HeadersDict() *starlark.Dict {
+	d := new(starlark.Dict)
 	for key, vals := range r.Header {
-		d.Set(skylark.String(key), skylark.String(strings.Join(vals, ",")))
+		d.Set(starlark.String(key), starlark.String(strings.Join(vals, ",")))
 	}
 	return d
 }
 
 // Text returns the raw data as a string
-func (r *Response) Text(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func (r *Response) Text(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
@@ -296,11 +296,11 @@ func (r *Response) Text(thread *skylark.Thread, _ *skylark.Builtin, args skylark
 	// reset reader to allow multiple calls
 	r.Body = ioutil.NopCloser(bytes.NewReader(data))
 
-	return skylark.String(string(data)), nil
+	return starlark.String(string(data)), nil
 }
 
 // JSON attempts to parse the response body as JSON
-func (r *Response) JSON(thread *skylark.Thread, _ *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func (r *Response) JSON(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var data interface{}
 
 	body, err := ioutil.ReadAll(r.Body)

@@ -4,25 +4,25 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/google/skylark"
+	starlark "github.com/google/skylark"
 )
 
-// AsString unquotes a skylark string value
-func AsString(x skylark.Value) (string, error) {
+// AsString unquotes a starlark string value
+func AsString(x starlark.Value) (string, error) {
 	return strconv.Unquote(x.String())
 }
 
-// Unmarshal decodes a skylark.Value into it's golang counterpart
-func Unmarshal(x skylark.Value) (val interface{}, err error) {
+// Unmarshal decodes a starlark.Value into it's golang counterpart
+func Unmarshal(x starlark.Value) (val interface{}, err error) {
 	switch x.Type() {
 	case "NoneType":
 		val = nil
 	case "bool":
-		val = x.Truth() == skylark.True
+		val = x.Truth() == starlark.True
 	case "int":
-		val, err = skylark.AsInt32(x)
+		val, err = starlark.AsInt32(x)
 	case "float":
-		if f, ok := skylark.AsFloat(x); ok {
+		if f, ok := starlark.AsFloat(x); ok {
 			val = f
 		} else {
 			err = fmt.Errorf("couldn't parse float")
@@ -31,9 +31,9 @@ func Unmarshal(x skylark.Value) (val interface{}, err error) {
 		val, err = AsString(x)
 		// val = x.String()
 	case "dict":
-		if dict, ok := x.(*skylark.Dict); ok {
+		if dict, ok := x.(*starlark.Dict); ok {
 			var (
-				v     skylark.Value
+				v     starlark.Value
 				pval  interface{}
 				value = map[string]interface{}{}
 			)
@@ -62,10 +62,10 @@ func Unmarshal(x skylark.Value) (val interface{}, err error) {
 			err = fmt.Errorf("error parsing dict. invalid type: %v", x)
 		}
 	case "list":
-		if list, ok := x.(*skylark.List); ok {
+		if list, ok := x.(*starlark.List); ok {
 			var (
 				i     int
-				v     skylark.Value
+				v     starlark.Value
 				iter  = list.Iterate()
 				value = make([]interface{}, list.Len())
 			)
@@ -83,10 +83,10 @@ func Unmarshal(x skylark.Value) (val interface{}, err error) {
 			err = fmt.Errorf("error parsing list. invalid type: %v", x)
 		}
 	case "tuple":
-		if tuple, ok := x.(skylark.Tuple); ok {
+		if tuple, ok := x.(starlark.Tuple); ok {
 			var (
 				i     int
-				v     skylark.Value
+				v     starlark.Value
 				iter  = tuple.Iterate()
 				value = make([]interface{}, tuple.Len())
 			)
@@ -108,50 +108,50 @@ func Unmarshal(x skylark.Value) (val interface{}, err error) {
 		err = fmt.Errorf("sets aren't yet supported")
 	default:
 		fmt.Println("errbadtype:", x.Type())
-		err = fmt.Errorf("unrecognized skylark type: %s", x.Type())
+		err = fmt.Errorf("unrecognized starlark type: %s", x.Type())
 	}
 	return
 }
 
-// Marshal turns go values into skylark types
-func Marshal(data interface{}) (v skylark.Value, err error) {
+// Marshal turns go values into starlark types
+func Marshal(data interface{}) (v starlark.Value, err error) {
 	switch x := data.(type) {
 	case nil:
-		v = skylark.None
+		v = starlark.None
 	case bool:
-		v = skylark.Bool(x)
+		v = starlark.Bool(x)
 	case string:
-		v = skylark.String(x)
+		v = starlark.String(x)
 	case int:
-		v = skylark.MakeInt(x)
+		v = starlark.MakeInt(x)
 	case int64:
-		v = skylark.MakeInt(int(x))
+		v = starlark.MakeInt(int(x))
 	case float64:
-		v = skylark.Float(x)
+		v = starlark.Float(x)
 	case []interface{}:
-		var elems = make([]skylark.Value, len(x))
+		var elems = make([]starlark.Value, len(x))
 		for i, val := range x {
 			elems[i], err = Marshal(val)
 			if err != nil {
 				return
 			}
 		}
-		v = skylark.NewList(elems)
+		v = starlark.NewList(elems)
 	case map[string]interface{}:
-		dict := &skylark.Dict{}
-		var elem skylark.Value
+		dict := &starlark.Dict{}
+		var elem starlark.Value
 		for key, val := range x {
 			elem, err = Marshal(val)
 			if err != nil {
 				return
 			}
-			if err = dict.Set(skylark.String(key), elem); err != nil {
+			if err = dict.Set(starlark.String(key), elem); err != nil {
 				return
 			}
 		}
 		v = dict
 	default:
-		return skylark.None, fmt.Errorf("unrecognized type: %#v", x)
+		return starlark.None, fmt.Errorf("unrecognized type: %#v", x)
 	}
 	return
 }

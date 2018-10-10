@@ -3,7 +3,7 @@ package starlib
 import (
 	"fmt"
 
-	"github.com/google/skylark"
+	starlark "github.com/google/skylark"
 	"github.com/qri-io/starlib/html"
 	"github.com/qri-io/starlib/http"
 	"github.com/qri-io/starlib/re"
@@ -13,7 +13,7 @@ import (
 )
 
 // Loader presents the starlib library as a loader
-func Loader(thread *skylark.Thread, module string) (dict skylark.StringDict, err error) {
+func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, err error) {
 	switch module {
 	case time.ModuleName:
 		return time.LoadModule()
