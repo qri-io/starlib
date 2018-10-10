@@ -5,6 +5,7 @@ github.com/PuerkitoBio/goquery \
 github.com/andybalholm/cascadia \
 github.com/google/skylark \
 github.com/mohae/deepcopy \
+github.com/qri-io/dataset \
 golang.org/x/net/html 
 endef
 
