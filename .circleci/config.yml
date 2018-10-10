@@ -1,0 +1,43 @@
+version: '2'
+jobs:
+  build:
+    working_directory: /go/src/github.com/qri-io/starlib
+    docker:
+      - image: circleci/golang:1.11
+    environment:
+      TEST_RESULTS: /tmp/test-results
+    steps:
+      - checkout
+      - run: mkdir -p $TEST_RESULTS
+      - run: 
+          name: Install test deps
+          command: >
+            go get -v
+            github.com/jstemmer/go-junit-report 
+            github.com/golang/lint/golint
+      - run:
+          name: Run Lint Tests
+          command: golint -set_exit_status ./...
+      - restore_cache:
+          key: dependency-cache-{{ checksum "makefile" }}
+      - run:
+          name: Install deps
+          command: >
+            make install-deps
+      - save_cache:
+          key: dependency-cache-{{ checksum "makefile" }}
+          paths:
+            - /go/src/github.com/
+      - run:
+          name: Run Tests
+          command: |
+            trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
+            ./.circleci/cover.test.sh | tee ${TEST_RESULTS}/go-test.out
+      - run:
+          name: Publish coverage info to codecov.io
+          command: bash <(curl -s https://codecov.io/bash)
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: raw-test-output
+      - store_test_results:
+          path: /tmp/test-results

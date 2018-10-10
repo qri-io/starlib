@@ -3,17 +3,17 @@ package util
 import (
 	"testing"
 
-	"github.com/google/skylark"
+	starlark "github.com/google/skylark"
 )
 
 func TestAsString(t *testing.T) {
 	cases := []struct {
-		in       skylark.Value
+		in       starlark.Value
 		got, err string
 	}{
-		{skylark.String("foo"), "foo", ""},
-		{skylark.String("\"foo'"), "\"foo'", ""},
-		{skylark.Bool(true), "", "invalid syntax"},
+		{starlark.String("foo"), "foo", ""},
+		{starlark.String("\"foo'"), "\"foo'", ""},
+		{starlark.Bool(true), "", "invalid syntax"},
 	}
 
 	for i, c := range cases {
