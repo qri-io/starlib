@@ -1,5 +1,4 @@
-/*
-Package sltime defines time primitives for starkark, based heavily on the time
+/*Package time defines time primitives for starlark, based heavily on the time
 package from the go standard library.
 
 module time
@@ -40,7 +39,7 @@ fields
 	nanosecond int
 
 TODO:
-- unix time_t conversions
+- unix timet conversions
 - timezone stuff
 - strftime formatting
 - constructor from 6 components + location
@@ -54,11 +53,10 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
-	starlark "github.com/google/skylark"
-	starlarkstruct "github.com/google/skylark/skylarkstruct"
-	syntax "github.com/google/skylark/syntax"
+	starlark "github.com/google/starlark"
+	starlarkstruct "github.com/google/starlark/starlarkstruct"
+	syntax "github.com/google/starlark/syntax"
 )
 
 // ModuleName defines the expected name for this Module when used
@@ -76,22 +74,22 @@ var (
 func LoadModule() (starlark.StringDict, error) {
 	once.Do(func() {
 		predeclared := starlark.StringDict{
-			"duration_": starlark.NewBuiltin("duration", duration_),
-			"location_": starlark.NewBuiltin("location", location_),
-			"now_":      starlark.NewBuiltin("now", now_),
-			"struct":    starlark.NewBuiltin("struct", starlarkstruct.Make),
-			"time_":     starlark.NewBuiltin("time", time_),
-			"zero_":     Time{},
+			"duration": starlark.NewBuiltin("duration", duration),
+			"location": starlark.NewBuiltin("location", location),
+			"now":      starlark.NewBuiltin("now", now),
+			"struct":   starlark.NewBuiltin("struct", starlarkstruct.Make),
+			"time":     starlark.NewBuiltin("time", time),
+			"zero":     Time{},
 		}
 
 		// embed file into binary to remove any file dependencies
 		file := strings.NewReader(`
 time = struct(
-	time = time_,
-	duration = duration_,
-	location = location_,
-	now = now_,
-	zero = zero_,
+	time = time,
+	duration = duration,
+	location = location,
+	now = now,
+	zero = zero,
 )
 `)
 
@@ -106,7 +104,7 @@ time = struct(
 // so that it can be overridden
 var NowFunc = func() time.Time { return time.Now() }
 
-func duration_(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func duration(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var x starlark.String
 	if err := starlark.UnpackArgs("duration", args, kwargs, "x", &x); err != nil {
 		return nil, err
@@ -120,7 +118,7 @@ func duration_(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 	return Duration(d), nil
 }
 
-func location_(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func location(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var x starlark.String
 	if err := starlark.UnpackArgs("location", args, kwargs, "x", &x); err != nil {
 		return nil, err
@@ -133,7 +131,7 @@ func location_(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 	return starlark.String(loc.String()), nil
 }
 
-func time_(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func time(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
 		x, location starlark.String
 		format      = starlark.String(time.RFC3339)
@@ -161,35 +159,53 @@ func time_(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kw
 	return Time(t), nil
 }
 
-func now_(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func now(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	return Time(NowFunc()), nil
 }
 
+// Duration is a starlark representation of a duration
 type Duration time.Duration
 
-func (d Duration) String() string        { return time.Duration(d).String() }
-func (d Duration) Type() string          { return "duration" }
-func (d Duration) Freeze()               {} // immutable
+// String implements the Stringer interface
+func (d Duration) String() string { return time.Duration(d).String() }
+
+// Type returns a short string describing the value's type.
+func (d Duration) Type() string { return "duration" }
+
+// Freeze renders Duration immutable. required by starlark.Value interface
+// because duration is already immutable this is a no-op
+func (d Duration) Freeze() {}
+
+// Hash returns a function of x such that Equals(x, y) => Hash(x) == Hash(y)
+// required by starlark.Value interface
 func (d Duration) Hash() (uint32, error) { return hashString(d.String()), nil }
-func (d Duration) Truth() starlark.Bool  { return d > 0 }
+
+// Truth returns the truth value of an object required by starlark.Value interface
+func (d Duration) Truth() starlark.Bool { return d > 0 }
+
+// Attr gets a value for a string attribute, implementing dot expression support in starklark. required by starlark.HasAttrs interface
 func (d Duration) Attr(name string) (starlark.Value, error) {
 	return builtinAttr(d, name, durationMethods)
 }
+
+// AttrNames lists available dot expression strings. required by starlark.HasAttrs interface
 func (d Duration) AttrNames() []string { return builtinAttrNames(durationMethods) }
-func (d Duration) Binary(op syntax.Token, y_ starlark.Value, side starlark.Side) (starlark.Value, error) {
+
+// Binary implements binary operators, which satisfies the starlark.HasBinary interface
+func (d Duration) Binary(op syntax.Token, yV starlark.Value, side starlark.Side) (starlark.Value, error) {
 	x := time.Duration(d)
 	var y time.Duration
-	switch y_.(type) {
+	switch yV.(type) {
 	case starlark.Int:
-		i, ok := y_.(starlark.Int).Int64()
+		i, ok := yV.(starlark.Int).Int64()
 		if !ok {
 			return nil, fmt.Errorf("duration binary operation: couldn't parse int")
 		}
 		y = time.Duration(i)
 	case Duration:
-		y = time.Duration(y_.(Duration))
+		y = time.Duration(yV.(Duration))
 	case Time:
-		y := time.Time(y_.(Time))
+		y := time.Time(yV.(Time))
 		switch op {
 		case syntax.PLUS:
 			// duration + time = time
@@ -226,18 +242,36 @@ var durationMethods = map[string]builtinMethod{
 	// "seconds" :
 }
 
+// Time is a starlark representation of a point in time
 type Time time.Time
 
-func (t Time) String() string                           { return time.Time(t).String() }
-func (t Time) Type() string                             { return "time" }
-func (t Time) Freeze()                                  {} // immutable
-func (t Time) Hash() (uint32, error)                    { return hashString(t.String()), nil }
-func (t Time) Truth() starlark.Bool                     { return starlark.Bool(time.Time(t).IsZero()) }
+// String implements the Stringer interface
+func (t Time) String() string { return time.Time(t).String() }
+
+// Type returns a short string describing the value's type.
+func (t Time) Type() string { return "time" }
+
+// Freeze renders time immutable. required by starlark.Value interface
+// because Time is already immutable this is a no-op
+func (t Time) Freeze() {}
+
+// Hash returns a function of x such that Equals(x, y) => Hash(x) == Hash(y)
+// required by starlark.Value interface
+func (t Time) Hash() (uint32, error) { return hashString(t.String()), nil }
+
+// Truth returns the truth value of an object required by starlark.Value interface
+func (t Time) Truth() starlark.Bool { return starlark.Bool(time.Time(t).IsZero()) }
+
+// Attr gets a value for a string attribute, implementing dot expression support in starklark. required by starlark.HasAttrs interface
 func (t Time) Attr(name string) (starlark.Value, error) { return builtinAttr(t, name, timeMethods) }
-func (t Time) AttrNames() []string                      { return builtinAttrNames(timeMethods) }
-func (t Time) CompareSameType(op syntax.Token, y_ starlark.Value, depth int) (bool, error) {
+
+// AttrNames lists available dot expression strings for time. required by starlark.HasAttrs interface
+func (t Time) AttrNames() []string { return builtinAttrNames(timeMethods) }
+
+// CompareSameType implements comparison of two Time values. required by starlark.Comparable interface
+func (t Time) CompareSameType(op syntax.Token, yV starlark.Value, depth int) (bool, error) {
 	x := time.Time(t)
-	y := time.Time(y_.(Time))
+	y := time.Time(yV.(Time))
 	cp := 0
 	if x.Before(y) {
 		cp = -1
@@ -246,12 +280,14 @@ func (t Time) CompareSameType(op syntax.Token, y_ starlark.Value, depth int) (bo
 	}
 	return threeway(op, cp), nil
 }
-func (t Time) Binary(op syntax.Token, y_ starlark.Value, side starlark.Side) (starlark.Value, error) {
+
+// Binary implements binary operators, which satisfies the starlark.HasBinary interface
+func (t Time) Binary(op syntax.Token, yV starlark.Value, side starlark.Side) (starlark.Value, error) {
 	x := time.Time(t)
 
-	switch y_.(type) {
+	switch yV.(type) {
 	case Duration:
-		y := time.Duration(y_.(Duration))
+		y := time.Duration(yV.(Duration))
 		switch op {
 		// time + duration = time
 		case syntax.PLUS:
@@ -261,7 +297,7 @@ func (t Time) Binary(op syntax.Token, y_ starlark.Value, side starlark.Side) (st
 			return Time(x.Add(-y)), nil
 		}
 	case Time:
-		y := time.Time(y_.(Time))
+		y := time.Time(yV.(Time))
 		switch op {
 		// time - time = duration
 		case syntax.MINUS:
@@ -277,48 +313,48 @@ func (t Time) Binary(op syntax.Token, y_ starlark.Value, side starlark.Side) (st
 }
 
 var timeMethods = map[string]builtinMethod{
-	"year":       time_year,
-	"month":      time_month,
-	"day":        time_day,
-	"hour":       time_hour,
-	"minute":     time_minute,
-	"second":     time_second,
-	"nanosecond": time_nanosecond,
+	"year":       timeyear,
+	"month":      timemonth,
+	"day":        timeday,
+	"hour":       timehour,
+	"minute":     timeminute,
+	"second":     timesecond,
+	"nanosecond": timenanosecond,
 }
 
 // TODO - consider using a higher order function to generate these
-func time_year(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	recv := time.Time(recv_.(Time))
+func timeyear(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := time.Time(recV.(Time))
 	return starlark.MakeInt(recv.Year()), nil
 }
 
-func time_month(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	recv := time.Time(recv_.(Time))
+func timemonth(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := time.Time(recV.(Time))
 	return starlark.MakeInt(int(recv.Month())), nil
 }
 
-func time_day(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	recv := time.Time(recv_.(Time))
+func timeday(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := time.Time(recV.(Time))
 	return starlark.MakeInt(recv.Day()), nil
 }
 
-func time_hour(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	recv := time.Time(recv_.(Time))
+func timehour(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := time.Time(recV.(Time))
 	return starlark.MakeInt(recv.Hour()), nil
 }
 
-func time_minute(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	recv := time.Time(recv_.(Time))
+func timeminute(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := time.Time(recV.(Time))
 	return starlark.MakeInt(recv.Minute()), nil
 }
 
-func time_second(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	recv := time.Time(recv_.(Time))
+func timesecond(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := time.Time(recV.(Time))
 	return starlark.MakeInt(recv.Second()), nil
 }
 
-func time_nanosecond(fnname string, recv_ starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	recv := time.Time(recv_.(Time))
+func timenanosecond(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := time.Time(recV.(Time))
 	return starlark.MakeInt(recv.Nanosecond()), nil
 }
 

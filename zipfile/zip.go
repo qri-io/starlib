@@ -52,6 +52,7 @@ func newZipFile(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tupl
 	return ZipFile{zr}.Struct(), nil
 }
 
+// ZipFile is a starlark zip file
 type ZipFile struct {
 	*zip.Reader
 }
@@ -87,6 +88,7 @@ func (zf ZipFile) open(thread *starlark.Thread, _ *starlark.Builtin, args starla
 	return starlark.None, fmt.Errorf("not found")
 }
 
+// ZipInfo is a starlark information object for a Zip archive component
 type ZipInfo struct {
 	*zip.File
 }
@@ -98,7 +100,7 @@ func (zf ZipInfo) Struct() *starlarkstruct.Struct {
 	})
 }
 
-func (f ZipInfo) read(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (ZipInfo) read(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	rc, err := f.File.Open()
 	if err != nil {
 		return starlark.None, err
