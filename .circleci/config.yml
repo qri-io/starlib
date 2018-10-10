@@ -1,7 +1,7 @@
 version: '2'
 jobs:
   build:
-    working_directory: /go/src/github.com/qri-io/cafs
+    working_directory: /go/src/github.com/qri-io/starlib
     docker:
       - image: circleci/golang:1.11
     environment:
