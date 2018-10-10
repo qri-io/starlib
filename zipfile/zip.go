@@ -94,14 +94,14 @@ type ZipInfo struct {
 }
 
 // Struct turns zipInfo into a starlark struct value
-func (zf ZipInfo) Struct() *starlarkstruct.Struct {
+func (zi ZipInfo) Struct() *starlarkstruct.Struct {
 	return starlarkstruct.FromStringDict(starlark.String("ZipFile"), starlark.StringDict{
-		"read": starlark.NewBuiltin("read", zf.read),
+		"read": starlark.NewBuiltin("read", zi.read),
 	})
 }
 
-func (ZipInfo) read(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	rc, err := f.File.Open()
+func (zi ZipInfo) read(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	rc, err := zi.File.Open()
 	if err != nil {
 		return starlark.None, err
 	}
