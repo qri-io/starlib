@@ -7,8 +7,8 @@ import (
 	starlark "github.com/google/skylark"
 )
 
-// AsString unquotes a starlark string value
-func AsString(x starlark.Value) (string, error) {
+// asString unquotes a starlark string value
+func asString(x starlark.Value) (string, error) {
 	return strconv.Unquote(x.String())
 }
 
@@ -22,87 +22,93 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 	case "int":
 		val, err = starlark.AsInt32(x)
 	case "float":
-		if f, ok := starlark.AsFloat(x); ok {
-			val = f
-		} else {
+		if f, ok := starlark.AsFloat(x); !ok {
 			err = fmt.Errorf("couldn't parse float")
+		} else {
+			val = f
 		}
 	case "string":
-		val, err = AsString(x)
+		val, err = asString(x)
 		// val = x.String()
 	case "dict":
-		if dict, ok := x.(*starlark.Dict); ok {
-			var (
-				v     starlark.Value
-				pval  interface{}
-				value = map[string]interface{}{}
-			)
-
-			for _, k := range dict.Keys() {
-				v, ok, err = dict.Get(k)
-				if err != nil {
-					return
-				}
-
-				pval, err = Unmarshal(v)
-				if err != nil {
-					return
-				}
-
-				var str string
-				str, err = AsString(k)
-				if err != nil {
-					return
-				}
-
-				value[str] = pval
-			}
-			val = value
-		} else {
+		dict, ok := x.(*starlark.Dict)
+		if !ok {
 			err = fmt.Errorf("error parsing dict. invalid type: %v", x)
+			return
 		}
+
+		var (
+			v     starlark.Value
+			pval  interface{}
+			value = map[string]interface{}{}
+		)
+
+		for _, k := range dict.Keys() {
+			v, ok, err = dict.Get(k)
+			if err != nil {
+				return
+			}
+
+			pval, err = Unmarshal(v)
+			if err != nil {
+				return
+			}
+
+			var str string
+			str, err = asString(k)
+			if err != nil {
+				return
+			}
+
+			value[str] = pval
+		}
+		val = value
 	case "list":
-		if list, ok := x.(*starlark.List); ok {
-			var (
-				i     int
-				v     starlark.Value
-				iter  = list.Iterate()
-				value = make([]interface{}, list.Len())
-			)
-
-			for iter.Next(&v) {
-				value[i], err = Unmarshal(v)
-				if err != nil {
-					return
-				}
-				i++
-			}
-			iter.Done()
-			val = value
-		} else {
+		list, ok := x.(*starlark.List)
+		if !ok {
 			err = fmt.Errorf("error parsing list. invalid type: %v", x)
+			return
 		}
-	case "tuple":
-		if tuple, ok := x.(starlark.Tuple); ok {
-			var (
-				i     int
-				v     starlark.Value
-				iter  = tuple.Iterate()
-				value = make([]interface{}, tuple.Len())
-			)
 
-			for iter.Next(&v) {
-				value[i], err = Unmarshal(v)
-				if err != nil {
-					return
-				}
-				i++
+		var (
+			i     int
+			v     starlark.Value
+			iter  = list.Iterate()
+			value = make([]interface{}, list.Len())
+		)
+
+		defer iter.Done()
+		for iter.Next(&v) {
+			value[i], err = Unmarshal(v)
+			if err != nil {
+				return
 			}
-			iter.Done()
-			val = value
-		} else {
-			err = fmt.Errorf("error parsing dict. invalid type: %v", x)
+			i++
 		}
+		val = value
+	case "tuple":
+		tuple, ok := x.(starlark.Tuple)
+		if !ok {
+			err = fmt.Errorf("error parsing dict. invalid type: %v", x)
+			return
+		}
+
+		var (
+			i     int
+			v     starlark.Value
+			iter  = tuple.Iterate()
+			value = make([]interface{}, tuple.Len())
+		)
+
+		defer iter.Done()
+		for iter.Next(&v) {
+			value[i], err = Unmarshal(v)
+			if err != nil {
+				return
+			}
+			i++
+		}
+		val = value
 	case "set":
 		fmt.Println("errnotdone: SET")
 		err = fmt.Errorf("sets aren't yet supported")
@@ -125,7 +131,7 @@ func Marshal(data interface{}) (v starlark.Value, err error) {
 	case int:
 		v = starlark.MakeInt(x)
 	case int64:
-		v = starlark.MakeInt(int(x))
+		v = starlark.MakeInt64(int64(x))
 	case float64:
 		v = starlark.Float(x)
 	case []interface{}:

@@ -109,47 +109,46 @@ func LoadModule() (starlark.StringDict, error) {
 	return mathModule, nil
 }
 
-// Return the floor of x, the largest integer less than or equal to x.
-func floor(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+// floatFunc unpacks a starlark function call, calls a passed in float64 function
+// and returns the result as a starlark value
+func floatFunc(name string, args starlark.Tuple, kwargs []starlark.Tuple, fn func(float64) float64) (starlark.Value, error) {
 	var x starlark.Float
-	if err := starlark.UnpackArgs("floor", args, kwargs, "x", &x); err != nil {
+	if err := starlark.UnpackArgs(name, args, kwargs, "x", &x); err != nil {
 		return nil, err
 	}
-	return starlark.Float(math.Floor(float64(x))), nil
+	return starlark.Float(fn(float64(x))), nil
+}
+
+// floatFunc2 is a 2-argument float func
+func floatFunc2(name string, args starlark.Tuple, kwargs []starlark.Tuple, fn func(float64, float64) float64) (starlark.Value, error) {
+	var x, y starlark.Float
+	if err := starlark.UnpackArgs(name, args, kwargs, "x", &x, "y", &y); err != nil {
+		return nil, err
+	}
+	return starlark.Float(fn(float64(x), float64(y))), nil
+}
+
+// Return the floor of x, the largest integer less than or equal to x.
+func floor(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return floatFunc("floor", args, kwargs, math.Floor)
 }
 
 // Return the ceiling of x, the smallest integer greater than or equal to x
 func ceil(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("ceil", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Ceil(float64(x))), nil
+	return floatFunc("ceil", args, kwargs, math.Ceil)
 }
 
 // Return the absolute value of x
 func fabs(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("fabs", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Abs(float64(x))), nil
+	return floatFunc("fabs", args, kwargs, math.Abs)
 }
 
 // Return e raised to the power x, where e = 2.718281… is the base of natural logarithms.
 func exp(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("exp", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Exp(float64(x))), nil
+	return floatFunc("exp", args, kwargs, math.Exp)
 }
 
 // Return the square root of x
 func sqrt(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("sqrt", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Sqrt(float64(x))), nil
+	return floatFunc("sqrt", args, kwargs, math.Sqrt)
 }

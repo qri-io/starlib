@@ -1,13 +1,18 @@
 package html
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	starlark "github.com/google/skylark"
 	starlarkstruct "github.com/google/skylark/skylarkstruct"
-	util "github.com/qri-io/starlib/util"
 )
+
+// AsString unquotes a starlark string value
+func AsString(x starlark.Value) (string, error) {
+	return strconv.Unquote(x.String())
+}
 
 // ModuleName defines the expected name for this Module when used
 // in starlark's load() function, eg: load('html.sky', 'html')
@@ -27,7 +32,7 @@ func NewDocument(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tup
 		return nil, err
 	}
 
-	str, err := util.AsString(body)
+	str, err := AsString(body)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +185,7 @@ func (s *Selection) selectorArg(method string, args starlark.Tuple, kwargs []sta
 	if err := starlark.UnpackPositionalArgs(method, args, kwargs, 1, &selector); err != nil {
 		return "", err
 	}
-	return util.AsString(selector)
+	return AsString(selector)
 }
 
 // Siblings gets the siblings of each element in the Selection. It returns a new Selection object containing the matched elements
