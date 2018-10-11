@@ -8,144 +8,85 @@ import (
 
 // Return the arc cosine of x, in radians.
 func acos(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("acos", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Acos(float64(x))), nil
+	return floatFunc("acos", args, kwargs, math.Acos)
 }
 
 // asin(x) - Return the arc sine of x, in radians.
 func asin(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("asin", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Asin(float64(x))), nil
+	return floatFunc("asin", args, kwargs, math.Asin)
 }
 
 // atan(x) - Return the arc tangent of x, in radians.
 func atan(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("atan", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Atan(float64(x))), nil
+	return floatFunc("atan", args, kwargs, math.Atan)
 }
 
-// atan2(y, x) - Return atan(y / x), in radians. The result is between -pi and pi. The vector in the plane from the origin to point (x, y) makes this angle with the positive X axis. The point of atan2() is that the signs of both inputs are known to it, so it can compute the correct quadrant for the angle. For example, atan(1) and atan2(1, 1) are both pi/4, but atan2(-1, -1) is -3*pi/4.
+// atan2(y, x) - Return atan(y / x), in radians. The result is between -pi and pi.
+// The vector in the plane from the origin to point (x, y) makes this angle with the positive X axis.
+// The point of atan2() is that the signs of both inputs are known to it, so it can compute the correct quadrant for the angle.
+// For example, atan(1) and atan2(1, 1) are both pi/4, but atan2(-1, -1) is -3*pi/4.
 func atan2(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x, y starlark.Float
-	if err := starlark.UnpackArgs("atan2", args, kwargs, "y", &y, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Atan2(float64(y), float64(x))), nil
+	return floatFunc2("atan2", args, kwargs, math.Atan2)
 }
 
 // cos(x) - Return the cosine of x radians.
 func cos(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("cos", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Cos(float64(x))), nil
+	return floatFunc("cos", args, kwargs, math.Cos)
 }
 
 // hypot(x, y) - Return the Euclidean norm, sqrt(x*x + y*y). This is the length of the vector from the origin to point (x, y).
 func hypot(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x, y starlark.Float
-	if err := starlark.UnpackArgs("hypot", args, kwargs, "x", &x, "y", &y); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Hypot(float64(x), float64(y))), nil
+	return floatFunc2("hypot", args, kwargs, math.Hypot)
 }
 
 // sin(x) - Return the sine of x radians.
 func sin(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("sin", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Sin(float64(x))), nil
+	return floatFunc("sin", args, kwargs, math.Sin)
 }
 
 // tan(x) - Return the tangent of x radians.
 func tan(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("tan", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Tan(float64(x))), nil
+	return floatFunc("tan", args, kwargs, math.Tan)
 }
 
 // degrees(x) - Convert angle x from radians to degrees.
 func degrees(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("degrees", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(float64(x) / oneRad), nil
+	toDeg := func(x float64) float64 { return x / oneRad }
+	return floatFunc("degrees", args, kwargs, toDeg)
 }
 
 // radians(x) - Convert angle x from degrees to radians.
 func radians(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("radians", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(float64(x) * oneRad), nil
+	toRad := func(x float64) float64 { return x * oneRad }
+	return floatFunc("radians", args, kwargs, toRad)
 }
 
 // acosh(x) - Return the inverse hyperbolic cosine of x.
 func acosh(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("acosh", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Acosh(float64(x))), nil
+	return floatFunc("acosh", args, kwargs, math.Acosh)
 }
 
 // asinh(x) - Return the inverse hyperbolic sine of x.
 func asinh(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("asinh", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Asinh(float64(x))), nil
+	return floatFunc("asinh", args, kwargs, math.Asinh)
 }
 
 // atanh(x) - Return the inverse hyperbolic tangent of x.
 func atanh(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("atanh", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Atanh(float64(x))), nil
+	return floatFunc("atanh", args, kwargs, math.Atanh)
 }
 
 // cosh(x) - Return the hyperbolic cosine of x.
 func cosh(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("cosh", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Cosh(float64(x))), nil
+	return floatFunc("cosh", args, kwargs, math.Cosh)
 }
 
 // sinh(x) - Return the hyperbolic sine of x.
 func sinh(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("sinh", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Sinh(float64(x))), nil
+	return floatFunc("sinh", args, kwargs, math.Sinh)
 }
 
 // tanh(x) - Return the hyperbolic tangent of x.
 func tanh(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var x starlark.Float
-	if err := starlark.UnpackArgs("tanh", args, kwargs, "x", &x); err != nil {
-		return nil, err
-	}
-	return starlark.Float(math.Tanh(float64(x))), nil
+	return floatFunc("tanh", args, kwargs, math.Tanh)
 }
