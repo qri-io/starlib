@@ -7,12 +7,18 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	starlark "github.com/google/skylark"
 	starlarkstruct "github.com/google/skylark/skylarkstruct"
 	util "github.com/qri-io/starlib/util"
 )
+
+// AsString unquotes a starlark string value
+func AsString(x starlark.Value) (string, error) {
+	return strconv.Unquote(x.String())
+}
 
 // ModuleName defines the expected name for this Module when used
 // in starlark's load() function, eg: load('http.sky', 'http')
@@ -86,7 +92,7 @@ func (m *Module) reqMethod(method string) func(thread *starlark.Thread, _ *starl
 			return nil, err
 		}
 
-		rawurl, err := util.AsString(urlv)
+		rawurl, err := AsString(urlv)
 		if err != nil {
 			return nil, err
 		}
@@ -137,7 +143,7 @@ func setQueryParams(rawurl *string, params *starlark.Dict) error {
 
 	q := u.Query()
 	for _, key := range keys {
-		keystr, err := util.AsString(key)
+		keystr, err := AsString(key)
 		if err != nil {
 			return err
 		}
@@ -149,7 +155,7 @@ func setQueryParams(rawurl *string, params *starlark.Dict) error {
 		if val.Type() != "string" {
 			return fmt.Errorf("expected param value for key '%s' to be a string. got: '%s'", key, val.Type())
 		}
-		valstr, err := util.AsString(val)
+		valstr, err := AsString(val)
 		if err != nil {
 			return err
 		}
@@ -166,11 +172,11 @@ func setAuth(req *http.Request, auth starlark.Tuple) error {
 	if len(auth) == 0 {
 		return nil
 	} else if len(auth) == 2 {
-		username, err := util.AsString(auth[0])
+		username, err := AsString(auth[0])
 		if err != nil {
 			return fmt.Errorf("parsing auth username string: %s", err.Error())
 		}
-		password, err := util.AsString(auth[1])
+		password, err := AsString(auth[1])
 		if err != nil {
 			return fmt.Errorf("parsing auth password string: %s", err.Error())
 		}
@@ -187,7 +193,7 @@ func setHeaders(req *http.Request, headers *starlark.Dict) error {
 	}
 
 	for _, key := range keys {
-		keystr, err := util.AsString(key)
+		keystr, err := AsString(key)
 		if err != nil {
 			return err
 		}
@@ -199,7 +205,7 @@ func setHeaders(req *http.Request, headers *starlark.Dict) error {
 		if val.Type() != "string" {
 			return fmt.Errorf("expected param value for key '%s' to be a string. got: '%s'", key, val.Type())
 		}
-		valstr, err := util.AsString(val)
+		valstr, err := AsString(val)
 		if err != nil {
 			return err
 		}
@@ -232,7 +238,7 @@ func setBody(req *http.Request, data *starlark.Dict, jsondata starlark.Value) er
 			req.Form = url.Values{}
 		}
 		for _, key := range data.Keys() {
-			keystr, err := util.AsString(key)
+			keystr, err := AsString(key)
 			if err != nil {
 				return err
 			}
@@ -244,7 +250,7 @@ func setBody(req *http.Request, data *starlark.Dict, jsondata starlark.Value) er
 			if val.Type() != "string" {
 				return fmt.Errorf("expected param value for key '%s' to be a string. got: '%s'", key, val.Type())
 			}
-			valstr, err := util.AsString(val)
+			valstr, err := AsString(val)
 			if err != nil {
 				return err
 			}
