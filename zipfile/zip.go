@@ -17,8 +17,8 @@ import (
 )
 
 // ModuleName defines the expected name for this Module when used
-// in starlark's load() function, eg: load('zipfile.sky', 'zipfile')
-const ModuleName = "zipfile.sky"
+// in starlark's load() function, eg: load('zipfile.star', 'zipfile')
+const ModuleName = "zipfile.star"
 
 var (
 	once          sync.Once

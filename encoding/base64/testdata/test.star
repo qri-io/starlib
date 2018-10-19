@@ -1,5 +1,5 @@
-load('encoding/base64.sky', 'base64')
-load('assert.sky', 'assert')
+load('encoding/base64.star', 'base64')
+load('assert.star', 'assert')
 
 assert.eq(base64.encode("hello"), "aGVsbG8=")
 assert.eq(base64.encode("hello", encoding="standard_raw"), "aGVsbG8")

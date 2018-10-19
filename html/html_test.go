@@ -36,7 +36,7 @@ func TestModule(t *testing.T) {
 	starlarktest.SetReporter(thread, t)
 
 	// Execute test file
-	_, err := starlark.ExecFile(thread, "testdata/test.sky", nil, nil)
+	_, err := starlark.ExecFile(thread, "testdata/test.star", nil, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -48,7 +48,7 @@ func newLoader() func(thread *starlark.Thread, module string) (starlark.StringDi
 		switch module {
 		case ModuleName:
 			return starlark.StringDict{"html": starlark.NewBuiltin("html", NewDocument)}, nil
-		case "assert.sky":
+		case "assert.star":
 			return starlarktest.LoadAssertModule()
 		}
 

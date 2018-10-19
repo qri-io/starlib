@@ -52,8 +52,8 @@ import (
 )
 
 // ModuleName defines the expected name for this Module when used
-// in starlark's load() function, eg: load('math.sky', 'math')
-const ModuleName = "math.sky"
+// in starlark's load() function, eg: load('math.star', 'math')
+const ModuleName = "math.star"
 
 var (
 	once       sync.Once

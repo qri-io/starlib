@@ -1,5 +1,5 @@
-load('xlsx.sky', 'xlsx')
-load('assert.sky', 'assert')
+load('xlsx.star', 'xlsx')
+load('assert.star', 'assert')
 
 file_1 = xlsx.get_url(test_server_url + "/eg_one.xlsx")
 

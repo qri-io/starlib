@@ -31,7 +31,7 @@ func newLoader() func(thread *starlark.Thread, module string) (starlark.StringDi
 		switch module {
 		case ModuleName:
 			return LoadModule()
-		case "assert.sky":
+		case "assert.star":
 			return starlarktest.LoadAssertModule()
 		}
 

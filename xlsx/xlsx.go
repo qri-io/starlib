@@ -10,8 +10,8 @@ import (
 )
 
 // ModuleName defines the expected name for this Module when used
-// in starlark's load() function, eg: load('xlsx.sky', 'xlsx')
-const ModuleName = "xlsx.sky"
+// in starlark's load() function, eg: load('xlsx.star', 'xlsx')
+const ModuleName = "xlsx.star"
 
 // LoadModule creates an xlsx Module
 func LoadModule() (starlark.StringDict, error) {

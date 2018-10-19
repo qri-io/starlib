@@ -55,7 +55,7 @@ func TestNewModule(t *testing.T) {
 	starlarktest.SetReporter(thread, t)
 
 	// Execute test file
-	_, err := starlark.ExecFile(thread, "testdata/test.sky", nil, nil)
+	_, err := starlark.ExecFile(thread, "testdata/test.star", nil, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -67,7 +67,7 @@ func newLoader(ds *dataset.Dataset) func(thread *starlark.Thread, module string)
 		switch module {
 		case ModuleName:
 			return LoadModule()
-		case "assert.sky":
+		case "assert.star":
 			return starlarktest.LoadAssertModule()
 		}
 

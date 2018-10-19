@@ -15,8 +15,8 @@ func AsString(x starlark.Value) (string, error) {
 }
 
 // ModuleName defines the expected name for this Module when used
-// in starlark's load() function, eg: load('html.sky', 'html')
-const ModuleName = "html.sky"
+// in starlark's load() function, eg: load('html.star', 'html')
+const ModuleName = "html.star"
 
 // LoadModule loads the html module
 func LoadModule() (starlark.StringDict, error) {

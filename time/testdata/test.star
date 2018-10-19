@@ -1,5 +1,5 @@
-load('time.sky', 'time')
-load('assert.sky', 'assert')
+load('time.star', 'time')
+load('assert.star', 'assert')
 
 assert.eq(time.time("2011-04-22T13:33:48Z"), time.time("2011-04-22T13:33:48Z"))
 assert.eq(time.zero, time.time("0001-01-01T00:00:00Z"))
