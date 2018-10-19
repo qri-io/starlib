@@ -217,9 +217,13 @@ func setHeaders(req *http.Request, headers *starlark.Dict) error {
 	return nil
 }
 
-func setBody(req *http.Request, body starlark.String, data *starlark.Dict, jsondata starlark.Value) error {
-	if body.String() != "" {
-		req.Body = ioutil.NopCloser(strings.NewReader(body.String()))
+func setBody(req *http.Request, body starlark.String, formData *starlark.Dict, jsondata starlark.Value) error {
+	if body.String() != "\"\"" {
+		uq, err := strconv.Unquote(body.String())
+		if err != nil {
+			return err
+		}
+		req.Body = ioutil.NopCloser(strings.NewReader(uq))
 		return nil
 	}
 
@@ -237,7 +241,7 @@ func setBody(req *http.Request, body starlark.String, data *starlark.Dict, jsond
 		req.Body = ioutil.NopCloser(bytes.NewBuffer(data))
 	}
 
-	if data.Len() > 0 {
+	if formData != nil && formData.Len() > 0 {
 		if req.Header.Get("Content-Type") == "" {
 			req.Header.Set("Content-Type", "multipart/form-data")
 		}
@@ -245,13 +249,13 @@ func setBody(req *http.Request, body starlark.String, data *starlark.Dict, jsond
 		if req.Form == nil {
 			req.Form = url.Values{}
 		}
-		for _, key := range data.Keys() {
+		for _, key := range formData.Keys() {
 			keystr, err := AsString(key)
 			if err != nil {
 				return err
 			}
 
-			val, _, err := data.Get(key)
+			val, _, err := formData.Get(key)
 			if err != nil {
 				return err
 			}

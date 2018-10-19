@@ -14,42 +14,35 @@ func asString(x starlark.Value) (string, error) {
 
 // Unmarshal decodes a starlark.Value into it's golang counterpart
 func Unmarshal(x starlark.Value) (val interface{}, err error) {
-	switch x.Type() {
-	case "NoneType":
-		val = nil
-	case "bool":
-		val = x.Truth() == starlark.True
-	case "int":
+	switch v := x.(type) {
+	case starlark.NoneType:
+		val = v
+	case starlark.Bool:
+		val = v.Truth() == starlark.True
+	case starlark.Int:
 		val, err = starlark.AsInt32(x)
-	case "float":
+	case starlark.Float:
 		if f, ok := starlark.AsFloat(x); !ok {
 			err = fmt.Errorf("couldn't parse float")
 		} else {
 			val = f
 		}
-	case "string":
-		val, err = asString(x)
-		// val = x.String()
-	case "dict":
-		dict, ok := x.(*starlark.Dict)
-		if !ok {
-			err = fmt.Errorf("error parsing dict. invalid type: %v", x)
-			return
-		}
-
+	case starlark.String:
+		val, err = asString(v)
+	case *starlark.Dict:
 		var (
-			v     starlark.Value
-			pval  interface{}
-			value = map[string]interface{}{}
+			dictVal starlark.Value
+			pval    interface{}
+			value   = map[string]interface{}{}
 		)
 
-		for _, k := range dict.Keys() {
-			v, ok, err = dict.Get(k)
+		for _, k := range v.Keys() {
+			dictVal, _, err = v.Get(k)
 			if err != nil {
 				return
 			}
 
-			pval, err = Unmarshal(v)
+			pval, err = Unmarshal(dictVal)
 			if err != nil {
 				return
 			}
@@ -63,53 +56,41 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 			value[str] = pval
 		}
 		val = value
-	case "list":
-		list, ok := x.(*starlark.List)
-		if !ok {
-			err = fmt.Errorf("error parsing list. invalid type: %v", x)
-			return
-		}
-
+	case *starlark.List:
 		var (
-			i     int
-			v     starlark.Value
-			iter  = list.Iterate()
-			value = make([]interface{}, list.Len())
+			i       int
+			listVal starlark.Value
+			iter    = v.Iterate()
+			value   = make([]interface{}, v.Len())
 		)
 
 		defer iter.Done()
-		for iter.Next(&v) {
-			value[i], err = Unmarshal(v)
+		for iter.Next(&listVal) {
+			value[i], err = Unmarshal(listVal)
 			if err != nil {
 				return
 			}
 			i++
 		}
 		val = value
-	case "tuple":
-		tuple, ok := x.(starlark.Tuple)
-		if !ok {
-			err = fmt.Errorf("error parsing dict. invalid type: %v", x)
-			return
-		}
-
+	case *starlark.Tuple:
 		var (
-			i     int
-			v     starlark.Value
-			iter  = tuple.Iterate()
-			value = make([]interface{}, tuple.Len())
+			i        int
+			tupleVal starlark.Value
+			iter     = v.Iterate()
+			value    = make([]interface{}, v.Len())
 		)
 
 		defer iter.Done()
-		for iter.Next(&v) {
-			value[i], err = Unmarshal(v)
+		for iter.Next(&tupleVal) {
+			value[i], err = Unmarshal(tupleVal)
 			if err != nil {
 				return
 			}
 			i++
 		}
 		val = value
-	case "set":
+	case *starlark.Set:
 		fmt.Println("errnotdone: SET")
 		err = fmt.Errorf("sets aren't yet supported")
 	default:
