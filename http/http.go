@@ -83,12 +83,13 @@ func (m *Module) reqMethod(method string) func(thread *starlark.Thread, _ *starl
 			urlv     starlark.String
 			params   = &starlark.Dict{}
 			headers  = &starlark.Dict{}
-			data     = &starlark.Dict{}
+			formBody = &starlark.Dict{}
 			auth     starlark.Tuple
-			jsondata starlark.Value
+			body     starlark.String
+			jsonBody starlark.Value
 		)
 
-		if err := starlark.UnpackArgs(method, args, kwargs, "url", &urlv, "params?", &params, "headers", &headers, "data", &data, "json", &jsondata, "auth", &auth); err != nil {
+		if err := starlark.UnpackArgs(method, args, kwargs, "url", &urlv, "params?", &params, "headers", &headers, "body", &body, "form_body", &formBody, "json_body", &jsonBody, "auth", &auth); err != nil {
 			return nil, err
 		}
 
@@ -116,7 +117,7 @@ func (m *Module) reqMethod(method string) func(thread *starlark.Thread, _ *starl
 		if err = setAuth(req, auth); err != nil {
 			return nil, err
 		}
-		if err = setBody(req, data, jsondata); err != nil {
+		if err = setBody(req, body, formBody, jsonBody); err != nil {
 			return nil, err
 		}
 
@@ -216,7 +217,12 @@ func setHeaders(req *http.Request, headers *starlark.Dict) error {
 	return nil
 }
 
-func setBody(req *http.Request, data *starlark.Dict, jsondata starlark.Value) error {
+func setBody(req *http.Request, body starlark.String, data *starlark.Dict, jsondata starlark.Value) error {
+	if body.String() != "" {
+		req.Body = ioutil.NopCloser(strings.NewReader(body.String()))
+		return nil
+	}
+
 	if jsondata != nil && jsondata.String() != "" {
 		req.Header.Set("Content-Type", "application/json")
 
@@ -232,7 +238,9 @@ func setBody(req *http.Request, data *starlark.Dict, jsondata starlark.Value) er
 	}
 
 	if data.Len() > 0 {
-		req.Header.Set("Content-Type", "multipart/form-data")
+		if req.Header.Get("Content-Type") == "" {
+			req.Header.Set("Content-Type", "multipart/form-data")
+		}
 
 		if req.Form == nil {
 			req.Form = url.Values{}
