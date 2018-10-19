@@ -14,7 +14,7 @@ jobs:
           command: >
             go get -v
             github.com/jstemmer/go-junit-report 
-            github.com/golang/lint/golint
+            golang.org/x/lint/golint
       - run:
           name: Run Lint Tests
           command: golint -set_exit_status ./...

@@ -13,5 +13,5 @@ res_2 = http.get(test_server_url)
 assert.eq(res_2.json()["hello"], "world")
 
 headers = {"foo" : "bar"}
-http.post(test_server_url, json={ "a" : "b", "c" : "d"}, headers=headers)
-http.post(test_server_url, data={ "a" : "b", "c" : "d"})
+http.post(test_server_url, json_body={ "a" : "b", "c" : "d"}, headers=headers)
+http.post(test_server_url, form_body={ "a" : "b", "c" : "d"})

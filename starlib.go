@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	starlark "github.com/google/skylark"
+	"github.com/qri-io/starlib/encoding/base64"
 	"github.com/qri-io/starlib/html"
 	"github.com/qri-io/starlib/http"
 	"github.com/qri-io/starlib/re"
@@ -27,6 +28,8 @@ func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, e
 		return zipfile.LoadModule()
 	case re.ModuleName:
 		return re.LoadModule()
+	case base64.ModuleName:
+		return base64.LoadModule()
 	}
 
 	return nil, fmt.Errorf("invalid module")
