@@ -12,6 +12,14 @@ func asString(x starlark.Value) (string, error) {
 	return strconv.Unquote(x.String())
 }
 
+// IsEmptyString checks is a skylark string is empty ("" for a go string)
+// skylark.String.String performs repr-style quotation, which is necessary
+// for the skylark.Value contract but a frequent source of errors in API
+// clients. This helper method makes sure it'll work properly
+func IsEmptyString(s starlark.String) bool {
+	return s.String() == `""`
+}
+
 // Unmarshal decodes a starlark.Value into it's golang counterpart
 func Unmarshal(x starlark.Value) (val interface{}, err error) {
 	switch v := x.(type) {

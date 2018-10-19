@@ -6,6 +6,16 @@ import (
 	starlark "github.com/google/skylark"
 )
 
+func TestIsEmptyString(t *testing.T) {
+	if !IsEmptyString(starlark.String("")) {
+		t.Error("empty string should equal true")
+	}
+
+	if IsEmptyString(".") {
+		t.Error("non-empty string shouldn't be empty")
+	}
+}
+
 func TestAsString(t *testing.T) {
 	cases := []struct {
 		in       starlark.Value

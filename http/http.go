@@ -218,7 +218,7 @@ func setHeaders(req *http.Request, headers *starlark.Dict) error {
 }
 
 func setBody(req *http.Request, body starlark.String, formData *starlark.Dict, jsondata starlark.Value) error {
-	if body.String() != "\"\"" {
+	if !util.IsEmptyString(body) {
 		uq, err := strconv.Unquote(body.String())
 		if err != nil {
 			return err

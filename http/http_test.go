@@ -75,7 +75,7 @@ func newLoader(ds *dataset.Dataset) func(thread *starlark.Thread, module string)
 	}
 }
 
-// okay, testing a private function is silly, but this just makes things easier
+// we're ok with testing private functions if it simplifies the test :)
 func TestSetBody(t *testing.T) {
 	fd := &starlark.Dict{}
 	fd.Set(starlark.String("foo"), starlark.String("bar"))
