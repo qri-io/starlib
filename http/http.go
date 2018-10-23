@@ -21,8 +21,8 @@ func AsString(x starlark.Value) (string, error) {
 }
 
 // ModuleName defines the expected name for this Module when used
-// in starlark's load() function, eg: load('http.sky', 'http')
-const ModuleName = "http.sky"
+// in starlark's load() function, eg: load('http.star', 'http')
+const ModuleName = "http.star"
 
 var (
 	// Client is the http client used to create the http module. override with

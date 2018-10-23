@@ -61,8 +61,8 @@ import (
 )
 
 // ModuleName defines the expected name for this Module when used
-// in starlark's load() function, eg: load('time.sky', 'time')
-const ModuleName = "time.sky"
+// in starlark's load() function, eg: load('time.star', 'time')
+const ModuleName = "time.star"
 
 var (
 	once       sync.Once
@@ -94,9 +94,9 @@ time = struct(
 )
 `)
 
-		// filename := DataFile("time", "time.sky")
+		// filename := DataFile("time", "time.star")
 		thread := new(starlark.Thread)
-		timeModule, timeError = starlark.ExecFile(thread, "time.sky", file, predeclared)
+		timeModule, timeError = starlark.ExecFile(thread, "time.star", file, predeclared)
 	})
 	return timeModule, timeError
 }

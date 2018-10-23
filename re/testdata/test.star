@@ -1,5 +1,5 @@
-load("re.sky", "re")
-load("assert.sky", "assert")
+load("re.star", "re")
+load("assert.star", "assert")
 
 pattern = "(\w*)\s*(ADD|REM|DEL|EXT|TRF)\s*(.*)\s*(NAT|INT)\s*(.*)\s*(\(\w{2}\))\s*(.*)"
 test = "EDM ADD FROM INJURED NAT Jordan BEAULIEU (DB) Western University"

@@ -13,8 +13,8 @@ import (
 )
 
 // ModuleName defines the expected name for this Module when used
-// in starlark's load() function, eg: load('encoding/base64.sky', 'base64')
-const ModuleName = "encoding/base64.sky"
+// in starlark's load() function, eg: load('encoding/base64.star', 'base64')
+const ModuleName = "encoding/base64.star"
 
 var (
 	once         sync.Once

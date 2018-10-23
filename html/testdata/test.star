@@ -1,5 +1,5 @@
-load('html.sky', 'html')
-load('assert.sky', 'assert')
+load('html.star', 'html')
+load('assert.star', 'assert')
 
 htmlstr = """
 <!DOCTYPE html>
