@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	starlark "github.com/google/skylark"
-	starlarkstruct "github.com/google/skylark/skylarkstruct"
+	"go.starlark.net/starlark"
+	"go.starlark.net/starlarkstruct"
 )
 
 // AsString unquotes a starlark string value

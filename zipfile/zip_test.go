@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"testing"
 
-	starlark "github.com/google/skylark"
-	starlarktest "github.com/google/skylark/skylarktest"
+	"go.starlark.net/starlark"
+	"go.starlark.net/starlarktest"
 )
 
 func TestFile(t *testing.T) {

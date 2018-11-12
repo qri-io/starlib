@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
-	starlark "github.com/google/skylark"
-	starlarkstruct "github.com/google/skylark/skylarkstruct"
+	"go.starlark.net/starlark"
+	"go.starlark.net/starlarkstruct"
 )
 
 // ModuleName defines the expected name for this Module when used
@@ -82,7 +82,7 @@ func (f *File) Struct() *starlarkstruct.Struct {
 func (f *File) GetSheets(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	sheets := &starlark.Dict{}
 	for idx, name := range f.xlsx.GetSheetMap() {
-		sheets.Set(starlark.MakeInt(idx), starlark.String(name))
+		sheets.SetKey(starlark.MakeInt(idx), starlark.String(name))
 	}
 	return sheets, nil
 }

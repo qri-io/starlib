@@ -3,7 +3,7 @@ package util
 import (
 	"testing"
 
-	starlark "github.com/google/skylark"
+	"go.starlark.net/starlark"
 )
 
 func TestIsEmptyString(t *testing.T) {

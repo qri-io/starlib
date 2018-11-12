@@ -3,7 +3,7 @@ package math
 import (
 	"math"
 
-	starlark "github.com/google/skylark"
+	"go.starlark.net/starlark"
 )
 
 // Return the arc cosine of x, in radians.

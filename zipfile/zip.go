@@ -12,8 +12,8 @@ import (
 	"strings"
 	"sync"
 
-	starlark "github.com/google/skylark"
-	starlarkstruct "github.com/google/skylark/skylarkstruct"
+	"go.starlark.net/starlark"
+	"go.starlark.net/starlarkstruct"
 )
 
 // ModuleName defines the expected name for this Module when used
