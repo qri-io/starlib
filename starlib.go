@@ -3,7 +3,6 @@ package starlib
 import (
 	"fmt"
 
-	starlark "github.com/google/skylark"
 	"github.com/qri-io/starlib/encoding/base64"
 	"github.com/qri-io/starlib/html"
 	"github.com/qri-io/starlib/http"
@@ -11,6 +10,7 @@ import (
 	"github.com/qri-io/starlib/time"
 	"github.com/qri-io/starlib/xlsx"
 	"github.com/qri-io/starlib/zipfile"
+	"go.starlark.net/starlark"
 )
 
 // Loader presents the starlib library as a loader

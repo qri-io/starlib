@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	starlark "github.com/google/skylark"
-	starlarktest "github.com/google/skylark/skylarktest"
 	dataset "github.com/qri-io/dataset"
+	"go.starlark.net/starlark"
+	"go.starlark.net/starlarktest"
 )
 
 func TestAsString(t *testing.T) {
@@ -78,7 +78,7 @@ func newLoader(ds *dataset.Dataset) func(thread *starlark.Thread, module string)
 // we're ok with testing private functions if it simplifies the test :)
 func TestSetBody(t *testing.T) {
 	fd := &starlark.Dict{}
-	fd.Set(starlark.String("foo"), starlark.String("bar"))
+	fd.SetKey(starlark.String("foo"), starlark.String("bar"))
 
 	cases := []struct {
 		rawBody  starlark.String

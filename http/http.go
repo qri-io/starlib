@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	starlark "github.com/google/skylark"
-	starlarkstruct "github.com/google/skylark/skylarkstruct"
 	util "github.com/qri-io/starlib/util"
+	"go.starlark.net/starlark"
+	"go.starlark.net/starlarkstruct"
 )
 
 // AsString unquotes a starlark string value
@@ -299,7 +299,7 @@ func (r *Response) Struct() *starlarkstruct.Struct {
 func (r *Response) HeadersDict() *starlark.Dict {
 	d := new(starlark.Dict)
 	for key, vals := range r.Header {
-		d.Set(starlark.String(key), starlark.String(strings.Join(vals, ",")))
+		d.SetKey(starlark.String(key), starlark.String(strings.Join(vals, ",")))
 	}
 	return d
 }

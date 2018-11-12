@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	starlark "github.com/google/skylark"
-	resolve "github.com/google/skylark/resolve"
-	starlarktest "github.com/google/skylark/skylarktest"
+	"go.starlark.net/resolve"
+	"go.starlark.net/starlark"
+	"go.starlark.net/starlarktest"
 )
 
 func TestFile(t *testing.T) {

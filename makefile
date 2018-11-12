@@ -3,10 +3,10 @@ define GOPACKAGES
 github.com/360EntSecGroup-Skylar/excelize \
 github.com/PuerkitoBio/goquery \
 github.com/andybalholm/cascadia \
-github.com/google/skylark \
 github.com/mohae/deepcopy \
 github.com/qri-io/dataset \
-golang.org/x/net/html 
+golang.org/x/net/html \
+go.starlark.net/starlark
 endef
 
 default: install-deps

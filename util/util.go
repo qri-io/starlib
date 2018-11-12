@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	starlark "github.com/google/skylark"
+	"go.starlark.net/starlark"
 )
 
 // asString unquotes a starlark string value
@@ -12,9 +12,9 @@ func asString(x starlark.Value) (string, error) {
 	return strconv.Unquote(x.String())
 }
 
-// IsEmptyString checks is a skylark string is empty ("" for a go string)
-// skylark.String.String performs repr-style quotation, which is necessary
-// for the skylark.Value contract but a frequent source of errors in API
+// IsEmptyString checks is a starlark string is empty ("" for a go string)
+// starlark.String.String performs repr-style quotation, which is necessary
+// for the starlark.Value contract but a frequent source of errors in API
 // clients. This helper method makes sure it'll work properly
 func IsEmptyString(s starlark.String) bool {
 	return s.String() == `""`
@@ -140,7 +140,7 @@ func Marshal(data interface{}) (v starlark.Value, err error) {
 			if err != nil {
 				return
 			}
-			if err = dict.Set(starlark.String(key), elem); err != nil {
+			if err = dict.SetKey(starlark.String(key), elem); err != nil {
 				return
 			}
 		}

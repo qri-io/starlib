@@ -55,9 +55,9 @@ import (
 	"sync"
 	gotime "time"
 
-	starlark "github.com/google/skylark"
-	starlarkstruct "github.com/google/skylark/skylarkstruct"
-	syntax "github.com/google/skylark/syntax"
+	"go.starlark.net/starlark"
+	"go.starlark.net/starlarkstruct"
+	"go.starlark.net/syntax"
 )
 
 // ModuleName defines the expected name for this Module when used
