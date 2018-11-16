@@ -13,6 +13,9 @@ import (
 	"go.starlark.net/starlark"
 )
 
+// Version is the current semver for the entire starlib library
+const Version = "0.1.0"
+
 // Loader presents the starlib library as a loader
 func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, err error) {
 	switch module {
