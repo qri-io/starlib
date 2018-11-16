@@ -1,6 +1,6 @@
 <h1 align="center">Starlib - Starlark's Missing standard Library.</h1>
 
-[![Qri](https://img.shields.io/badge/made%20by-qri-magenta.svg?style=flat-square)](https://qri.io) [![GoDoc](https://godoc.org/github.com/qri-io/starlib?status.svg)](http://godoc.org/github.com/qri-io/starlib) [![License](https://img.shields.io/github/license/qri-io/qri.svg?style=flat-square)](./LICENSE) [![Codecov](https://img.shields.io/codecov/c/github/qri-io/qri.svg?style=flat-square)](https://codecov.io/gh/qri-io/qri) [![CI](https://img.shields.io/circleci/project/github/qri-io/qri.svg?style=flat-square)](https://circleci.com/gh/qri-io/qri)
+[![Qri](https://img.shields.io/badge/made%20by-qri-magenta.svg?style=flat-square)](https://qri.io) [![GoDoc](https://godoc.org/github.com/qri-io/starlib?status.svg)](http://godoc.org/github.com/qri-io/starlib) [![License](https://img.shields.io/github/license/qri-io/starlib.svg?style=flat-square)](./LICENSE) [![Codecov](https://img.shields.io/codecov/c/github/qri-io/starlib.svg?style=flat-square)](https://codecov.io/gh/qri-io/starlib) [![CI](https://img.shields.io/circleci/project/github/qri-io/starlib.svg?style=flat-square)](https://circleci.com/gh/qri-io/starlib)
 
 
 <div align="center">

@@ -17,3 +17,5 @@ d = time.duration("1s")
 assert.eq(d + d, time.duration("2s"))
 assert.eq(d * 5, time.duration("5s"))
 assert.eq(time.duration("0s") + time.duration("3m35s"), time.duration("3m35s"))
+
+time.sleep(time.second)

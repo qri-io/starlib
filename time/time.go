@@ -48,8 +48,6 @@ package time
 
 import (
 	"fmt"
-	"go/build"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -80,7 +78,16 @@ func LoadModule() (starlark.StringDict, error) {
 			"now_":      starlark.NewBuiltin("now", now),
 			"struct":    starlark.NewBuiltin("struct", starlarkstruct.Make),
 			"time_":     starlark.NewBuiltin("time", time),
-			"zero_":     Time{},
+			"sleep_":    starlark.NewBuiltin("sleep", sleep),
+
+			"zero_": Time{},
+
+			"nanosecond_":  durInt(gotime.Nanosecond),
+			"microsecond_": durInt(gotime.Microsecond),
+			"millisecond_": durInt(gotime.Millisecond),
+			"second_":      durInt(gotime.Second),
+			"minute_":      durInt(gotime.Minute),
+			"hour_":        durInt(gotime.Hour),
 		}
 
 		// embed file into binary to remove any file dependencies
@@ -91,12 +98,18 @@ time = struct(
 	location = location_,
 	now = now_,
 	zero = zero_,
+	sleep = sleep_,
+	nanosecond = nanosecond_,
+	microsecond = microsecond_,
+	millisecond = millisecond_,
+	second = second_,
+	minute = minute_,
+	hour = hour_,
 )
 `)
 
-		// filename := DataFile("time", "time.star")
 		thread := new(starlark.Thread)
-		timeModule, timeError = starlark.ExecFile(thread, "time.star", file, predeclared)
+		timeModule, timeError = starlark.ExecFile(thread, ModuleName, file, predeclared)
 	})
 	return timeModule, timeError
 }
@@ -119,6 +132,10 @@ func duration(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple,
 	return Duration(d), nil
 }
 
+func durInt(d gotime.Duration) starlark.Int {
+	return starlark.MakeInt64(int64(d))
+}
+
 func location(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var x starlark.String
 	if err := starlark.UnpackArgs("location", args, kwargs, "x", &x); err != nil {
@@ -130,6 +147,20 @@ func location(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple,
 	}
 
 	return starlark.String(loc.String()), nil
+}
+
+func sleep(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var x starlark.Int
+	if err := starlark.UnpackArgs("sleep", args, kwargs, "x", &x); err != nil {
+		return starlark.None, err
+	}
+	dur, ok := x.Int64()
+	if !ok {
+		return starlark.None, fmt.Errorf("invalid sleep value")
+	}
+
+	gotime.Sleep(gotime.Duration(dur))
+	return starlark.None, nil
 }
 
 func time(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -411,12 +442,4 @@ func threeway(op syntax.Token, cmp int) bool {
 		return cmp > 0
 	}
 	panic(op)
-}
-
-// DataFile returns the effective filename of the specified
-// test data resource.  The function abstracts differences between
-// 'go build', under which a test runs in its package directory,
-// and Blaze, under which a test runs in the root of the tree.
-var DataFile = func(pkgdir, filename string) string {
-	return filepath.Join(build.Default.GOPATH, "src/github.com/qri-io", pkgdir, filename)
 }
