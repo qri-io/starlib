@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/starlib/encoding/base64"
 	"github.com/qri-io/starlib/encoding/csv"
+	"github.com/qri-io/starlib/geo"
 	"github.com/qri-io/starlib/html"
 	"github.com/qri-io/starlib/http"
 	"github.com/qri-io/starlib/re"
@@ -15,7 +16,7 @@ import (
 )
 
 // Version is the current semver for the entire starlib library
-const Version = "0.1.0"
+const Version = "0.2.0"
 
 // Loader presents the starlib library as a loader
 func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, err error) {
@@ -36,6 +37,8 @@ func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, e
 		return base64.LoadModule()
 	case csv.ModuleName:
 		return csv.LoadModule()
+	case geo.ModuleName:
+		return geo.LoadModule()
 	}
 
 	return nil, fmt.Errorf("invalid module")

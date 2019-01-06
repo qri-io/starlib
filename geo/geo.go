@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"sort"
 	"sync"
 
 	"github.com/paulmach/orb"
-	"github.com/paulmach/orb/geo"
 	"github.com/paulmach/orb/planar"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
@@ -29,132 +27,56 @@ func LoadModule() (starlark.StringDict, error) {
 	once.Do(func() {
 		geoModule = starlark.StringDict{
 			"geo": starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
-				"point": starlark.NewBuiltin("point", newPoint),
+				// constructors
+				"Point":   starlark.NewBuiltin("Point", newPoint),
+				"Line":    starlark.NewBuiltin("Line", newLine),
+				"Polygon": starlark.NewBuiltin("Polygon", newPolygon),
+
+				// geographic joins
+				"within":       starlark.NewBuiltin("within", within),
+				"intersects":   starlark.NewBuiltin("intersects", intersects),
+				"parseGeoJSON": starlark.NewBuiltin("parseGeoJSON", parseGeoJSON),
 			}),
 		}
 	})
 	return geoModule, nil
 }
 
-func newPoint(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (v starlark.Value, err error) {
+func within(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (v starlark.Value, err error) {
 	var (
-		x, y     starlark.Value
-		lat, lng float64
+		a starlark.Value
+		b Polygon
 	)
 	v = starlark.None
 
-	if err = starlark.UnpackArgs("encode", args, kwargs, "x", &x, "y", &y); err != nil {
+	if err = starlark.UnpackArgs("within", args, kwargs, "a", &a, "b", &b); err != nil {
 		return
 	}
 
-	if lat, err = float64FromNumericValue(x); err != nil {
+	poly := b.OrbPolygon()
+	switch geom := a.(type) {
+	case Line:
+		for _, pt := range geom.OrbLineString() {
+			if !planar.PolygonContains(poly, pt) {
+				return starlark.Bool(false), nil
+			}
+			return starlark.Bool(true), nil
+		}
+	case Point:
+		within := planar.PolygonContains(poly, orb.Point{geom[0], geom[1]})
+		return starlark.Bool(within), nil
+	case Polygon:
+		err = fmt.Errorf("checking polygons-within-polygons is not yet supported")
 		return
-	}
-	if lng, err = float64FromNumericValue(y); err != nil {
-		return
-	}
-
-	return Point{lat, lng}, nil
-}
-
-// Point is the starlark geographic point type
-type Point [2]float64
-
-// assert point is a starlark value
-var _ starlark.Value = (*Point)(nil)
-
-// String implements the starlark.Value interface
-func (p Point) String() string { return fmt.Sprintf("(%f,%f)", p[0], p[1]) }
-
-// Type implements the starlark.Value interface
-func (p Point) Type() string { return "point" }
-
-// Freeze implements the starlark.Value interface, point is immutable
-func (p Point) Freeze() {}
-
-// Truth implements the starlark.Value interface
-func (p Point) Truth() starlark.Bool {
-	return starlark.Bool(p[0] != 0 && p[1] != 0)
-}
-
-// Hash implements the starlark.Value interface
-func (p Point) Hash() (uint32, error) {
-	x, _ := floatHash(p[0])
-	y, _ := floatHash(p[1])
-	return x - y, nil
-}
-
-// Attr gets an attribute of point
-func (p Point) Attr(name string) (starlark.Value, error) {
-	switch name {
-	case "x", "lat":
-		return starlark.Float(p[0]), nil
-	case "y", "lng":
-		return starlark.Float(p[1]), nil
-	case "buffer":
-		return addClosure("buffer", p, p.buffer)
-	case "distance":
-		return addClosure("distance", p, p.distance)
-	case "distanceGeodesic":
-		return addClosure("distanceGeodesic", p, p.distanceGeodesic)
-	case "KNN":
-		return addClosure("KNN", p, p.knn)
 	default:
-		// attr does not exist
-		return nil, nil
-	}
-}
-
-// AttrNames returns all possible attribute names
-func (p Point) AttrNames() []string {
-	names := []string{
-		// attributes
-		"x", "y", "lat", "lng",
-
-		// methods
-		"buffer",
-		"distance",
-		"distanceGeodesic",
-		"KNN",
-	}
-	sort.Strings(names)
-	return names
-}
-
-func (p Point) buffer(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	return starlark.None, fmt.Errorf("not yet implemented: buffer")
-}
-
-func (p Point) distance(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var p2 Point
-	if err := starlark.UnpackArgs("distance", args, kwargs, "p2", &p2); err != nil {
-		return nil, err
+		err = fmt.Errorf("unrecognized type: %s", a.Type())
 	}
 
-	d := planar.Distance(orb.Point(p), orb.Point(p2))
-	return starlark.Float(d), nil
+	return starlark.None, fmt.Errorf("not finished: within")
 }
 
-func (p Point) distanceGeodesic(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var p2 Point
-	if err := starlark.UnpackArgs("distanceGeodesic", args, kwargs, "p2", &p2); err != nil {
-		return nil, err
-	}
-
-	d := geo.Distance(orb.Point(p), orb.Point(p2))
-	return starlark.Float(d), nil
-}
-
-func (p Point) knn(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	return starlark.None, fmt.Errorf("not yet implemented: knn")
-}
-
-// Line is the starlark geographic line type
-type Line struct {
-}
-
-// Polygon is the starlark geographic polygon type
-type Polygon struct {
+func intersects(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (v starlark.Value, err error) {
+	return starlark.None, fmt.Errorf("not finished: intersects")
 }
 
 type builtinMethod func(fnname string, recv starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error)
@@ -198,16 +120,16 @@ func finiteFloatToInt(f float64) starlark.Int {
 	return starlark.MakeInt(int(i.Int64()))
 }
 
-func float64FromNumericValue(n starlark.Value) (float64, error) {
-	switch n.Type() {
-	case "int":
-		i, ok := n.(starlark.Int).Int64()
+func float64FromNumericValue(v starlark.Value) (float64, error) {
+	switch n := v.(type) {
+	case starlark.Int:
+		i, ok := n.Int64()
 		if !ok {
 			return 0, fmt.Errorf("invalid int")
 		}
 		return float64(i), nil
-	case "float":
-		return float64(n.(starlark.Float)), nil
+	case starlark.Float:
+		return float64(n), nil
 	default:
 		return 0, fmt.Errorf("invalid type '%s' expected int or float", n.Type())
 	}
