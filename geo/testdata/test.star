@@ -60,6 +60,8 @@ poly1 = geo.Polygon([
 assert.eq(geo.within(p3, poly1), False)
 assert.eq(geo.within(p4, poly1), True)
 
+combine_poly = geo.MultiPolygon([poly1, p])
+
 
 geoJSONString = '''{
   "type": "FeatureCollection",

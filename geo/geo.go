@@ -28,9 +28,10 @@ func LoadModule() (starlark.StringDict, error) {
 		geoModule = starlark.StringDict{
 			"geo": starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
 				// constructors
-				"Point":   starlark.NewBuiltin("Point", newPoint),
-				"Line":    starlark.NewBuiltin("Line", newLine),
-				"Polygon": starlark.NewBuiltin("Polygon", newPolygon),
+				"Point":        starlark.NewBuiltin("Point", newPoint),
+				"Line":         starlark.NewBuiltin("Line", newLine),
+				"Polygon":      starlark.NewBuiltin("Polygon", newPolygon),
+				"MultiPolygon": starlark.NewBuiltin("MultiPolygon", newMultiPolygon),
 
 				// geographic joins
 				"within":       starlark.NewBuiltin("within", within),
@@ -44,8 +45,7 @@ func LoadModule() (starlark.StringDict, error) {
 
 func within(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (v starlark.Value, err error) {
 	var (
-		a starlark.Value
-		b Polygon
+		a, b starlark.Value
 	)
 	v = starlark.None
 
@@ -53,17 +53,34 @@ func within(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, k
 		return
 	}
 
-	poly := b.OrbPolygon()
+	var containsFunc func(orb.Point) bool
+
+	switch geom := b.(type) {
+	case Polygon:
+		pg := geom.OrbPolygon()
+		containsFunc = func(pt orb.Point) bool {
+			return planar.PolygonContains(pg, pt)
+		}
+	case MultiPolygon:
+		mpg := geom.OrbMultiPolygon()
+		containsFunc = func(pt orb.Point) bool {
+			return planar.MultiPolygonContains(mpg, pt)
+		}
+	default:
+		err = fmt.Errorf("within b value must be either a Polygon or Multipolygon. got: %s", b.Type())
+		return
+	}
+
 	switch geom := a.(type) {
 	case Line:
 		for _, pt := range geom.OrbLineString() {
-			if !planar.PolygonContains(poly, pt) {
+			if !containsFunc(pt) {
 				return starlark.Bool(false), nil
 			}
 			return starlark.Bool(true), nil
 		}
 	case Point:
-		within := planar.PolygonContains(poly, orb.Point{geom[0], geom[1]})
+		within := containsFunc(orb.Point(geom))
 		return starlark.Bool(within), nil
 	case Polygon:
 		err = fmt.Errorf("checking polygons-within-polygons is not yet supported")
@@ -72,7 +89,7 @@ func within(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, k
 		err = fmt.Errorf("unrecognized type: %s", a.Type())
 	}
 
-	return starlark.None, fmt.Errorf("not finished: within")
+	return
 }
 
 func intersects(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (v starlark.Value, err error) {
