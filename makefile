@@ -7,7 +7,8 @@ github.com/mohae/deepcopy \
 github.com/qri-io/dataset \
 golang.org/x/net/html \
 go.starlark.net/starlark \
-github.com/qri-io/dataset/dsio/replacecr
+github.com/qri-io/dataset/dsio/replacecr \
+github.com/paulmach/orb
 endef
 
 default: install-deps
