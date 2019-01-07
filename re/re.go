@@ -1,20 +1,3 @@
-/*
-Package re defines regular expression functions, it's intented to be a drop-in
-subset of python's re module for starlark:
-https://docs.python.org/3/library/re.html
-
-	TODO - compile
-
-	TODO - search
-	match
-	TODO - fullmatch
-	split
-	TODO - findall
-	TODO - finditer
-	sub
-	TODO - subn
-	TODO - escape
-*/
 package re
 
 import (

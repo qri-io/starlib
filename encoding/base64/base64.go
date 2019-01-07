@@ -1,6 +1,3 @@
-/*
-Package base64 defines base64imatical functions
-*/
 package base64
 
 import (
@@ -23,8 +20,7 @@ var (
 
 // Encodings is a map of strings to encoding formats
 var Encodings = map[string]*gobase64.Encoding{
-	// StdEncoding is the standard base64 encoding, as defined in
-	// RFC 4648.
+	// StdEncoding is the standard base64 encoding, as defined in RFC 4648.
 	"standard": gobase64.StdEncoding,
 	// RawStdEncoding is the standard raw, unpadded base64 encoding,
 	// as defined in RFC 4648 section 3.2.

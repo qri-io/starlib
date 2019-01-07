@@ -1,4 +1,3 @@
-// Package xlsx implements excel file readers in starlark
 package xlsx
 
 import (

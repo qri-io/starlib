@@ -1,3 +1,10 @@
+/*
+	TODO:
+	- unix timet conversions
+	- timezone stuff
+	- strftime formatting
+	- constructor from 6 components + location
+*/
 package time
 
 import (
