@@ -2,10 +2,12 @@ package csv
 
 import (
 	"encoding/csv"
+	"fmt"
 	"io"
 	"strings"
 	"sync"
 
+	"github.com/qri-io/dataset/dsio/replacecr"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
 )
@@ -51,18 +53,61 @@ func (m *Module) StringDict() starlark.StringDict {
 
 // ReadAll gets all values from a csv source
 func ReadAll(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var source starlark.Value
-	if err := starlark.UnpackPositionalArgs("read_all", args, kwargs, 1, &source); err != nil {
+	var (
+		r io.Reader
+
+		source                       starlark.Value
+		lazyQuotes, trimLeadingSpace starlark.Bool
+		skip                         = starlark.MakeInt(0)
+		fieldsPerRecord              = starlark.MakeInt(0)
+		_comma, _comment             starlark.String
+	)
+	err := starlark.UnpackArgs("read_all", args, kwargs,
+		"source", &source,
+		"comma?", &_comma,
+		"comment", &_comment,
+		"lazy_quotes", &lazyQuotes,
+		"trim_leading_space", &trimLeadingSpace,
+		"fields_per_record", &fieldsPerRecord,
+		"skip", &skip)
+
+	if err != nil {
 		return nil, err
 	}
 
-	var r io.Reader
 	switch source.Type() {
 	case "string":
 		str := string(source.(starlark.String))
 		r = strings.NewReader(str)
 	}
-	csvr := csv.NewReader(r)
+	csvr := csv.NewReader(replacecr.Reader(r))
+	csvr.LazyQuotes = bool(lazyQuotes)
+	csvr.TrimLeadingSpace = bool(trimLeadingSpace)
+
+	comma := string(_comma)
+	if comma == "" {
+		comma = ","
+	} else if len(comma) != 1 {
+		return starlark.None, fmt.Errorf("expected comma param to be a single-character string")
+	}
+	csvr.Comma = []rune(comma)[0]
+
+	comment := string(_comment)
+	if comment != "" && len(comment) != 1 {
+		return starlark.None, fmt.Errorf("expected comment param to be a single-character string")
+	} else if comment != "" {
+		csvr.Comment = []rune(comment)[0]
+	}
+
+	if fpr, ok := fieldsPerRecord.Int64(); ok && fpr != 0 {
+		csvr.FieldsPerRecord = int(fpr)
+	}
+
+	if s, ok := skip.Int64(); ok {
+		for i := 0; i < int(s); i++ {
+			csvr.Read()
+		}
+	}
 
 	strs, err := csvr.ReadAll()
 	if err != nil {
