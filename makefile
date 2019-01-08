@@ -6,7 +6,8 @@ github.com/andybalholm/cascadia \
 github.com/mohae/deepcopy \
 github.com/qri-io/dataset \
 golang.org/x/net/html \
-go.starlark.net/starlark
+go.starlark.net/starlark \
+github.com/qri-io/dataset/dsio/replacecr
 endef
 
 default: install-deps
