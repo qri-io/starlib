@@ -13,7 +13,6 @@ func newPolygon(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tupl
 	var (
 		rings *starlark.List
 	)
-	v = starlark.None
 
 	if err = starlark.UnpackArgs("Polygon", args, kwargs, "rings", &rings); err != nil {
 		return

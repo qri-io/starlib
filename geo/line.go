@@ -13,7 +13,6 @@ import (
 
 func newLine(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (v starlark.Value, err error) {
 	var points *starlark.List
-	v = starlark.None
 
 	if err = starlark.UnpackArgs("Line", args, kwargs, "points", &points); err != nil {
 		return

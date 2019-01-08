@@ -13,7 +13,6 @@ func newMultiPolygon(thread *starlark.Thread, _ *starlark.Builtin, args starlark
 		polygons *starlark.List
 		x        starlark.Value
 	)
-	v = starlark.None
 
 	if err = starlark.UnpackArgs("MultiPolygon", args, kwargs, "polygons", &polygons); err != nil {
 		return

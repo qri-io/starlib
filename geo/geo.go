@@ -12,9 +12,13 @@ import (
 	"go.starlark.net/starlarkstruct"
 )
 
-// ModuleName defines the expected name for this Module when used
-// in starlark's load() function, eg: load('geo.star', 'geo')
-const ModuleName = "geo.star"
+const (
+	// ModuleName defines the expected name for this Module when used
+	// in starlark's load() function, eg: load('geo.star', 'geo')
+	ModuleName = "geo.star"
+	// hash of NaN value in starlark
+	nan = 1618033
+)
 
 var (
 	once      sync.Once
@@ -47,7 +51,6 @@ func within(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, k
 	var (
 		a, b starlark.Value
 	)
-	v = starlark.None
 
 	if err = starlark.UnpackArgs("within", args, kwargs, "a", &a, "b", &b); err != nil {
 		return
@@ -96,8 +99,10 @@ func intersects(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tupl
 	return starlark.None, fmt.Errorf("not finished: intersects")
 }
 
+// TODO(b5): move this to utils package as an exported type
 type builtinMethod func(fnname string, recv starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error)
 
+// TODO(b5): move this to utils package as an exported function
 func addClosure(name string, recv starlark.Value, method builtinMethod) (*starlark.Builtin, error) {
 	// Allocate a closure over 'method'.
 	impl := func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -111,7 +116,7 @@ func floatHash(f float64) (uint32, error) {
 	if isFinite(f) {
 		return finiteFloatToInt(f).Hash()
 	}
-	return 1618033, nil // NaN, +/-Inf
+	return nan, nil // NaN, +/-Inf
 }
 
 // isFinite reports whether f represents a finite rational value.

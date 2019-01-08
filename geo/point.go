@@ -15,7 +15,6 @@ func newPoint(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple,
 		x, y     starlark.Value
 		lat, lng float64
 	)
-	v = starlark.None
 
 	if err = starlark.UnpackArgs("Point", args, kwargs, "x", &x, "y", &y); err != nil {
 		return

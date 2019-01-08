@@ -25,7 +25,7 @@ func parseGeoJSON(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 	case starlark.String:
 		dataBytes = []byte(val)
 	default:
-		err = fmt.Errorf("parseGeoJSON only supports parsing string values")
+		err = fmt.Errorf("parseGeoJSON: invalid argument type, expected string")
 		return
 	}
 
