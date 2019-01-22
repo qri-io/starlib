@@ -3,7 +3,7 @@
   outline: base64
     base64 defines base64 encoding & decoding functions,
     often used to represent binary as text.
-
+    path: encoding/base64
     functions:
       encode(src,encoding="standard") string
         return the base64 encoding of src

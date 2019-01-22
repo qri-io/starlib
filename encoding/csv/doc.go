@@ -2,6 +2,7 @@
 
   outline: csv
     csv reads comma-separated values files
+    path: encoding/csv
     functions:
       read_all(source, comma=",", comment="", lazy_quotes=False, trim_leading_space=False, fields_per_record=0, skip=0) [][]string
         read all rows from a source string, returning a list of string lists
