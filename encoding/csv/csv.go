@@ -34,23 +34,6 @@ func LoadModule() (starlark.StringDict, error) {
 	return csvModule, nil
 }
 
-// Module joins http tools to a dataset, allowing dataset
-// to follow along with http requests
-type Module struct {
-}
-
-// Struct returns this module's methods as a starlark Struct
-func (m *Module) Struct() *starlarkstruct.Struct {
-	return starlarkstruct.FromStringDict(starlarkstruct.Default, m.StringDict())
-}
-
-// StringDict returns all module methods in a starlark.StringDict
-func (m *Module) StringDict() starlark.StringDict {
-	return starlark.StringDict{
-		"read_all": starlark.NewBuiltin("read_all", ReadAll),
-	}
-}
-
 // ReadAll gets all values from a csv source
 func ReadAll(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
