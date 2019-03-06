@@ -27,41 +27,44 @@ func LoadModule() (starlark.StringDict, error) {
 		inf := math.Inf(1)
 		nan := math.NaN()
 		mathModule = starlark.StringDict{
-			"math": starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
-				"ceil":  starlark.NewBuiltin("ceil", ceil),
-				"fabs":  starlark.NewBuiltin("fabs", fabs),
-				"floor": starlark.NewBuiltin("floor", floor),
-				"round": starlark.NewBuiltin("round", round),
+			"math": &starlarkstruct.Module{
+				Name: "math",
+				Members: starlark.StringDict{
+					"ceil":  starlark.NewBuiltin("ceil", ceil),
+					"fabs":  starlark.NewBuiltin("fabs", fabs),
+					"floor": starlark.NewBuiltin("floor", floor),
+					"round": starlark.NewBuiltin("round", round),
 
-				"exp":  starlark.NewBuiltin("exp", exp),
-				"sqrt": starlark.NewBuiltin("sqrt", sqrt),
+					"exp":  starlark.NewBuiltin("exp", exp),
+					"sqrt": starlark.NewBuiltin("sqrt", sqrt),
 
-				"acos":  starlark.NewBuiltin("acos", acos),
-				"asin":  starlark.NewBuiltin("asin", asin),
-				"atan":  starlark.NewBuiltin("atan", atan),
-				"atan2": starlark.NewBuiltin("atan2", atan2),
-				"cos":   starlark.NewBuiltin("cos", cos),
-				"hypot": starlark.NewBuiltin("hypot", hypot),
-				"sin":   starlark.NewBuiltin("sin", sin),
-				"tan":   starlark.NewBuiltin("tan", tan),
+					"acos":  starlark.NewBuiltin("acos", acos),
+					"asin":  starlark.NewBuiltin("asin", asin),
+					"atan":  starlark.NewBuiltin("atan", atan),
+					"atan2": starlark.NewBuiltin("atan2", atan2),
+					"cos":   starlark.NewBuiltin("cos", cos),
+					"hypot": starlark.NewBuiltin("hypot", hypot),
+					"sin":   starlark.NewBuiltin("sin", sin),
+					"tan":   starlark.NewBuiltin("tan", tan),
 
-				"degrees": starlark.NewBuiltin("degrees", degrees),
-				"radians": starlark.NewBuiltin("radians", radians),
+					"degrees": starlark.NewBuiltin("degrees", degrees),
+					"radians": starlark.NewBuiltin("radians", radians),
 
-				"acosh": starlark.NewBuiltin("acosh", acosh),
-				"asinh": starlark.NewBuiltin("asinh", asinh),
-				"atanh": starlark.NewBuiltin("atanh", atanh),
-				"cosh":  starlark.NewBuiltin("cosh", cosh),
-				"sinh":  starlark.NewBuiltin("sinh", sinh),
-				"tanh":  starlark.NewBuiltin("tanh", tanh),
+					"acosh": starlark.NewBuiltin("acosh", acosh),
+					"asinh": starlark.NewBuiltin("asinh", asinh),
+					"atanh": starlark.NewBuiltin("atanh", atanh),
+					"cosh":  starlark.NewBuiltin("cosh", cosh),
+					"sinh":  starlark.NewBuiltin("sinh", sinh),
+					"tanh":  starlark.NewBuiltin("tanh", tanh),
 
-				"e":   starlark.Float(math.E),
-				"pi":  starlark.Float(math.Pi),
-				"tau": starlark.Float(tau),
-				"phi": starlark.Float(math.Phi),
-				"inf": starlark.Float(inf),
-				"nan": starlark.Float(nan),
-			}),
+					"e":   starlark.Float(math.E),
+					"pi":  starlark.Float(math.Pi),
+					"tau": starlark.Float(tau),
+					"phi": starlark.Float(math.Phi),
+					"inf": starlark.Float(inf),
+					"nan": starlark.Float(nan),
+				},
+			},
 		}
 	})
 	return mathModule, nil

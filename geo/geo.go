@@ -30,18 +30,21 @@ var (
 func LoadModule() (starlark.StringDict, error) {
 	once.Do(func() {
 		geoModule = starlark.StringDict{
-			"geo": starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
-				// constructors
-				"Point":        starlark.NewBuiltin("Point", newPoint),
-				"Line":         starlark.NewBuiltin("Line", newLine),
-				"Polygon":      starlark.NewBuiltin("Polygon", newPolygon),
-				"MultiPolygon": starlark.NewBuiltin("MultiPolygon", newMultiPolygon),
+			"geo": &starlarkstruct.Module{
+				Name: "geo",
+				Members: starlark.StringDict{
+					// constructors
+					"Point":        starlark.NewBuiltin("Point", newPoint),
+					"Line":         starlark.NewBuiltin("Line", newLine),
+					"Polygon":      starlark.NewBuiltin("Polygon", newPolygon),
+					"MultiPolygon": starlark.NewBuiltin("MultiPolygon", newMultiPolygon),
 
-				// geographic joins
-				"within":       starlark.NewBuiltin("within", within),
-				"intersects":   starlark.NewBuiltin("intersects", intersects),
-				"parseGeoJSON": starlark.NewBuiltin("parseGeoJSON", parseGeoJSON),
-			}),
+					// geographic joins
+					"within":       starlark.NewBuiltin("within", within),
+					"intersects":   starlark.NewBuiltin("intersects", intersects),
+					"parseGeoJSON": starlark.NewBuiltin("parseGeoJSON", parseGeoJSON),
+				},
+			},
 		}
 	})
 	return geoModule, nil

@@ -22,20 +22,23 @@ var (
 func LoadModule() (starlark.StringDict, error) {
 	once.Do(func() {
 		reModule = starlark.StringDict{
-			"re": starlarkstruct.FromStringDict(starlark.String("re"), starlark.StringDict{
-				// TODO
-				// "compile" : starlark.NewBuiltin("complile", compile),
+			"re": &starlarkstruct.Module{
+				Name: "re",
+				Members: starlark.StringDict{
+					// TODO
+					// "compile" : starlark.NewBuiltin("complile", compile),
 
-				// "search":    starlark.NewBuiltin("search", search),
-				"match": starlark.NewBuiltin("match", match),
-				// "fullmatch": starlark.NewBuiltin("fullmatch", fullmatch),
-				"split":   starlark.NewBuiltin("split", split),
-				"findall": starlark.NewBuiltin("findall", findall),
-				// "finditer":  starlark.NewBuiltin("finditer", finditer),
-				"sub": starlark.NewBuiltin("sub", sub),
-				// "subn":      starlark.NewBuiltin("subn", subn),
-				// "escape":    starlark.NewBuiltin("escape", escape),
-			}),
+					// "search":    starlark.NewBuiltin("search", search),
+					"match": starlark.NewBuiltin("match", match),
+					// "fullmatch": starlark.NewBuiltin("fullmatch", fullmatch),
+					"split":   starlark.NewBuiltin("split", split),
+					"findall": starlark.NewBuiltin("findall", findall),
+					// "finditer":  starlark.NewBuiltin("finditer", finditer),
+					"sub": starlark.NewBuiltin("sub", sub),
+					// "subn":      starlark.NewBuiltin("subn", subn),
+					// "escape":    starlark.NewBuiltin("escape", escape),
+				},
+			},
 		}
 	})
 	return reModule, nil

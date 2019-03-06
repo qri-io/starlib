@@ -23,10 +23,13 @@ var (
 func LoadModule() (starlark.StringDict, error) {
 	once.Do(func() {
 		jsonModule = starlark.StringDict{
-			"json": starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
-				"loads": starlark.NewBuiltin("loads", Loads),
-				"dumps": starlark.NewBuiltin("dumps", Dumps),
-			}),
+			"json": &starlarkstruct.Module{
+				Name: "json",
+				Members: starlark.StringDict{
+					"loads": starlark.NewBuiltin("loads", Loads),
+					"dumps": starlark.NewBuiltin("dumps", Dumps),
+				},
+			},
 		}
 	})
 	return jsonModule, nil
