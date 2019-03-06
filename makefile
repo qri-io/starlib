@@ -16,5 +16,10 @@ default: install-deps
 list-deps:
 	go list -f '{{.Deps}}' | tr "[" " " | tr "]" " " | xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}'
 
+module-readmes:
+	for doc in $$(find . | grep doc.go | tr '\n' ' '); do \
+		outline template $$doc > $$(dirname $$doc)/README.md; \
+	done
+
 install-deps:
 	go get -v $(GOPACKAGES)
