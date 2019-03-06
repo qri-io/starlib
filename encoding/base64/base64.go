@@ -40,10 +40,13 @@ var Encodings = map[string]*gobase64.Encoding{
 func LoadModule() (starlark.StringDict, error) {
 	once.Do(func() {
 		base64Module = starlark.StringDict{
-			"base64": starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
-				"encode": starlark.NewBuiltin("encode", encodeString),
-				"decode": starlark.NewBuiltin("decode", decodeString),
-			}),
+			"base64": &starlarkstruct.Module{
+				Name: "base64",
+				Members: starlark.StringDict{
+					"encode": starlark.NewBuiltin("encode", encodeString),
+					"decode": starlark.NewBuiltin("decode", decodeString),
+				},
+			},
 		}
 	})
 	return base64Module, nil

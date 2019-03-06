@@ -3,7 +3,6 @@ package time
 import (
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 	gotime "time"
 
@@ -26,44 +25,28 @@ var (
 // It is concurrency-safe and idempotent.
 func LoadModule() (starlark.StringDict, error) {
 	once.Do(func() {
-		predeclared := starlark.StringDict{
-			"duration_": starlark.NewBuiltin("duration", duration),
-			"location_": starlark.NewBuiltin("location", location),
-			"now_":      starlark.NewBuiltin("now", now),
-			"struct":    starlark.NewBuiltin("struct", starlarkstruct.Make),
-			"time_":     starlark.NewBuiltin("time", time),
-			"sleep_":    starlark.NewBuiltin("sleep", sleep),
+		timeModule = starlark.StringDict{
+			"time": &starlarkstruct.Module{
+				Name: "time",
+				Members: starlark.StringDict{
+					"duration": starlark.NewBuiltin("duration", duration),
+					"location": starlark.NewBuiltin("location", location),
+					"now":      starlark.NewBuiltin("now", now),
+					"struct":   starlark.NewBuiltin("struct", starlarkstruct.Make),
+					"time":     starlark.NewBuiltin("time", time),
+					"sleep":    starlark.NewBuiltin("sleep", sleep),
 
-			"zero_": Time{},
+					"zero": Time{},
 
-			"nanosecond_":  durInt(gotime.Nanosecond),
-			"microsecond_": durInt(gotime.Microsecond),
-			"millisecond_": durInt(gotime.Millisecond),
-			"second_":      durInt(gotime.Second),
-			"minute_":      durInt(gotime.Minute),
-			"hour_":        durInt(gotime.Hour),
+					"nanosecond":  durInt(gotime.Nanosecond),
+					"microsecond": durInt(gotime.Microsecond),
+					"millisecond": durInt(gotime.Millisecond),
+					"second":      durInt(gotime.Second),
+					"minute":      durInt(gotime.Minute),
+					"hour":        durInt(gotime.Hour),
+				},
+			},
 		}
-
-		// embed file into binary to remove any file dependencies
-		file := strings.NewReader(`
-time = struct(
-	time = time_,
-	duration = duration_,
-	location = location_,
-	now = now_,
-	zero = zero_,
-	sleep = sleep_,
-	nanosecond = nanosecond_,
-	microsecond = microsecond_,
-	millisecond = millisecond_,
-	second = second_,
-	minute = minute_,
-	hour = hour_,
-)
-`)
-
-		thread := new(starlark.Thread)
-		timeModule, timeError = starlark.ExecFile(thread, ModuleName, file, predeclared)
 	})
 	return timeModule, timeError
 }

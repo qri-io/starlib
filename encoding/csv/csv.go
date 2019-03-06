@@ -26,9 +26,12 @@ var (
 func LoadModule() (starlark.StringDict, error) {
 	once.Do(func() {
 		csvModule = starlark.StringDict{
-			"csv": starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
-				"read_all": starlark.NewBuiltin("read_all", ReadAll),
-			}),
+			"csv": &starlarkstruct.Module{
+				Name: "csv",
+				Members: starlark.StringDict{
+					"read_all": starlark.NewBuiltin("read_all", ReadAll),
+				},
+			},
 		}
 	})
 	return csvModule, nil
