@@ -1,11 +1,11 @@
-/*Package re defines regular expression functions, it's intented to be a drop-in
+/*Package re defines regular expression functions, it's intended to be a drop-in
 subset of python's re module for starlark:
 https://docs.python.org/3/library/re.html
 
 TODO (b5): compile search, fullmatch, findall, finditer, subn, escape
 
   outline: re
-    re defines regular expression functions, it's intented to be a drop-in
+    re defines regular expression functions, it's intended to be a drop-in
     subset of python's re module for starlark: https://docs.python.org/3/library/re.html
 
     functions:

@@ -1,5 +1,5 @@
 /*
-Package zipfile defines zipfileimatical functions, it's intented to be a drop-in
+Package zipfile defines zipfileimatical functions, it's intended to be a drop-in
 subset of python's zipfile module for starlark:
 https://docs.python.org/3/library/zipfile.html
 */

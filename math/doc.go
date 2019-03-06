@@ -1,10 +1,10 @@
-/*Package math defines mathimatical functions, it's intented to be a drop-in
+/*Package math defines mathematical functions, it's intended to be a drop-in
 subset of python's math module for starlark: https://docs.python.org/3/library/math.html
 
 Currently defined functions are as follows:
 
   outline: math
-    math defines mathimatical functions, it's intented to be a drop-in
+    math defines mathematical functions, it's intended to be a drop-in
     subset of python's math module for starlark: https://docs.python.org/3/library/math.html
 
     functions:

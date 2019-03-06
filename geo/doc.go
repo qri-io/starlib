@@ -52,7 +52,7 @@
         a two-dimensional point in space
         methods:
           distance(p2) float
-            Euclidian Distance to the other point
+            Euclidean Distance to the other point
             params:
               p2  point
                 point to measure distance to
@@ -65,7 +65,7 @@
         an ordered list of points that define a line
         methods:
           length() float
-            Euclidian Length
+            Euclidean Length
           geodesicLength() float
             Line length on the surface of a sphere with the same radius as Earth
       Polygon
