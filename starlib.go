@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/starlib/geo"
 	"github.com/qri-io/starlib/html"
 	"github.com/qri-io/starlib/http"
+	"github.com/qri-io/starlib/math"
 	"github.com/qri-io/starlib/re"
 	"github.com/qri-io/starlib/time"
 	"github.com/qri-io/starlib/xlsx"
@@ -42,6 +43,8 @@ func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, e
 		return json.LoadModule()
 	case geo.ModuleName:
 		return geo.LoadModule()
+	case math.ModuleName:
+		return math.LoadModule()
 	}
 
 	return nil, fmt.Errorf("invalid module '%s'", module)

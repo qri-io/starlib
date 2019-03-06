@@ -31,6 +31,7 @@ func LoadModule() (starlark.StringDict, error) {
 				"ceil":  starlark.NewBuiltin("ceil", ceil),
 				"fabs":  starlark.NewBuiltin("fabs", fabs),
 				"floor": starlark.NewBuiltin("floor", floor),
+				"round": starlark.NewBuiltin("round", round),
 
 				"exp":  starlark.NewBuiltin("exp", exp),
 				"sqrt": starlark.NewBuiltin("sqrt", sqrt),
@@ -98,6 +99,11 @@ func ceil(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwa
 // Return the absolute value of x
 func fabs(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	return floatFunc("fabs", args, kwargs, math.Abs)
+}
+
+// Round returns the nearest integer, rounding half away from zero.
+func round(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return floatFunc("fabs", args, kwargs, math.Round)
 }
 
 // Return e raised to the power x, where e = 2.718281… is the base of natural logarithms.

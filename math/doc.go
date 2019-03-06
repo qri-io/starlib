@@ -14,6 +14,8 @@ Currently defined functions are as follows:
         Return the absolute value of x.
       floor(x)
         Return the floor of x, the largest integer less than or equal to x.
+      round(x)
+        Returns the nearest integer, rounding half away from zero.
       exp(x)
         Return e raised to the power x, where e = 2.718281… is the base of natural logarithms
       sqrt(x)
