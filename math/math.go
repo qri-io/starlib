@@ -74,7 +74,7 @@ func LoadModule() (starlark.StringDict, error) {
 // and returns the result as a starlark value
 func floatFunc(name string, args starlark.Tuple, kwargs []starlark.Tuple, fn func(float64) float64) (starlark.Value, error) {
 	var x starlark.Float
-	if err := starlark.UnpackArgs(name, args, kwargs, "x", &x); err != nil {
+	if err := starlark.UnpackPositionalArgs(name, args, kwargs, 1, &x); err != nil {
 		return nil, err
 	}
 	return starlark.Float(fn(float64(x))), nil
@@ -83,7 +83,7 @@ func floatFunc(name string, args starlark.Tuple, kwargs []starlark.Tuple, fn fun
 // floatFunc2 is a 2-argument float func
 func floatFunc2(name string, args starlark.Tuple, kwargs []starlark.Tuple, fn func(float64, float64) float64) (starlark.Value, error) {
 	var x, y starlark.Float
-	if err := starlark.UnpackArgs(name, args, kwargs, "x", &x, "y", &y); err != nil {
+	if err := starlark.UnpackPositionalArgs(name, args, kwargs, 2, &x, &y); err != nil {
 		return nil, err
 	}
 	return starlark.Float(fn(float64(x), float64(y))), nil
