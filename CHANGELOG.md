@@ -1,3 +1,20 @@
+<a name="0.3.0"></a>
+# [0.3.0](https://github.com/qri-io/starlib/compare/v0.2.0...v0.3.0) (2019-03-07)
+
+Added a JSON package, fixed math not being accessible in the default loader, a number of minor refactors
+
+
+### Bug Fixes
+
+* **math:** add missing math module to loader, add math.round(x) ([7923d11](https://github.com/qri-io/starlib/commit/7923d11))
+
+
+### Features
+
+* **json:** add initial json-package ([c165930](https://github.com/qri-io/starlib/commit/c165930))
+
+
+
 <a name="0.2.0"></a>
 # 0.2.0 (2019-01-22)
 
