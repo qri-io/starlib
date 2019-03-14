@@ -36,7 +36,7 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 			val = f
 		}
 	case starlark.String:
-		val, err = asString(v)
+		val = v.GoString()
 	case *starlark.Dict:
 		var (
 			dictVal starlark.Value

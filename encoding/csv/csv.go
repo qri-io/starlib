@@ -1,6 +1,7 @@
 package csv
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/qri-io/dataset/dsio/replacecr"
+	"github.com/qri-io/starlib/util"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
 )
@@ -29,7 +31,8 @@ func LoadModule() (starlark.StringDict, error) {
 			"csv": &starlarkstruct.Module{
 				Name: "csv",
 				Members: starlark.StringDict{
-					"read_all": starlark.NewBuiltin("read_all", ReadAll),
+					"read_all":  starlark.NewBuiltin("read_all", ReadAll),
+					"write_all": starlark.NewBuiltin("write_all", WriteAll),
 				},
 			},
 		}
@@ -109,4 +112,56 @@ func ReadAll(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, 
 		vals[i] = starlark.NewList(row)
 	}
 	return starlark.NewList(vals), nil
+}
+
+// WriteAll writes a csv file to a string
+func WriteAll(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		buf = &bytes.Buffer{}
+
+		source starlark.Value
+		_comma starlark.String
+	)
+
+	if err := starlark.UnpackArgs("write_all", args, kwargs, "source", &source, "comma?", &_comma); err != nil {
+		return nil, err
+	}
+
+	csvw := csv.NewWriter(buf)
+	comma := string(_comma)
+	if comma == "" {
+		comma = ","
+	} else if len(comma) != 1 {
+		return starlark.None, fmt.Errorf("expected comma param to be a single-character string")
+	}
+	csvw.Comma = []rune(comma)[0]
+
+	val, err := util.Unmarshal(source)
+	if err != nil {
+		return starlark.None, err
+	}
+
+	sl, ok := val.([]interface{})
+	if !ok {
+		return starlark.None, fmt.Errorf("expected value to be an array type")
+	}
+
+	var records [][]string
+	for i, v := range sl {
+		sl, ok := v.([]interface{})
+		if !ok {
+			return starlark.None, fmt.Errorf("row %d is not an array type", i)
+		}
+		var row = make([]string, len(sl))
+		for j, v := range sl {
+			row[j] = fmt.Sprintf("%v", v)
+		}
+		records = append(records, row)
+	}
+
+	if err := csvw.WriteAll(records); err != nil {
+		return starlark.None, err
+	}
+
+	return starlark.String(buf.String()), nil
 }

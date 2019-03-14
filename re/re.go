@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/qri-io/starlib/util"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
 )
@@ -28,8 +29,8 @@ func LoadModule() (starlark.StringDict, error) {
 					// TODO
 					// "compile" : starlark.NewBuiltin("complile", compile),
 
-					// "search":    starlark.NewBuiltin("search", search),
-					"match": starlark.NewBuiltin("match", match),
+					"search": starlark.NewBuiltin("search", search),
+					"match":  starlark.NewBuiltin("match", match),
 					// "fullmatch": starlark.NewBuiltin("fullmatch", fullmatch),
 					"split":   starlark.NewBuiltin("split", split),
 					"findall": starlark.NewBuiltin("findall", findall),
@@ -48,21 +49,30 @@ func LoadModule() (starlark.StringDict, error) {
 // Scan through string looking for the first location where the regular expression pattern produces a match,
 // and return a corresponding match object. Return None if no position in the string matches the pattern;
 // note that this is different from finding a zero-length match at some point in the string.
-// func search(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-// 	var (
-// 		pattern, str starlark.String
-// 		flags starlark.Int
-// 	)
-// 	if err := starlark.UnpackArgs("search", args, kwargs, "pattern", &pattern, "string", &str, "flags?", &flags); err != nil {
-// 		return starlark.None, err
-// 	}
-// 	r, err := newRegex(pattern)
-// 	if err != nil {
-// 		return starlark.None, err
-// 	}
-// 	// r.FindStringIndex(string(str))
-// 	return starlark.None, nil
-// }
+func search(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		pattern, str starlark.String
+		flags        starlark.Int
+	)
+	if err := starlark.UnpackArgs("search", args, kwargs, "pattern", &pattern, "string", &str, "flags?", &flags); err != nil {
+		return starlark.None, err
+	}
+	r, err := newRegex(pattern)
+	if err != nil {
+		return starlark.None, err
+	}
+	matches := r.FindStringIndex(string(str))
+	if len(matches) == 0 {
+		return starlark.None, nil
+	}
+
+	vals := make([]interface{}, len(matches))
+	for i, m := range matches {
+		vals[i] = m
+	}
+
+	return util.Marshal(vals)
+}
 
 // match(pattern, string, flags=0)
 // If zero or more characters at the beginning of string match the regular expression pattern,
