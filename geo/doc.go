@@ -66,7 +66,7 @@
         methods:
           length() float
             Euclidean Length
-          geodesicLength() float
+          lengthGeodesic() float
             Line length on the surface of a sphere with the same radius as Earth
       Polygon
         an ordered list of closed lines (rings) that define a shape. lists of

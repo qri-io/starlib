@@ -36,6 +36,15 @@
             made and records may have a variable number of fields.
           skip int
             number of rows to skip, omitting from returned rows
+      write_all(source,comma=",") string
+        write all rows from source to a csv-encoded string
+        params:
+          source [][]string
+            array of arrays of strings to write to csv
+          comma string
+            comma is the field delimiter, defaults to "," (a comma).
+            comma must be a valid character and must not be \r, \n,
+            or the Unicode replacement character (0xFFFD).
 
 
 */
