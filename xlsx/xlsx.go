@@ -93,7 +93,11 @@ func (f *File) GetRows(thread *starlark.Thread, _ *starlark.Builtin, args starla
 		return nil, err
 	}
 
-	xRows := f.xlsx.GetRows(sheet)
+	xRows, err := f.xlsx.GetRows(sheet)
+	if err != nil {
+		return starlark.None, err
+	}
+
 	rows := make([]starlark.Value, len(xRows))
 	for i, xRow := range xRows {
 		col := make([]starlark.Value, len(xRow))
