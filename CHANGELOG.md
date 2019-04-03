@@ -1,3 +1,13 @@
+<a name="0.3.2"></a>
+# [0.3.2](https://github.com/qri-io/starlib/compare/v0.3.1...v0.3.2) (2019-04-03)
+
+
+### Bug Fixes
+
+* **xlsx:** fix updated excelize api ([cfe3c52](https://github.com/qri-io/starlib/commit/cfe3c52))
+
+
+
 <a name="0.3.1"></a>
 # [0.3.1](https://github.com/qri-io/starlib/compare/v0.3.0...v0.3.1) (2019-03-14)
 

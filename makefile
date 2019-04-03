@@ -21,5 +21,8 @@ module-readmes:
 		outline template $$doc > $$(dirname $$doc)/README.md; \
 	done
 
+update-changelog:
+	conventional-changelog -p angular -i CHANGELOG.md -s
+
 install-deps:
 	go get -v $(GOPACKAGES)
