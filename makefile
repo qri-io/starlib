@@ -3,6 +3,7 @@ define GOPACKAGES
 github.com/360EntSecGroup-Skylar/excelize \
 github.com/PuerkitoBio/goquery \
 github.com/andybalholm/cascadia \
+github.com/dustmop/soup \
 github.com/mohae/deepcopy \
 github.com/qri-io/dataset \
 golang.org/x/net/html \
