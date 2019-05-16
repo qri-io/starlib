@@ -18,16 +18,10 @@ jobs:
       - run:
           name: Run Lint Tests
           command: golint -set_exit_status ./...
-      - restore_cache:
-          key: dependency-cache-{{ checksum "makefile" }}
       - run:
           name: Install deps
           command: >
             make install-deps
-      - save_cache:
-          key: dependency-cache-{{ checksum "makefile" }}
-          paths:
-            - /go/src/github.com/
       - run:
           name: Run Tests
           command: |
