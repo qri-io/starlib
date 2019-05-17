@@ -3,58 +3,52 @@ package bsoup
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"sort"
 	"strconv"
+	"sync"
 
 	"github.com/dustmop/soup"
 	"go.starlark.net/starlark"
+	"go.starlark.net/starlarkstruct"
 	"golang.org/x/net/html"
 )
 
-// runScriptContent runs the script, and return the global value of `resultName` as a string
-func runScriptContent(scriptSource, resultName string) (string, error) {
-	thread := &starlark.Thread{}
+// ModuleName defines the name for loading this module, using `load('bsoup.star', 'bsoup')
+const ModuleName = "bsoup.star"
 
-	environment := make(map[string]starlark.Value)
-	defineBuiltins(environment)
+var (
+	once        sync.Once
+	bsoupModule starlark.StringDict
+)
 
-	outEnv, err := starlark.ExecFile(thread, "", scriptSource, environment)
-	if err != nil {
-		return "", err
-	}
-
-	resultVal := outEnv[resultName]
-	if err != nil {
-		return "", err
-	}
-
-	return resultVal.String(), nil
+// LoadModule loads the bsoup module. Concurrency-safe and idempotent.
+func LoadModule() (starlark.StringDict, error) {
+	once.Do(func() {
+		bsoupModule = starlark.StringDict{
+			"bsoup": &starlarkstruct.Module{
+				Name: "bsoup",
+				Members: starlark.StringDict{
+					"parseHtml": starlark.NewBuiltin("parseHtml", ParseHTML),
+				},
+			},
+		}
+	})
+	return bsoupModule, nil
 }
 
-func defineBuiltins(environment map[string]starlark.Value) {
-	environment["OpenHtml"] = starlark.NewBuiltin("OpenHtml", OpenHTML)
-}
-
-// OpenHTML parses html from a provided filename, and returns it as a SoupNode
-func OpenHTML(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var filename starlark.String
-	if err := starlark.UnpackArgs("OpenHtml", args, kwargs, "filename", &filename); err != nil {
+// ParseHTML parses html from a string, and returns it as a SoupNode
+func ParseHTML(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var htmlText starlark.String
+	if err := starlark.UnpackArgs("parseHtml", args, kwargs, "htmlText", &htmlText); err != nil {
 		return nil, err
 	}
 
-	filenameText, err := AsString(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	content, err := ioutil.ReadFile(filenameText)
+	content, err := AsString(htmlText)
 	if err != nil {
 		return nil, err
 	}
 
 	root := soup.HTMLParse(string(content))
-
 	return NewSoupNode(&root), nil
 }
 
@@ -66,7 +60,7 @@ func AsString(x starlark.Value) (string, error) {
 	return strconv.Unquote(x.String())
 }
 
-// SoupNode is an alias for soup's Root struct
+// SoupNode extends soup's Root struct with starlark support
 type SoupNode soup.Root
 
 // String converts a SoupNode to a string by rendering each node
@@ -99,18 +93,7 @@ func (n *SoupNode) Truth() starlark.Bool {
 
 // Attr returns an attribute of a SoupNode
 func (n *SoupNode) Attr(name string) (starlark.Value, error) {
-	return builtinAttr(n, name, bsoupMethods)
-}
-
-// AttrNames returns all attributes of a SoupNode
-func (n *SoupNode) AttrNames() []string {
-	return builtinAttrNames(bsoupMethods)
-}
-
-type builtinMethod func(fnname string, recv starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error)
-
-func builtinAttr(recv starlark.Value, name string, methods map[string]builtinMethod) (starlark.Value, error) {
-	method := methods[name]
+	method := bsoupMethods[name]
 	if method == nil {
 		return nil, nil // no such method
 	}
@@ -118,17 +101,20 @@ func builtinAttr(recv starlark.Value, name string, methods map[string]builtinMet
 	impl := func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		return method(b.Name(), b.Receiver(), args, kwargs)
 	}
-	return starlark.NewBuiltin(name, impl).BindReceiver(recv), nil
+	return starlark.NewBuiltin(name, impl).BindReceiver(n), nil
 }
 
-func builtinAttrNames(methods map[string]builtinMethod) []string {
-	names := make([]string, 0, len(methods))
-	for name := range methods {
+// AttrNames returns all attributes of a SoupNode
+func (n *SoupNode) AttrNames() []string {
+	names := make([]string, 0, len(bsoupMethods))
+	for name := range bsoupMethods {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 	return names
 }
+
+type builtinMethod func(fnname string, recv starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error)
 
 func hashString(s string) uint32 {
 	var h uint32
@@ -148,7 +134,7 @@ var bsoupMethods = map[string]builtinMethod{
 	"parent":       bsoupParent,
 	"next_sibling": bsoupNextSibling,
 	"prev_sibling": bsoupPrevSibling,
-	// TODO:
+	// TODO(dlong):
 	// .string https://www.crummy.com/software/BeautifulSoup/bs4/doc/#string
 	// .strings https://www.crummy.com/software/BeautifulSoup/bs4/doc/#strings-and-stripped-strings
 	// .parents https://www.crummy.com/software/BeautifulSoup/bs4/doc/#parents
@@ -224,7 +210,7 @@ func (n *SoupNode) parseFindArgs(args starlark.Tuple, kwargs []starlark.Tuple) (
 	}
 
 	// Convert keyword arguments to a string list, by flattening them.
-	// TODO: Handle meaningful keywords specially: name, attrs, recurive, string, limit, class_
+	// TODO(dlong): Handle meaningful keywords: name, attrs, recurive, string, limit, class_
 	for _, kw := range kwargs {
 		key, err := AsString(kw[0])
 		if err != nil {

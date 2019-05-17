@@ -3,6 +3,7 @@ package starlib
 import (
 	"fmt"
 
+	"github.com/qri-io/starlib/bsoup"
 	"github.com/qri-io/starlib/encoding/base64"
 	"github.com/qri-io/starlib/encoding/csv"
 	"github.com/qri-io/starlib/encoding/json"
@@ -31,6 +32,8 @@ func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, e
 		return xlsx.LoadModule()
 	case html.ModuleName:
 		return html.LoadModule()
+	case bsoup.ModuleName:
+		return bsoup.LoadModule()
 	case zipfile.ModuleName:
 		return zipfile.LoadModule()
 	case re.ModuleName:

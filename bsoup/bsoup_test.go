@@ -1,11 +1,10 @@
 package bsoup
 
 import (
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
+
+	"go.starlark.net/starlark"
 )
 
 const htmlPage = `<html>
@@ -29,10 +28,33 @@ const htmlPage = `<html>
   </body>
 </html>`
 
+func runTestScript(htmlContent, scriptContent string) string {
+	// The environment for tests adds a global function GetHtml to get the html string.
+	environment := make(map[string]starlark.Value)
+	environment["GetHtml"] = starlark.NewBuiltin("GetHtml", func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		// Convert htmlContent string to a starlark value, pass it as an argument to ParseHTML.
+		htmlValue := starlark.Value(starlark.String(htmlContent))
+		return ParseHTML(thread, b, starlark.Tuple([]starlark.Value{htmlValue}), nil)
+	})
+
+	// Execute the script.
+	thread := &starlark.Thread{}
+	outEnv, err := starlark.ExecFile(thread, "", scriptContent, environment)
+	if err != nil {
+		panic(err)
+	}
+
+	// Remove whitespace so that tests are easier to check.
+	result := outEnv["result"].String()
+	result = strings.Replace(result, " ", "", -1)
+	result = strings.Replace(result, "\n", "", -1)
+	return result
+}
+
 func TestFindByTagName(t *testing.T) {
 	script := `
 def run():
-  doc = OpenHtml("doc.html")
+  doc = GetHtml()
   return doc.find("ul")
 result = run()
 `
@@ -46,7 +68,7 @@ result = run()
 func TestChildByTagName(t *testing.T) {
 	script := `
 def run():
-  doc = OpenHtml("doc.html")
+  doc = GetHtml()
   elem = doc.find("ul")
   return elem.child("li")
 result = run()
@@ -61,7 +83,7 @@ result = run()
 func TestChildren(t *testing.T) {
 	script := `
 def run():
-  doc = OpenHtml("doc.html")
+  doc = GetHtml()
   elem = doc.find("ul")
   return elem.contents()
 result = run()
@@ -76,7 +98,7 @@ result = run()
 func TestParent(t *testing.T) {
 	script := `
 def run():
-  doc = OpenHtml("doc.html")
+  doc = GetHtml()
   elem = doc.find("b")
   return elem.parent()
 result = run()
@@ -91,7 +113,7 @@ result = run()
 func TestFindByTagNameAndDict(t *testing.T) {
 	script := `
 def run():
-  doc = OpenHtml("doc.html")
+  doc = GetHtml()
   return doc.find("div", {"class": "footer"})
 result = run()
 `
@@ -105,7 +127,7 @@ result = run()
 func TestFindOnlyDict(t *testing.T) {
 	script := `
 def run():
-  doc = OpenHtml("doc.html")
+  doc = GetHtml()
   return doc.find("", {"class": "footer"})
 result = run()
 `
@@ -119,7 +141,7 @@ result = run()
 func TestFindOnlyDictUsingId(t *testing.T) {
 	script := `
 def run():
-  doc = OpenHtml("doc.html")
+  doc = GetHtml()
   return doc.find("", {"id": "content"})
 result = run()
 `
@@ -133,7 +155,7 @@ result = run()
 func TestFindKeywordForAttribute(t *testing.T) {
 	script := `
 def run():
-  doc = OpenHtml("doc.html")
+  doc = GetHtml()
   return doc.find("", id="content")
 result = run()
 `
@@ -147,7 +169,7 @@ result = run()
 func TestFindKeywordWithoutTagname(t *testing.T) {
 	script := `
 def run():
-  doc = OpenHtml("doc.html")
+  doc = GetHtml()
   return doc.find(id="content")
 result = run()
 `
@@ -161,7 +183,7 @@ result = run()
 func TestNextSibling(t *testing.T) {
 	script := `
 def run():
-  doc = OpenHtml("doc.html")
+  doc = GetHtml()
   elem = doc.find(id="content")
   return elem.next_sibling().next_sibling()
 result = run()
@@ -176,7 +198,7 @@ result = run()
 func TestPrevSibling(t *testing.T) {
 	script := `
 def run():
-  doc = OpenHtml("doc.html")
+  doc = GetHtml()
   elem = doc.find(id="content")
   return elem.prev_sibling().prev_sibling()
 result = run()
@@ -191,44 +213,16 @@ result = run()
 func TestAttrs(t *testing.T) {
 	script := `
 def run():
-  doc = OpenHtml("doc.html")
+  doc = GetHtml()
   elem = doc.find("span")
   return elem.attrs()
 result = run()
 `
 	actual := runTestScript(htmlPage, script)
-	// TODO: Investigate why this is non-deterministic, shouldn't starlark order the keys?
+	// TODO(dlong): Investigate why this is non-deterministic, shouldn't starlark order the keys?
 	expectOne := `{"id":"abc","style":"color:red;"}`
 	expectTwo := `{"style":"color:red;","id":"abc"}`
 	if actual != expectOne && actual != expectTwo {
 		t.Errorf("error, expected: %s, got %s", expectOne, actual)
 	}
-}
-
-func runTestScript(htmlContent, scriptContent string) string {
-	tmpDir, err := ioutil.TempDir("", "run_script_test")
-	if err != nil {
-		panic(err)
-	}
-
-	htmlFile := filepath.Join(tmpDir, "doc.html")
-	err = ioutil.WriteFile(htmlFile, []byte(htmlContent), os.ModePerm)
-	if err != nil {
-		panic(err)
-	}
-
-	err = os.Chdir(tmpDir)
-	if err != nil {
-		panic(err)
-	}
-
-	result, err := runScriptContent(scriptContent, "result")
-	if err != nil {
-		panic(err)
-	}
-
-	result = strings.Replace(result, " ", "", -1)
-	result = strings.Replace(result, "\n", "", -1)
-
-	return result
 }
