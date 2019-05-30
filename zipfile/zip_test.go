@@ -1,16 +1,16 @@
 package zipfile
 
 import (
-	"fmt"
 	"io/ioutil"
 	"testing"
 
+	"github.com/qri-io/starlib/testdata"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarktest"
 )
 
 func TestFile(t *testing.T) {
-	thread := &starlark.Thread{Load: newLoader()}
+	thread := &starlark.Thread{Load: testdata.NewLoader(LoadModule, ModuleName)}
 	starlarktest.SetReporter(thread, t)
 
 	zipBytes, err := ioutil.ReadFile("testdata/hello_world.zip")
@@ -24,19 +24,5 @@ func TestFile(t *testing.T) {
 	})
 	if err != nil {
 		t.Error(err)
-	}
-}
-
-// load implements the 'load' operation as used in the evaluator tests.
-func newLoader() func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
-	return func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
-		switch module {
-		case ModuleName:
-			return LoadModule()
-		case "assert.star":
-			return starlarktest.LoadAssertModule()
-		}
-
-		return nil, fmt.Errorf("invalid module")
 	}
 }

@@ -1,9 +1,9 @@
 package math
 
 import (
-	"fmt"
 	"testing"
 
+	"github.com/qri-io/starlib/testdata"
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarktest"
@@ -11,7 +11,7 @@ import (
 
 func TestFile(t *testing.T) {
 	resolve.AllowFloat = true
-	thread := &starlark.Thread{Load: newLoader()}
+	thread := &starlark.Thread{Load: testdata.NewLoader(LoadModule, ModuleName)}
 	starlarktest.SetReporter(thread, t)
 
 	// Execute test file
@@ -22,19 +22,5 @@ func TestFile(t *testing.T) {
 		} else {
 			t.Error(err)
 		}
-	}
-}
-
-// load implements the 'load' operation as used in the evaluator tests.
-func newLoader() func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
-	return func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
-		switch module {
-		case ModuleName:
-			return LoadModule()
-		case "assert.star":
-			return starlarktest.LoadAssertModule()
-		}
-
-		return nil, fmt.Errorf("invalid module")
 	}
 }

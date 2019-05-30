@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	dataset "github.com/qri-io/dataset"
+	"github.com/qri-io/starlib/testdata"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarktest"
 )
@@ -43,15 +44,7 @@ func TestNewModule(t *testing.T) {
 	}))
 	starlark.Universe["test_server_url"] = starlark.String(ts.URL)
 
-	ds := &dataset.Dataset{
-		Transform: &dataset.Transform{
-			Syntax: "starlark",
-			Config: map[string]interface{}{
-				"foo": "bar",
-			},
-		},
-	}
-	thread := &starlark.Thread{Load: newLoader(ds)}
+	thread := &starlark.Thread{Load: testdata.NewLoader(LoadModule, ModuleName)}
 	starlarktest.SetReporter(thread, t)
 
 	// Execute test file
