@@ -1,3 +1,23 @@
+<a name="0.4.0"></a>
+# [0.4.0](https://github.com/qri-io/starlib/compare/v0.3.2...v0.4.0) (2019-05-29)
+
+In preparation for go 1.13, in which `go.mod` files and go modules are the primary way to handle go dependencies, we are going to do an official release of all our modules. This will be version v0.4.0 of `starlib`. That said, this release also includes a new package for working with HTML:
+
+## new beautiful soup-like HTML package
+Our `html` package is difficult to use, and we plan to deprecate it in a future release. In it's place we've introduced `bsoup`, a new package that implements parts of the [beautiful soup 4 api](https://www.crummy.com/software/BeautifulSoup/bs4). It's _much_ easier use, and will be familiar to anyone coming from the world of python.
+
+
+### Bug Fixes
+
+* **bsoup:** Multiple fixes, cleanups. Test-only code. Own TODOs. ([dd1c8ba](https://github.com/qri-io/starlib/commit/dd1c8ba))
+
+
+### Features
+
+* **bsoup:** Bsoup is a wrapper to imitate beautifulSoup in starlark ([3c0caeb](https://github.com/qri-io/starlib/commit/3c0caeb))
+
+
+
 <a name="0.3.2"></a>
 # [0.3.2](https://github.com/qri-io/starlib/compare/v0.3.1...v0.3.2) (2019-04-03)
 
