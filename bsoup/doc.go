@@ -31,6 +31,9 @@ in starlark
          prev_sibling()
            gets the previous sibling of an element
            works like [node.prev_sibling](https://www.crummy.com/software/BeautifulSoup/bs4/doc/#next-sibling-and-previous-sibling)
+         get_text()
+           all the text in a document or beneath a tag, as a single Unicode string:
+           works like [soup.get_text](https://www.crummy.com/software/BeautifulSoup/bs4/doc/#get-text)
    functions:
      parseHtml(html string) SoupNode
        parseHtml parses html from a string, returning the root SoupNode

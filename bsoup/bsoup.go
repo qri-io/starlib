@@ -134,6 +134,7 @@ var bsoupMethods = map[string]builtinMethod{
 	"parent":       bsoupParent,
 	"next_sibling": bsoupNextSibling,
 	"prev_sibling": bsoupPrevSibling,
+	"get_text":     bsoupGetText,
 	// TODO(dlong):
 	// .string https://www.crummy.com/software/BeautifulSoup/bs4/doc/#string
 	// .strings https://www.crummy.com/software/BeautifulSoup/bs4/doc/#strings-and-stripped-strings
@@ -144,7 +145,6 @@ var bsoupMethods = map[string]builtinMethod{
 	// .find_parents https://www.crummy.com/software/BeautifulSoup/bs4/doc/#find-parents-and-find-parent
 	// .select https://www.crummy.com/software/BeautifulSoup/bs4/doc/#css-selectors
 	// .prettify https://www.crummy.com/software/BeautifulSoup/bs4/doc/#pretty-printing
-	// .get_text https://www.crummy.com/software/BeautifulSoup/bs4/doc/#get-text
 }
 
 // NewSoupNode constructs a new SoupNode by cloning each field from the soup.Root
@@ -329,4 +329,12 @@ func bsoupPrevSibling(fnname string, self starlark.Value, args starlark.Tuple, k
 	node := self.(*SoupNode)
 	sibling := (*soup.Root)(node).FindPrevSibling()
 	return NewSoupNode(&sibling), nil
+}
+
+// bsoupGetText implements soup.get_text
+// https://www.crummy.com/software/BeautifulSoup/bs4/doc/#get-text
+func bsoupGetText(fnname string, self starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	node := self.(*SoupNode)
+	text := (*soup.Root)(node).Text()
+	return starlark.String(text), nil
 }
