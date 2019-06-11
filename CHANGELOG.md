@@ -1,3 +1,19 @@
+<a name="v0.4.1"></a>
+# [v0.4.1](https://github.com/qri-io/starlib/compare/v0.4.0...v0.4.1) (2019-06-10)
+
+Quick patch release the brings the `get_text` function to the bsoup package.
+
+### Bug Fixes
+
+* **version:** correct erroneous version indicator ([709ae5e](https://github.com/qri-io/starlib/commit/709ae5e))
+
+
+### Features
+
+* **bsoup:** add get_text method to bsoup ([#31](https://github.com/qri-io/starlib/issues/31)) ([499d3e8](https://github.com/qri-io/starlib/commit/499d3e8))
+
+
+
 <a name="0.4.0"></a>
 # [0.4.0](https://github.com/qri-io/starlib/compare/v0.3.2...v0.4.0) (2019-05-29)
 
