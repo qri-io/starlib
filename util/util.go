@@ -119,8 +119,26 @@ func Marshal(data interface{}) (v starlark.Value, err error) {
 		v = starlark.String(x)
 	case int:
 		v = starlark.MakeInt(x)
+	case int8:
+		v = starlark.MakeInt(int(x))
+	case int16:
+		v = starlark.MakeInt(int(x))
+	case int32:
+		v = starlark.MakeInt(int(x))
 	case int64:
-		v = starlark.MakeInt64(int64(x))
+		v = starlark.MakeInt64(x)
+	case uint:
+		v = starlark.MakeUint(x)
+	case uint8:
+		v = starlark.MakeUint(uint(x))
+	case uint16:
+		v = starlark.MakeUint(uint(x))
+	case uint32:
+		v = starlark.MakeUint(uint(x))
+	case uint64:
+		v = starlark.MakeUint64(x)
+	case float32:
+		v = starlark.Float(float64(x))
 	case float64:
 		v = starlark.Float(x)
 	case []interface{}:
@@ -132,6 +150,25 @@ func Marshal(data interface{}) (v starlark.Value, err error) {
 			}
 		}
 		v = starlark.NewList(elems)
+	case map[interface{}]interface{}:
+		dict := &starlark.Dict{}
+		var elem starlark.Value
+		for ki, val := range x {
+			var key starlark.Value
+			key, err = Marshal(ki)
+			if err != nil {
+				return
+			}
+
+			elem, err = Marshal(val)
+			if err != nil {
+				return
+			}
+			if err = dict.SetKey(key, elem); err != nil {
+				return
+			}
+		}
+		v = dict
 	case map[string]interface{}:
 		dict := &starlark.Dict{}
 		var elem starlark.Value
