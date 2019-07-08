@@ -7,6 +7,7 @@ import (
 	"github.com/qri-io/starlib/encoding/base64"
 	"github.com/qri-io/starlib/encoding/csv"
 	"github.com/qri-io/starlib/encoding/json"
+	"github.com/qri-io/starlib/encoding/yaml"
 	"github.com/qri-io/starlib/geo"
 	"github.com/qri-io/starlib/html"
 	"github.com/qri-io/starlib/http"
@@ -44,6 +45,8 @@ func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, e
 		return csv.LoadModule()
 	case json.ModuleName:
 		return json.LoadModule()
+	case yaml.ModuleName:
+		return yaml.LoadModule()
 	case geo.ModuleName:
 		return geo.LoadModule()
 	case math.ModuleName:
