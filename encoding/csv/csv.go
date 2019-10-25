@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/qri-io/dataset/dsio/replacecr"
+	"github.com/qri-io/starlib/util/replacecr"
 	"github.com/qri-io/starlib/util"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
