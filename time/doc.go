@@ -29,14 +29,19 @@ package from the go standard library.
           duration == duration = boolean
           duration < duration = booleans
       time
-        fields:
-          year int
-          month int
-          day int
-          hour int
-          minute int
-          second int
-          nanosecond int
+        functions:
+          year() int
+          month() int
+          day() int
+          hour() int
+          minute() int
+          second() int
+          nanosecond() int
+		  in_location(string) time
+		  	get time representing the same instant but in a different location
+		  format(string) string
+		  	textual representation of time formatted according to the provided
+			layout string
         operators:
           time == time = boolean
           time < time = boolean
