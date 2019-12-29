@@ -282,13 +282,15 @@ func (t Time) Binary(op syntax.Token, yV starlark.Value, side starlark.Side) (st
 }
 
 var timeMethods = map[string]builtinMethod{
-	"year":       timeyear,
-	"month":      timemonth,
-	"day":        timeday,
-	"hour":       timehour,
-	"minute":     timeminute,
-	"second":     timesecond,
-	"nanosecond": timenanosecond,
+	"year":        timeyear,
+	"month":       timemonth,
+	"day":         timeday,
+	"hour":        timehour,
+	"minute":      timeminute,
+	"second":      timesecond,
+	"nanosecond":  timenanosecond,
+	"in_location": timein,
+	"format":      timeformat,
 }
 
 // TODO - consider using a higher order function to generate these
@@ -325,6 +327,30 @@ func timesecond(fnname string, recV starlark.Value, args starlark.Tuple, kwargs 
 func timenanosecond(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	recv := gotime.Time(recV.(Time))
 	return starlark.MakeInt(recv.Nanosecond()), nil
+}
+
+func timeformat(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var x starlark.String
+	if err := starlark.UnpackArgs("location", args, kwargs, "x", &x); err != nil {
+		return nil, err
+	}
+
+	recv := gotime.Time(recV.(Time))
+	return starlark.String(recv.Format(string(x))), nil
+}
+
+func timein(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var x starlark.String
+	if err := starlark.UnpackArgs("location", args, kwargs, "x", &x); err != nil {
+		return nil, err
+	}
+	loc, err := gotime.LoadLocation(string(x))
+	if err != nil {
+		return nil, err
+	}
+
+	recv := gotime.Time(recV.(Time))
+	return Time(recv.In(loc)), nil
 }
 
 type builtinMethod func(fnname string, recv starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error)
