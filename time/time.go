@@ -309,6 +309,8 @@ var timeMethods = map[string]builtinMethod{
 	"minute":     timeminute,
 	"second":     timesecond,
 	"nanosecond": timenanosecond,
+	"unix":       timeunix,
+	"unix_nano":  timeunixnano,
 
 	"in_location": timein,
 	"format":      timeformat,
@@ -343,6 +345,16 @@ func timeminute(fnname string, recV starlark.Value, args starlark.Tuple, kwargs 
 func timesecond(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	recv := gotime.Time(recV.(Time))
 	return starlark.MakeInt(recv.Second()), nil
+}
+
+func timeunix(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := gotime.Time(recV.(Time))
+	return starlark.MakeInt64(recv.Unix()), nil
+}
+
+func timeunixnano(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := gotime.Time(recV.(Time))
+	return starlark.MakeInt64(recv.UnixNano()), nil
 }
 
 func timenanosecond(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
