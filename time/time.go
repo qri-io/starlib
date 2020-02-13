@@ -205,10 +205,30 @@ func (d Duration) Binary(op syntax.Token, yV starlark.Value, side starlark.Side)
 }
 
 var durationMethods = map[string]builtinMethod{
-	// "hours" :
-	// "minutes" :
-	// "nanoseconds" :
-	// "seconds" :
+	"hours":       durationhours,
+	"minutes":     durationminutes,
+	"seconds":     durationseconds,
+	"nanoseconds": durationnanoseconds,
+}
+
+func durationhours(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := gotime.Duration(recV.(Duration))
+	return starlark.Float(recv.Hours()), nil
+}
+
+func durationminutes(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := gotime.Duration(recV.(Duration))
+	return starlark.Float(recv.Minutes()), nil
+}
+
+func durationseconds(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := gotime.Duration(recV.(Duration))
+	return starlark.Float(recv.Seconds()), nil
+}
+
+func durationnanoseconds(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	recv := gotime.Duration(recV.(Duration))
+	return starlark.MakeInt64(recv.Nanoseconds()), nil
 }
 
 // Time is a starlark representation of a point in time
