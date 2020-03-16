@@ -1,11 +1,11 @@
 /*Package html defines a jquery-like html selection & iteration functions for HTML documents
 
   outline: html
-    html defines a jquery-like html selection & iteration functions for HTML documents
+    html defines jquery-like html selection & iteration functions for HTML documents
 
     functions:
       html(markup) selection
-        parse an html document returing a selection at the root of the document
+        parse an html document returning a selection at the root of the document
         params:
           markup string
             html text to build a document from

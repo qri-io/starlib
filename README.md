@@ -21,7 +21,7 @@
       Issues
     </a>
      <span> | </span>
-    <a href="https://qri.io/docs/reference/starlib/">
+    <a href="https://qri.io/docs/starlark/starlib">
       Docs
     </a>
   </h3>
@@ -37,7 +37,7 @@ This is a community-driven project to bring a standard library to the starlark p
 
 | Question | Answer |
 |--------|-------|
-| "What's starlark?" | It's a python-like scripting language open-sourced by Google. [Here's the Docs](https://docs.bazel.build/versions/master/skylark/language.html) |
+| "What's starlark?" | It's a python-like scripting language open-sourced by Google. [Here are the docs](https://docs.bazel.build/versions/master/skylark/language.html) |
 | "What's the use-case for this?" | [We're building it for Qri ('query')](https://qri.io) |
 | "I want to play with starlib outside of Qri" | [Checkout the starlark playground](https://github.com/qri-io/skypg) |
 | "I have a question" | [Create an issue](https://github.com/qri-io/starlib/issues) |
@@ -50,10 +50,11 @@ The following is a list of the packages currently in the standard library
 
 | Package | Go Docs | Description |
 |---------|---------|-------------|
+| [`bsoup`](https://github.com/qri-io/starlib/tree/master/bsoup) | <img width=190/>[![Go Docs](https://godoc.org/github.com/qri-io/starlib/bsoup?status.svg)](https://godoc.org/github.com/qri-io/starlib/bsoup) |   a beautiful-soup-like API for working with HTML |
 | [`encoding/base64`](https://github.com/qri-io/starlib/tree/master/encoding/base64) | <img width=190/>[![Go Docs](https://godoc.org/github.com/qri-io/starlib/encoding/base64?status.svg)](https://godoc.org/github.com/qri-io/starlib/encoding/base64) | base64 de/serialization |
 | [`encoding/csv`](https://github.com/qri-io/starlib/tree/master/encoding/csv) | <img width=190/>[![Go Docs](https://godoc.org/github.com/qri-io/starlib/encoding/csv?status.svg)](https://godoc.org/github.com/qri-io/starlib/encoding/csv) | csv de/serialization |
 | [`encoding/json`](https://github.com/qri-io/starlib/tree/master/encoding/json) | <img width=190/>[![Go Docs](https://godoc.org/github.com/qri-io/starlib/encoding/json?status.svg)](https://godoc.org/github.com/qri-io/starlib/encoding/json) | json de/serialization |
-| [`geo`](https://github.com/qri-io/starlib/tree/master/geo) | <img width=190/>[![Go Docs](https://godoc.org/github.com/qri-io/starlib/geo?status.svg)](https://godoc.org/github.com/qri-io/starlib/geo) | html text processing |
+| [`geo`](https://github.com/qri-io/starlib/tree/master/geo) | <img width=190/>[![Go Docs](https://godoc.org/github.com/qri-io/starlib/geo?status.svg)](https://godoc.org/github.com/qri-io/starlib/geo) |  2d geographic operations |
 | [`html`](https://github.com/qri-io/starlib/tree/master/html) | <img width=190/>[![Go Docs](https://godoc.org/github.com/qri-io/starlib/html?status.svg)](https://godoc.org/github.com/qri-io/starlib/html) | html text processing |
 | [`http`](https://github.com/qri-io/starlib/tree/master/http) | <img width=190/>[![Go Docs](https://godoc.org/github.com/qri-io/starlib/http?status.svg)](https://godoc.org/github.com/qri-io/starlib/http) | http client operations |
 | [`math`](https://github.com/qri-io/starlib/tree/master/math) | <img width=190/>[![Go Docs](https://godoc.org/github.com/qri-io/starlib/math?status.svg)](https://godoc.org/github.com/qri-io/starlib/math) | mathematical functions & values |
