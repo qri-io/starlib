@@ -302,13 +302,14 @@ func (t Time) Binary(op syntax.Token, yV starlark.Value, side starlark.Side) (st
 }
 
 var timeMethods = map[string]builtinMethod{
-	"year":        timeyear,
-	"month":       timemonth,
-	"day":         timeday,
-	"hour":        timehour,
-	"minute":      timeminute,
-	"second":      timesecond,
-	"nanosecond":  timenanosecond,
+	"year":       timeyear,
+	"month":      timemonth,
+	"day":        timeday,
+	"hour":       timehour,
+	"minute":     timeminute,
+	"second":     timesecond,
+	"nanosecond": timenanosecond,
+
 	"in_location": timein,
 	"format":      timeformat,
 }
@@ -351,7 +352,7 @@ func timenanosecond(fnname string, recV starlark.Value, args starlark.Tuple, kwa
 
 func timeformat(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var x starlark.String
-	if err := starlark.UnpackArgs("location", args, kwargs, "x", &x); err != nil {
+	if err := starlark.UnpackArgs("format", args, kwargs, "x", &x); err != nil {
 		return nil, err
 	}
 
@@ -361,7 +362,7 @@ func timeformat(fnname string, recV starlark.Value, args starlark.Tuple, kwargs 
 
 func timein(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var x starlark.String
-	if err := starlark.UnpackArgs("location", args, kwargs, "x", &x); err != nil {
+	if err := starlark.UnpackArgs("in_location", args, kwargs, "x", &x); err != nil {
 		return nil, err
 	}
 	loc, err := gotime.LoadLocation(string(x))
