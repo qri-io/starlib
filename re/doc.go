@@ -7,7 +7,7 @@ TODO (b5): compile search, fullmatch, findall, finditer, subn, escape
   outline: re
     re defines regular expression functions, it's intended to be a drop-in
     subset of python's re module for starlark: https://docs.python.org/3/library/re.html
-
+    path: re
     functions:
       findall(pattern, text, flags=0)
         Returns all non-overlapping matches of pattern in string, as a list of strings.

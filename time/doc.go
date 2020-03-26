@@ -3,7 +3,7 @@ package from the go standard library.
 
   outline: time
     time defines time primitives for starlark
-
+    path: time
     functions:
       duration(string) duration
         parse a duration
