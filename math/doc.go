@@ -6,7 +6,7 @@ Currently defined functions are as follows:
   outline: math
     math defines mathematical functions, it's intended to be a drop-in
     subset of python's math module for starlark: https://docs.python.org/3/library/math.html
-
+    path: math
     functions:
       ceil(x)
         Return the ceiling of x, the smallest integer greater than or equal to x.

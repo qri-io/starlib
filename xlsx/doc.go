@@ -3,7 +3,7 @@
   outline: xlsx
     xlsx implements excel file readers in starlark. currently a highly-experimental package
     that will definitely change at some point in the future
-
+    path: xlsx
     functions:
       get_url(url string)
         fetch an excel file from a url

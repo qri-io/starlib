@@ -2,7 +2,7 @@
 
   outline: zipfile
     zipfile reads & parses zip archives
-
+    path: zipfile
     functions:
       ZipFile(data)
         opens an archive for reading

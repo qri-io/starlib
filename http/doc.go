@@ -2,7 +2,7 @@
 
   outline: http
     http defines an HTTP client implementation
-
+    path: http
     functions:
       get(url,params={},headers={},auth=()) response
         perform an HTTP GET request, returning a response

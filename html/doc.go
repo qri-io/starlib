@@ -2,7 +2,7 @@
 
   outline: html
     html defines jquery-like html selection & iteration functions for HTML documents
-
+    path: html
     functions:
       html(markup) selection
         parse an html document returning a selection at the root of the document

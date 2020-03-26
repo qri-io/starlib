@@ -2,7 +2,7 @@
 
   outline: geo
     geo defines geographic operations in two-dimensional space
-
+    path: geo
     functions:
       Point(x,y) Point
         Point constructor, takes an x(longitude) and y(latitude) value and
