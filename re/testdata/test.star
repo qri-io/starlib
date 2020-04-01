@@ -1,7 +1,7 @@
 load("re.star", "re")
 load("assert.star", "assert")
 
-match_pattern = "(\w*)\s*(ADD|REM|DEL|EXT|TRF)\s*(.*)\s*(NAT|INT)\s*(.*)\s*(\(\w{2}\))\s*(.*)"
+match_pattern = r"(\w*)\s*(ADD|REM|DEL|EXT|TRF)\s*(.*)\s*(NAT|INT)\s*(.*)\s*(\(\w{2}\))\s*(.*)"
 match_test = "EDM ADD FROM INJURED NAT Jordan BEAULIEU (DB) Western University"
 match_r = re.compile(match_pattern)
 
