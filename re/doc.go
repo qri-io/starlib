@@ -9,6 +9,12 @@ TODO (b5): compile search, fullmatch, findall, finditer, subn, escape
     subset of python's re module for starlark: https://docs.python.org/3/library/re.html
     path: re
     functions:
+      compile(pattern) Pattern
+        Compile a regular expression pattern into a regular expression object, which
+        can be used for matching using its match(), search() and other methods.
+        params:
+          pattern string
+            regular expression pattern string
       findall(pattern, text, flags=0)
         Returns all non-overlapping matches of pattern in string, as a list of strings.
         The string is scanned left-to-right, and matches are returned in the order found.
@@ -52,6 +58,22 @@ TODO (b5): compile search, fullmatch, findall, finditer, subn, escape
             number of replacements to make, default 0 means replace all matches
           flags int
             integer flags to control regex behaviour. reserved for future use
+      match(pattern, string, flags=0)
+        If zero or more characters at the beginning of string match the regular expression pattern,
+        return a corresponding match string tuple. Return None if the string does not match the pattern
+        params:
+          pattern string
+            regular expression pattern string
+          string string
+            input string to match
+
+    types:
+      Pattern
+        functions:
+          match(text, flags=0)
+          findall(text, flags=0)
+          split(text, maxsplit=0, flags=0)
+          sub(repl, text, count=0, flags=0)
 
 
 */

@@ -2,6 +2,7 @@ package re
 
 import (
 	"regexp"
+	"sort"
 	"sync"
 
 	"github.com/qri-io/starlib/util"
@@ -26,8 +27,7 @@ func LoadModule() (starlark.StringDict, error) {
 			"re": &starlarkstruct.Module{
 				Name: "re",
 				Members: starlark.StringDict{
-					// TODO
-					// "compile" : starlark.NewBuiltin("complile", compile),
+					"compile": starlark.NewBuiltin("compile", compile),
 
 					"search": starlark.NewBuiltin("search", search),
 					"match":  starlark.NewBuiltin("match", match),
@@ -45,6 +45,26 @@ func LoadModule() (starlark.StringDict, error) {
 	return reModule, nil
 }
 
+// compile(pattern, flags=0)
+// Compile a regular expression pattern into a regular expression object, which
+// can be used for matching using its match(), search() and other methods.
+//
+// The expression’s behaviour can be modified by specifying a flags value.
+// Values can be any of the following variables, combined using bitwise OR
+// (the | operator).
+func compile(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		pattern starlark.String
+		flags   starlark.Int
+	)
+
+	if err := starlark.UnpackArgs("compile", args, kwargs, "pattern", &pattern, "flags?", &flags); err != nil {
+		return starlark.None, err
+	}
+
+	return newRegex(pattern)
+}
+
 // search(pattern,string,flags=0)
 // Scan through string looking for the first location where the regular expression pattern produces a match,
 // and return a corresponding match object. Return None if no position in the string matches the pattern;
@@ -57,11 +77,16 @@ func search(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, k
 	if err := starlark.UnpackArgs("search", args, kwargs, "pattern", &pattern, "string", &str, "flags?", &flags); err != nil {
 		return starlark.None, err
 	}
-	r, err := newRegex(pattern)
+	re, err := newGoRegex(pattern)
 	if err != nil {
 		return starlark.None, err
 	}
-	matches := r.FindStringIndex(string(str))
+
+	return reSearch(re, str, flags)
+}
+
+func reSearch(re *regexp.Regexp, str starlark.String, flags starlark.Int) (starlark.Value, error) {
+	matches := re.FindStringIndex(string(str))
 	if len(matches) == 0 {
 		return starlark.None, nil
 	}
@@ -89,18 +114,21 @@ func match(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kw
 		return starlark.None, err
 	}
 
-	r, err := newRegex(pattern)
+	re, err := newGoRegex(pattern)
 	if err != nil {
 		return starlark.None, err
 	}
 
+	return reMatch(re, str, flags)
+}
+
+func reMatch(re *regexp.Regexp, str starlark.String, flags starlark.Int) (starlark.Value, error) {
 	vals := starlark.NewList(nil)
-	for _, match := range r.FindAllStringSubmatch(string(str), -1) {
-		if err = vals.Append(slStrSlice(match)); err != nil {
+	for _, match := range re.FindAllStringSubmatch(string(str), -1) {
+		if err := vals.Append(slStrSlice(match)); err != nil {
 			return starlark.None, err
 		}
 	}
-
 	return vals, nil
 }
 
@@ -123,22 +151,29 @@ func match(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kw
 // is returned as the final element of the list.
 func split(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
-		pattern  starlark.String
-		str      starlark.String
-		maxSplit starlark.Int
-		flags    starlark.Int
+		pattern, str    starlark.String
+		maxSplit, flags starlark.Int
 	)
 	if err := starlark.UnpackArgs("split", args, kwargs, "pattern", &pattern, "string", &str, "maxsplit?", &maxSplit, "flags", &flags); err != nil {
 		return starlark.None, err
 	}
 
-	r, err := newRegex(pattern)
+	re, err := newGoRegex(pattern)
 	if err != nil {
 		return starlark.None, err
 	}
 
+	return reSplit(re, str, maxSplit, flags)
+}
+
+func reSplit(re *regexp.Regexp, str starlark.String, maxSplit, flags starlark.Int) (starlark.Value, error) {
 	ms, _ := maxSplit.Int64()
-	res := r.Split(string(str), int(ms))
+	if ms == 0 {
+		// -1 is the sentinel for "all" in go, not 0
+		ms = -1
+	}
+
+	res := re.Split(string(str), int(ms))
 	return slStrSlice(res), nil
 }
 
@@ -158,11 +193,15 @@ func findall(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, 
 		return starlark.None, err
 	}
 
-	r, err := newRegex(pattern)
+	re, err := newGoRegex(pattern)
 	if err != nil {
 		return starlark.None, err
 	}
-	res := r.FindAllString(string(str), -1)
+	return reFindall(re, str, flags)
+}
+
+func reFindall(re *regexp.Regexp, str starlark.String, flags starlark.Int) (starlark.Value, error) {
+	res := re.FindAllString(string(str), -1)
 	return slStrSlice(res), nil
 }
 
@@ -190,11 +229,16 @@ func sub(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwar
 		return starlark.None, err
 	}
 
-	r, err := newRegex(pattern)
+	re, err := newGoRegex(pattern)
 	if err != nil {
 		return starlark.None, nil
 	}
-	res := r.ReplaceAllString(string(str), string(repl))
+
+	return reSub(re, repl, str, count, flags)
+}
+
+func reSub(re *regexp.Regexp, repl, str starlark.String, count, flags starlark.Int) (starlark.Value, error) {
+	res := re.ReplaceAllString(string(str), string(repl))
 	return starlark.String(res), nil
 }
 
@@ -218,7 +262,7 @@ func sub(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwar
 // 	return starlark.None, nil
 // }
 
-func newRegex(pattern starlark.String) (*regexp.Regexp, error) {
+func newGoRegex(pattern starlark.String) (*regexp.Regexp, error) {
 	return regexp.Compile(string(pattern))
 }
 
@@ -228,4 +272,153 @@ func slStrSlice(strs []string) starlark.Tuple {
 		vals = append(vals, starlark.String(s))
 	}
 	return vals
+}
+
+// hashString computes the FNV hash of s.
+func hashString(s string) uint32 {
+	var h uint32
+	for i := 0; i < len(s); i++ {
+		h ^= uint32(s[i])
+		h *= 16777619
+	}
+	return h
+}
+
+// Regex is a starlark representation of a compiled regular expression
+type Regex struct {
+	re *regexp.Regexp
+}
+
+func newRegex(pattern starlark.String) (*Regex, error) {
+	re, err := newGoRegex(pattern)
+	if err != nil {
+		return nil, err
+	}
+	return &Regex{re: re}, nil
+}
+
+// String implements the Stringer interface
+func (r *Regex) String() string { return r.re.String() }
+
+// Type returns a short string describing the value's type.
+func (r *Regex) Type() string { return "regexp" }
+
+// Freeze renders time immutable. required by starlark.Value interface.
+// The interface regex presents to the starlark runtime renders it immutable,
+// making this a no-op
+func (r *Regex) Freeze() {}
+
+// Hash returns a function of x such that Equals(x, y) => Hash(x) == Hash(y)
+// required by starlark.Value interface
+func (r *Regex) Hash() (uint32, error) { return hashString(r.re.String()), nil }
+
+// Truth returns the truth value of an object required by starlark.Value
+// interface. Any non-empty regexp is considered truthy
+func (r *Regex) Truth() starlark.Bool { return r.String() != "" }
+
+// Attr gets a value for a string attribute, implementing dot expression support
+// in starklark. required by starlark.HasAttrs interface
+func (r *Regex) Attr(name string) (starlark.Value, error) {
+	return builtinMethods(r, name, regexMethods)
+}
+
+var regexMethods = map[string]builtinMethod{
+	"search":  compiledSearch,
+	"match":   compiledMatch,
+	"split":   compiledSplit,
+	"findall": compiledFindall,
+	"sub":     compiledSub,
+}
+
+// AttrNames lists available dot expression strings for time. required by
+// starlark.HasAttrs interface
+func (r *Regex) AttrNames() []string { return builtinAttrNames(regexMethods) }
+
+func builtinAttrNames(methods map[string]builtinMethod) []string {
+	names := make([]string, 0, len(methods))
+	for name := range methods {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func compiledSearch(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		str   starlark.String
+		flags starlark.Int
+	)
+	if err := starlark.UnpackArgs("search", args, kwargs, "string", &str, "flags?", &flags); err != nil {
+		return starlark.None, err
+	}
+
+	r := recV.(*Regex)
+	return reSearch(r.re, str, flags)
+}
+
+func compiledMatch(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		str   starlark.String
+		flags starlark.Int
+	)
+	if err := starlark.UnpackArgs("match", args, kwargs, "string", &str, "flags?", &flags); err != nil {
+		return starlark.None, err
+	}
+
+	r := recV.(*Regex)
+	return reMatch(r.re, str, flags)
+}
+
+func compiledSplit(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		str             starlark.String
+		maxSplit, flags starlark.Int
+	)
+	if err := starlark.UnpackArgs("split", args, kwargs, "string", &str, "maxsplit?", &maxSplit, "flags", &flags); err != nil {
+		return starlark.None, err
+	}
+
+	r := recV.(*Regex)
+	return reSplit(r.re, str, maxSplit, flags)
+}
+
+func compiledFindall(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		str   starlark.String
+		flags starlark.Int
+	)
+	if err := starlark.UnpackArgs("findall", args, kwargs, "string", &str, "flags?", &flags); err != nil {
+		return starlark.None, err
+	}
+
+	r := recV.(*Regex)
+	return reFindall(r.re, str, flags)
+}
+
+func compiledSub(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		repl, str    starlark.String
+		count, flags starlark.Int
+	)
+	if err := starlark.UnpackArgs("sub", args, kwargs, "repl", &repl, "string", &str, "count?", &count, "flags", &flags); err != nil {
+		return starlark.None, err
+	}
+
+	r := recV.(*Regex)
+	return reSub(r.re, repl, str, count, flags)
+}
+
+type builtinMethod func(fnname string, recv starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error)
+
+func builtinMethods(recv starlark.Value, name string, methods map[string]builtinMethod) (starlark.Value, error) {
+	method := methods[name]
+	if method == nil {
+		return nil, nil // no such method
+	}
+
+	// Allocate a closure over 'method'.
+	impl := func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		return method(b.Name(), b.Receiver(), args, kwargs)
+	}
+	return starlark.NewBuiltin(name, impl).BindReceiver(recv), nil
 }
