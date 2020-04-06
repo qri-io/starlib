@@ -15,13 +15,13 @@ replace (
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
-	github.com/PuerkitoBio/goquery v1.5.0
+	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/dustmop/soup v1.1.2-0.20190516214245-38228baa104e
-	github.com/kr/pretty v0.1.0 // indirect
-	github.com/paulmach/orb v0.1.3
-	github.com/stretchr/testify v1.3.0 // indirect
-	go.starlark.net v0.0.0-20190528202925-30ae18b8564f
-	golang.org/x/net v0.0.0-20190522155817-f3200d17e092
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
-	gopkg.in/yaml.v2 v2.2.2
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
+	github.com/paulmach/orb v0.1.5
+	github.com/stretchr/testify v1.5.1 // indirect
+	go.starlark.net v0.0.0-20200330013621-be5394c419b6
+	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
+	gopkg.in/yaml.v2 v2.2.8
 )
