@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"go.starlark.net/starlark"
+	"go.starlark.net/starlarkstruct"
 )
 
 // asString unquotes a starlark string value
@@ -63,7 +65,6 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 
 			value[str] = pval
 		}
-		val = value
 	case *starlark.List:
 		var (
 			i       int
@@ -101,6 +102,17 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 	case *starlark.Set:
 		fmt.Println("errnotdone: SET")
 		err = fmt.Errorf("sets aren't yet supported")
+	case *starlarkstruct.Struct:
+		if _var, ok := v.Constructor().(Unmarshaler); ok {
+			err = _var.UnmarshalStarlark(x)
+			if err != nil {
+				err = errors.Wrapf(err, "failed marshal %q to Starlark object", v.Constructor().Type())
+				return
+			}
+			val = _var
+		} else {
+			err = fmt.Errorf("constructor object from *starlarkstruct.Struct not supported Marshaler to starlark object: %s", v.Constructor().Type())
+		}
 	default:
 		fmt.Println("errbadtype:", x.Type())
 		err = fmt.Errorf("unrecognized starlark type: %s", x.Type())
@@ -182,8 +194,18 @@ func Marshal(data interface{}) (v starlark.Value, err error) {
 			}
 		}
 		v = dict
+	case Marshaler:
+		v, err = x.MarshalStarlark()
 	default:
 		return starlark.None, fmt.Errorf("unrecognized type: %#v", x)
 	}
 	return
+}
+
+type Unmarshaler interface {
+	UnmarshalStarlark(starlark.Value) error
+}
+
+type Marshaler interface {
+	MarshalStarlark() (starlark.Value, error)
 }
