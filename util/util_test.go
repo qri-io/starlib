@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -146,70 +145,6 @@ func TestUnmarshal(t *testing.T) {
 
 		assert.EqualValues(t, c.want, got, "case %d: %T -> %T", i, c.in, c.want)
 	}
-}
-
-func TestLifeCycle(t *testing.T) {
-	t.Run("once", func(t *testing.T) {
-		// golang value
-		goVal := &customType{42}
-		// starlark value
-		slVal, err := Marshal(goVal)
-		assert.NoError(t, err)
-
-		assert.IsType(t, &starlarkstruct.Struct{}, slVal)
-
-		gotGoVal, err := Unmarshal(slVal)
-		assert.NoError(t, err)
-		log.Println(slVal.String())
-		assert.EqualValues(t, goVal, gotGoVal)
-	})
-
-	t.Run("asDictValue", func(t *testing.T) {
-		// golang value
-		goVal := map[string]interface{}{
-			"foo": &customType{42},
-		}
-
-		// starlark value
-		slVal, err := Marshal(goVal)
-		assert.NoError(t, err)
-
-		wantSlVal := starlark.NewDict(1)
-		assert.IsType(t, wantSlVal, slVal)
-
-		wantSlVal.SetKey(starlark.String("foo"), func() starlark.Value { v, _ := Marshal(&customType{42}); return v }())
-		assert.EqualValues(t, wantSlVal, slVal)
-
-		gotGoVal, err := Unmarshal(slVal)
-		assert.NoError(t, err)
-		log.Println(slVal.String())
-		assert.EqualValues(t, goVal, gotGoVal)
-	})
-
-	t.Run("asListValue", func(t *testing.T) {
-		// golang value
-		goVal := []interface{}{
-			&customType{42},
-			&customType{42},
-		}
-
-		// starlark value
-		slVal, err := Marshal(goVal)
-		assert.NoError(t, err)
-
-		wantSlVal := starlark.NewList(nil)
-		wantSlVal.Append(func() starlark.Value { v, _ := Marshal(&customType{42}); return v }())
-		wantSlVal.Append(func() starlark.Value { v, _ := Marshal(&customType{42}); return v }())
-		assert.IsType(t, wantSlVal, slVal)
-
-		assert.EqualValues(t, wantSlVal, slVal)
-
-		gotGoVal, err := Unmarshal(slVal)
-		assert.NoError(t, err)
-		log.Println(slVal.String())
-		assert.EqualValues(t, goVal, gotGoVal)
-	})
-
 }
 
 type invalidCustomType struct {
