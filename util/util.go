@@ -26,7 +26,7 @@ func IsEmptyString(s starlark.String) bool {
 func Unmarshal(x starlark.Value) (val interface{}, err error) {
 	switch v := x.(type) {
 	case starlark.NoneType:
-		val = v
+		val = nil
 	case starlark.Bool:
 		val = v.Truth() == starlark.True
 	case starlark.Int:
