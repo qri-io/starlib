@@ -43,7 +43,11 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 		var (
 			dictVal starlark.Value
 			pval    interface{}
-			value   = map[string]interface{}{}
+			kval    interface{}
+			keys    []interface{}
+			vals    []interface{}
+			// key as interface if found one key is not a string
+			ki bool
 		)
 
 		for _, k := range v.Keys() {
@@ -54,16 +58,43 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 
 			pval, err = Unmarshal(dictVal)
 			if err != nil {
+				err = errors.Wrap(err, "failed unmarhasl value")
 				return
 			}
 
-			var str string
-			str, err = asString(k)
+			kval, err = Unmarshal(k)
 			if err != nil {
+				err = errors.Wrap(err, "failed unmarhasl key")
 				return
 			}
 
-			value[str] = pval
+			if _, ok := kval.(string); !ok {
+				// found key as not a string
+				ki = true
+			}
+
+			keys = append(keys, kval)
+			vals = append(vals, pval)
+		}
+
+		// prepare result
+
+		rs := map[string]interface{}{}
+		ri := map[interface{}]interface{}{}
+
+		for i, key := range keys {
+			// key as interface
+			if ki {
+				ri[key] = vals[i]
+			} else {
+				rs[key.(string)] = vals[i]
+			}
+		}
+
+		if ki {
+			val = ri // map[interface{}]interface{}
+		} else {
+			val = rs // map[string]interface{}
 		}
 	case *starlark.List:
 		var (
