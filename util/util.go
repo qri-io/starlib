@@ -64,7 +64,7 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 
 			kval, err = Unmarshal(k)
 			if err != nil {
-				err = errors.Wrap(err, "failed unmarhasl key")
+				err = fmt.Errorf("unmarshaling starlark key: %w", err)
 				return
 			}
 
