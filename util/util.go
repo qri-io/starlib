@@ -58,7 +58,7 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 
 			pval, err = Unmarshal(dictVal)
 			if err != nil {
-				err = errors.Wrap(err, "failed unmarhasl value")
+				err = fmt.Errorf("unmarshaling starlark value: %w", err)
 				return
 			}
 
