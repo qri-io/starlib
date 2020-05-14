@@ -233,10 +233,14 @@ func Marshal(data interface{}) (v starlark.Value, err error) {
 	return
 }
 
+// Unmarshaler is the interface use to unmarshal starlark custom types.
 type Unmarshaler interface {
+	// UnmarshalStarlark unmarshal a starlark object to custom type.
 	UnmarshalStarlark(starlark.Value) error
 }
 
+// Marshaler is the interface use to marshal starlark custom types.
 type Marshaler interface {
+	// MarshalStarlark marshal a custom type to starlark object.
 	MarshalStarlark() (starlark.Value, error)
 }
