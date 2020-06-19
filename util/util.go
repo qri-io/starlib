@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"go.starlark.net/starlark"
+	"go.starlark.net/starlarkstruct"
 )
 
 // asString unquotes a starlark string value
@@ -24,7 +26,7 @@ func IsEmptyString(s starlark.String) bool {
 func Unmarshal(x starlark.Value) (val interface{}, err error) {
 	switch v := x.(type) {
 	case starlark.NoneType:
-		val = v
+		val = nil
 	case starlark.Bool:
 		val = v.Truth() == starlark.True
 	case starlark.Int:
@@ -41,7 +43,11 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 		var (
 			dictVal starlark.Value
 			pval    interface{}
-			value   = map[string]interface{}{}
+			kval    interface{}
+			keys    []interface{}
+			vals    []interface{}
+			// key as interface if found one key is not a string
+			ki bool
 		)
 
 		for _, k := range v.Keys() {
@@ -52,18 +58,44 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 
 			pval, err = Unmarshal(dictVal)
 			if err != nil {
+				err = fmt.Errorf("unmarshaling starlark value: %w", err)
 				return
 			}
 
-			var str string
-			str, err = asString(k)
+			kval, err = Unmarshal(k)
 			if err != nil {
+				err = fmt.Errorf("unmarshaling starlark key: %w", err)
 				return
 			}
 
-			value[str] = pval
+			if _, ok := kval.(string); !ok {
+				// found key as not a string
+				ki = true
+			}
+
+			keys = append(keys, kval)
+			vals = append(vals, pval)
 		}
-		val = value
+
+		// prepare result
+
+		rs := map[string]interface{}{}
+		ri := map[interface{}]interface{}{}
+
+		for i, key := range keys {
+			// key as interface
+			if ki {
+				ri[key] = vals[i]
+			} else {
+				rs[key.(string)] = vals[i]
+			}
+		}
+
+		if ki {
+			val = ri // map[interface{}]interface{}
+		} else {
+			val = rs // map[string]interface{}
+		}
 	case *starlark.List:
 		var (
 			i       int
@@ -101,6 +133,17 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 	case *starlark.Set:
 		fmt.Println("errnotdone: SET")
 		err = fmt.Errorf("sets aren't yet supported")
+	case *starlarkstruct.Struct:
+		if _var, ok := v.Constructor().(Unmarshaler); ok {
+			err = _var.UnmarshalStarlark(x)
+			if err != nil {
+				err = errors.Wrapf(err, "failed marshal %q to Starlark object", v.Constructor().Type())
+				return
+			}
+			val = _var
+		} else {
+			err = fmt.Errorf("constructor object from *starlarkstruct.Struct not supported Marshaler to starlark object: %s", v.Constructor().Type())
+		}
 	default:
 		fmt.Println("errbadtype:", x.Type())
 		err = fmt.Errorf("unrecognized starlark type: %s", x.Type())
@@ -182,8 +225,22 @@ func Marshal(data interface{}) (v starlark.Value, err error) {
 			}
 		}
 		v = dict
+	case Marshaler:
+		v, err = x.MarshalStarlark()
 	default:
 		return starlark.None, fmt.Errorf("unrecognized type: %#v", x)
 	}
 	return
+}
+
+// Unmarshaler is the interface use to unmarshal starlark custom types.
+type Unmarshaler interface {
+	// UnmarshalStarlark unmarshal a starlark object to custom type.
+	UnmarshalStarlark(starlark.Value) error
+}
+
+// Marshaler is the interface use to marshal starlark custom types.
+type Marshaler interface {
+	// MarshalStarlark marshal a custom type to starlark object.
+	MarshalStarlark() (starlark.Value, error)
 }

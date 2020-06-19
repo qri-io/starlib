@@ -19,7 +19,8 @@ require (
 	github.com/dustmop/soup v1.1.2-0.20190516214245-38228baa104e
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/paulmach/orb v0.1.5
-	github.com/stretchr/testify v1.5.1 // indirect
+	github.com/pkg/errors v0.8.1
+	github.com/stretchr/testify v1.5.1
 	go.starlark.net v0.0.0-20200330013621-be5394c419b6
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
