@@ -11,6 +11,8 @@ package from the go standard library.
         parse a location
       time(string, format=..., location=...) time
         parse a time
+      fromtimestamptime(int) time
+        parse a Unix timestamp
       now() time
         implementations would be able to make this a constant
       zero() time
