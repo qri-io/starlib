@@ -3,6 +3,7 @@ package time
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"sync"
 	gotime "time"
 
@@ -29,12 +30,13 @@ func LoadModule() (starlark.StringDict, error) {
 			"time": &starlarkstruct.Module{
 				Name: "time",
 				Members: starlark.StringDict{
-					"duration": starlark.NewBuiltin("duration", duration),
-					"location": starlark.NewBuiltin("location", location),
-					"now":      starlark.NewBuiltin("now", now),
-					"struct":   starlark.NewBuiltin("struct", starlarkstruct.Make),
-					"time":     starlark.NewBuiltin("time", time),
-					"sleep":    starlark.NewBuiltin("sleep", sleep),
+					"duration":      starlark.NewBuiltin("duration", duration),
+					"location":      starlark.NewBuiltin("location", location),
+					"now":           starlark.NewBuiltin("now", now),
+					"struct":        starlark.NewBuiltin("struct", starlarkstruct.Make),
+					"time":          starlark.NewBuiltin("time", time),
+					"sleep":         starlark.NewBuiltin("sleep", sleep),
+					"fromtimestamp": starlark.NewBuiltin("fromtimestamp", fromtimestamp),
 
 					"zero": Time{},
 
@@ -125,6 +127,24 @@ func time(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwa
 	if err != nil {
 		return nil, err
 	}
+	return Time(t), nil
+}
+
+func fromtimestamp(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		x starlark.Int
+	)
+	if err := starlark.UnpackArgs("time", args, kwargs, "x", &x); err != nil {
+		return nil, err
+	}
+
+	i, err := strconv.ParseInt(x.String(), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	t := gotime.Unix(i, 0)
+
 	return Time(t), nil
 }
 
