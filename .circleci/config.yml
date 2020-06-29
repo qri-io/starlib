@@ -4,7 +4,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/qri-io/starlib
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:latest
     environment:
       TEST_RESULTS: /tmp/test-results
       GO111MODULE: "on"
