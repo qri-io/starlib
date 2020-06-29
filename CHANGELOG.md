@@ -1,3 +1,67 @@
+<a name="v0.4.2">v0.4.2</a>
+# [v0.4.2](https://github.com/qri-io/starlib/compare/v0.4.1...v0.4.2) (2020-06-29)
+
+This release brings a number of enhancements to the `time`, `re`, and golang-side utility packages. It also introduces two new packages: `encoding/yaml` and `hash`. Here's the docs for the two new packages:
+
+### yaml
+yaml provides functions for working with yaml data
+
+#### Functions
+
+##### `dumps(obj) string`
+serialize obj to a yaml string
+
+**parameters:**
+
+| name | type | description |
+|------|------|-------------|
+| `obj` | `object` | input object |
+
+
+##### `loads(source) object`
+read a source yaml string to a starlark object
+
+**parameters:**
+
+| name | type | description |
+|------|------|-------------|
+| `source` | `string` | input string of yaml data |
+
+
+### hash
+hash defines hash primitives for starlark.
+
+#### Functions
+
+##### `md5(string) string`
+returns an md5 hash for a string
+
+##### `sha1(string) string`
+returns an sha1 hash for a string
+
+##### `sha256(string) string`
+returns an sha256 hash for a string
+
+
+### Bug Fixes
+
+* **time:** unix() and unix_nano() returns 0 for epoch ([c50ebc2](https://github.com/qri-io/starlib/commit/c50ebc2))
+
+
+### Features
+
+* **customType:** Added support for custom type and fixed bugs ([#49](https://github.com/qri-io/starlib/issues/49)) ([c32c667](https://github.com/qri-io/starlib/commit/c32c667)), closes [#48](https://github.com/qri-io/starlib/issues/48)
+* **encoding/yaml:** encoding yaml package based on gopkg.in/yaml.v2 ([68e22bc](https://github.com/qri-io/starlib/commit/68e22bc))
+* **hash:** add hash module ([686ae7b](https://github.com/qri-io/starlib/commit/686ae7b))
+* **re:** add compile function to regex package ([6fe15cd](https://github.com/qri-io/starlib/commit/6fe15cd))
+* **starlib:** util.Marshal extended compatibility and tests ([a310f83](https://github.com/qri-io/starlib/commit/a310f83))
+* **time:** Add fromtimestamp method ([4e7be49](https://github.com/qri-io/starlib/commit/4e7be49))
+* **time:** Add in_location and format methods ([316e7aa](https://github.com/qri-io/starlib/commit/316e7aa))
+* **time:** Add methods hours(), minutes(), etc to duration ([f374e23](https://github.com/qri-io/starlib/commit/f374e23))
+* **time:** Add unix and unix_nano methods ([7c32cb7](https://github.com/qri-io/starlib/commit/7c32cb7))
+
+
+
 <a name="v0.4.1"></a>
 # [v0.4.1](https://github.com/qri-io/starlib/compare/v0.4.0...v0.4.1) (2019-06-10)
 
