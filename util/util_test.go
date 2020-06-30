@@ -108,6 +108,22 @@ func TestUnmarshal(t *testing.T) {
 	strDictCT.SetKey(starlark.String("foo"), starlark.MakeInt(42))
 	strDictCT.SetKey(starlark.String("bar"), ct)
 
+	strDict2 := make(starlark.StringDict)
+	strDict2["int"] = starlark.MakeInt(42)
+	strDict2["ct"] = ct
+	strDict2["int_dict"] = intDict
+	strDict2["dict_with_ct"] = strDictCT
+
+	struct1 := starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
+		"int":          starlark.MakeInt(42),
+		"ct":           ct,
+		"int_dict":     intDict,
+		"dict_with_ct": strDictCT,
+	})
+	struct2 := starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
+		"struct": struct1,
+	})
+
 	cases := []struct {
 		in   starlark.Value
 		want interface{}
@@ -134,6 +150,14 @@ func TestUnmarshal(t *testing.T) {
 		{ct, &customType{42}, ""},
 		{strDictCT, map[string]interface{}{"foo": 42, "bar": &customType{42}}, ""},
 		{starlark.NewList([]starlark.Value{starlark.MakeInt(42), ct}), []interface{}{42, &customType{42}}, ""},
+		{struct2, map[string]interface{}{
+			"struct": map[string]interface{}{
+				"int":          42,
+				"ct":           &customType{42},
+				"int_dict":     map[interface{}]interface{}{42 * 2: 42},
+				"dict_with_ct": map[string]interface{}{"foo": 42, "bar": &customType{42}},
+			},
+		}, ""},
 	}
 
 	for i, c := range cases {
