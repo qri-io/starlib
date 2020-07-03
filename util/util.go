@@ -3,8 +3,10 @@ package util
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
+	starlibtime "github.com/qri-io/starlib/time"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
 )
@@ -39,6 +41,8 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 		}
 	case starlark.String:
 		val = v.GoString()
+	case starlibtime.Time:
+		val = time.Time(v)
 	case *starlark.Dict:
 		var (
 			dictVal starlark.Value
@@ -184,6 +188,8 @@ func Marshal(data interface{}) (v starlark.Value, err error) {
 		v = starlark.Float(float64(x))
 	case float64:
 		v = starlark.Float(x)
+	case time.Time:
+		v = starlibtime.Time(x)
 	case []interface{}:
 		var elems = make([]starlark.Value, len(x))
 		for i, val := range x {
