@@ -9,6 +9,9 @@ assert.true(time.time("2012-04-22T13:33:48Z") > time.time("2011-04-22T13:33:48Z"
 
 assert.eq(time.time("2020-06-26T17:38:36Z"), time.fromtimestamp(1593193116))
 
+assert.eq(time.time("2020-06-26T17:38:36Z").strftime("%Y"), "2020")
+assert.eq(time.time("2020-06-26T17:38:36Z").strftime("%F %R"), "2020-06-26 17:38")
+
 # zero
 assert.eq(time.zero.format("Mon Jan 2 15:04:05 -0700 MST 2006"), "Mon Jan 1 00:00:00 +0000 UTC 0001")
 
