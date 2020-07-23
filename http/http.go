@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -273,7 +274,7 @@ func setBody(req *http.Request, body starlark.String, formData *starlark.Dict, f
 			form.Add(keystr, valstr)
 		}
 
-		var enc string
+		var contentType string
 		switch formEncoding {
 		case formEncodingURL, "":
 			contentType = formEncodingURL
@@ -305,7 +306,7 @@ func setBody(req *http.Request, body starlark.String, formData *starlark.Dict, f
 		}
 
 		if req.Header.Get("Content-Type") == "" {
-			req.Header.Set("Content-Type", enc)
+			req.Header.Set("Content-Type", contentType)
 		}
 	}
 

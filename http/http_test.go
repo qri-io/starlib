@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/qri-io/starlib/testdata"
@@ -69,12 +70,13 @@ func newLoader() func(thread *starlark.Thread, module string) (starlark.StringDi
 
 // we're ok with testing private functions if it simplifies the test :)
 func TestSetBody(t *testing.T) {
-	fd := &starlark.Dict{}
-	fd.SetKey(starlark.String("foo"), starlark.String("bar baz"))
+	fd := map[string]string{
+		"foo": "bar baz",
+	}
 
 	cases := []struct {
 		rawBody      starlark.String
-		formData     *starlark.Dict
+		formData     map[string]string
 		formEncoding starlark.String
 		jsonData     starlark.Value
 		body         string
@@ -88,19 +90,41 @@ func TestSetBody(t *testing.T) {
 	}
 
 	for i, c := range cases {
+		var formData *starlark.Dict
+		if c.formData != nil {
+			formData = starlark.NewDict(len(c.formData))
+			for k, v := range c.formData {
+				formData.SetKey(starlark.String(k), starlark.String(v))
+			}
+		}
+
 		req := httptest.NewRequest("get", "https://example.com", nil)
-		err := setBody(req, c.rawBody, c.formData, c.formEncoding, c.jsonData)
+		err := setBody(req, c.rawBody, formData, c.formEncoding, c.jsonData)
 		if !(err == nil && c.err == "" || (err != nil && err.Error() == c.err)) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
 		}
-		body, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
 
-		if string(body) != c.body {
-			t.Errorf("case %d body mismatch. expected: %s, got: %s", i, c.body, string(body))
+		if strings.HasPrefix(req.Header.Get("Content-Type"), "multipart/form-data;") {
+			if err := req.ParseMultipartForm(0); err != nil {
+				t.Fatal(err)
+			}
+
+			for k, v := range c.formData {
+				fv := req.FormValue(k)
+				if fv != v {
+					t.Errorf("case %d error mismatch. expected %s=%s, got: %s", i, k, v, fv)
+				}
+			}
+		} else {
+			body, err := ioutil.ReadAll(req.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if string(body) != c.body {
+				t.Errorf("case %d body mismatch. expected: %s, got: %s", i, c.body, string(body))
+			}
 		}
 	}
 }
