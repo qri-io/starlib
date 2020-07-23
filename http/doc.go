@@ -13,7 +13,7 @@
             optional. dictionary of headers to add to request
           auth tuple
             optional. (username,password) tuple for http basic authorization
-      put(url,params={},headers={},body="",form_body={},json_body={},auth=()) response
+      put(url,params={},headers={},body="",form_body={},form_encoding="",json_body={},auth=()) response
         perform an HTTP PUT request, returning a response
         params:
           url string
@@ -24,11 +24,13 @@
             optional. raw string body to provide to the request
           form_body dict
             optional. dict of values that will be encoded as form data
+          form_encoding string
+            optional. `application/x-www-form-url-encoded` (default) or `multipart/form-data`
           json_body any
             optional. json data to supply as a request. handy for working with JSON-API's
           auth tuple
             optional. (username,password) tuple for http basic authorization
-      post(url,params={},headers={},body="",form_body={},json_body={},auth=()) response
+      post(url,params={},headers={},body="",form_body={},form_encoding="",json_body={},auth=()) response
         perform an HTTP POST request, returning a response
         params:
           url string
@@ -39,11 +41,13 @@
             optional. raw string body to provide to the request
           form_body dict
             optional. dict of values that will be encoded as form data
+          form_encoding string
+            optional. `application/x-www-form-url-encoded` (default) or `multipart/form-data`
           json_body any
             optional. json data to supply as a request. handy for working with JSON-API's
           auth tuple
             optional. (username,password) tuple for http basic authorization
-      delete(url,params={},headers={},body="",form_body={},json_body={},auth=()) response
+      delete(url,params={},headers={},body="",form_body={},form_encoding="",json_body={},auth=()) response
         perform an HTTP DELETE request, returning a response
         params:
           url string
@@ -54,11 +58,13 @@
             optional. raw string body to provide to the request
           form_body dict
             optional. dict of values that will be encoded as form data
+          form_encoding string
+            optional. `application/x-www-form-url-encoded` (default) or `multipart/form-data`
           json_body any
             optional. json data to supply as a request. handy for working with JSON-API's
           auth tuple
             optional. (username,password) tuple for http basic authorization
-      patch(url,params={},headers={},body="",form_body={},json_body={},auth=()) response
+      patch(url,params={},headers={},body="",form_body={},form_encoding="",json_body={},auth=()) response
         perform an HTTP PATCH request, returning a response
         params:
           url string
@@ -69,11 +75,13 @@
             optional. raw string body to provide to the request
           form_body dict
             optional. dict of values that will be encoded as form data
+          form_encoding string
+            optional. `application/x-www-form-url-encoded` (default) or `multipart/form-data`
           json_body any
             optional. json data to supply as a request. handy for working with JSON-API's
           auth tuple
             optional. (username,password) tuple for http basic authorization
-      options(url,params={},headers={},body="",form_body={},json_body={},auth=()) response
+      options(url,params={},headers={},body="",form_body={},form_encoding="",json_body={},auth=()) response
         perform an HTTP OPTIONS request, returning a response
         params:
           url string
@@ -84,6 +92,8 @@
             optional. raw string body to provide to the request
           form_body dict
             optional. dict of values that will be encoded as form data
+          form_encoding string
+            optional. `application/x-www-form-url-encoded` (default) or `multipart/form-data`
           json_body any
             optional. json data to supply as a request. handy for working with JSON-API's
           auth tuple

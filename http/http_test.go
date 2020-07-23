@@ -70,24 +70,26 @@ func newLoader() func(thread *starlark.Thread, module string) (starlark.StringDi
 // we're ok with testing private functions if it simplifies the test :)
 func TestSetBody(t *testing.T) {
 	fd := &starlark.Dict{}
-	fd.SetKey(starlark.String("foo"), starlark.String("bar"))
+	fd.SetKey(starlark.String("foo"), starlark.String("bar baz"))
 
 	cases := []struct {
-		rawBody  starlark.String
-		formData *starlark.Dict
-		jsonData starlark.Value
-		body     string
-		err      string
+		rawBody      starlark.String
+		formData     *starlark.Dict
+		formEncoding starlark.String
+		jsonData     starlark.Value
+		body         string
+		err          string
 	}{
-		{starlark.String("hallo"), nil, nil, "hallo", ""},
-		// TODO - this should check request form data is being set
-		{starlark.String(""), fd, nil, "", ""},
-		{starlark.String(""), nil, &starlark.Tuple{starlark.Bool(true), starlark.MakeInt(1), starlark.String("der")}, "[true,1,\"der\"]", ""},
+		{starlark.String("hallo"), nil, starlark.String(""), nil, "hallo", ""},
+		{starlark.String(""), fd, starlark.String(""), nil, "foo=bar+baz", ""},
+		// TODO - this should check multipart form data is being set
+		{starlark.String(""), fd, starlark.String("multipart/form-data"), nil, "", ""},
+		{starlark.String(""), nil, starlark.String(""), &starlark.Tuple{starlark.Bool(true), starlark.MakeInt(1), starlark.String("der")}, "[true,1,\"der\"]", ""},
 	}
 
 	for i, c := range cases {
 		req := httptest.NewRequest("get", "https://example.com", nil)
-		err := setBody(req, c.rawBody, c.formData, c.jsonData)
+		err := setBody(req, c.rawBody, c.formData, c.formEncoding, c.jsonData)
 		if !(err == nil && c.err == "" || (err != nil && err.Error() == c.err)) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
