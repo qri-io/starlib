@@ -82,7 +82,7 @@ func TestSetBody(t *testing.T) {
 		{starlark.String("hallo"), nil, nil, "hallo", ""},
 		// TODO - this should check request form data is being set
 		{starlark.String(""), fd, nil, "", ""},
-		{starlark.String(""), nil, &starlark.Tuple{starlark.Bool(true), starlark.MakeInt(1), starlark.String("der")}, "[true,1,\"der\"]", ""},
+		{starlark.String(""), nil, starlark.Tuple{starlark.Bool(true), starlark.MakeInt(1), starlark.String("der")}, "[true,1,\"der\"]", ""},
 	}
 
 	for i, c := range cases {
