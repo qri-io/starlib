@@ -19,6 +19,7 @@ t = time.time("2000-01-02T03:04:05Z")
 assert.eq(t.year(), 2000)
 assert.eq(t.in_location("US/Eastern"), time.time("2000-01-01T22:04:05-05:00"))
 assert.eq(t.in_location("US/Eastern").format("3 04 PM"), "10 04 PM")
+assert.eq(time.time(str(t)), t)
 
 assert.eq(t - t, time.duration("0s"))
 
