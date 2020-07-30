@@ -138,6 +138,7 @@ func TestUnmarshal(t *testing.T) {
 		{ct, &customType{42}, ""},
 		{strDictCT, map[string]interface{}{"foo": 42, "bar": &customType{42}}, ""},
 		{starlark.NewList([]starlark.Value{starlark.MakeInt(42), ct}), []interface{}{42, &customType{42}}, ""},
+		{starlark.Tuple{starlark.String("foo"), starlark.MakeInt(42)}, []interface{}{"foo", 42}, ""},
 	}
 
 	for i, c := range cases {

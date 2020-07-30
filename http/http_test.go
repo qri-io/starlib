@@ -86,7 +86,7 @@ func TestSetBody(t *testing.T) {
 		{starlark.String(""), fd, starlark.String(""), nil, "foo=bar+baz", ""},
 		// TODO - this should check multipart form data is being set
 		{starlark.String(""), fd, starlark.String("multipart/form-data"), nil, "", ""},
-		{starlark.String(""), nil, starlark.String(""), &starlark.Tuple{starlark.Bool(true), starlark.MakeInt(1), starlark.String("der")}, "[true,1,\"der\"]", ""},
+		{starlark.String(""), nil, starlark.String(""), starlark.Tuple{starlark.Bool(true), starlark.MakeInt(1), starlark.String("der")}, "[true,1,\"der\"]", ""},
 	}
 
 	for i, c := range cases {

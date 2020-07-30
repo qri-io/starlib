@@ -117,7 +117,7 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 			i++
 		}
 		val = value
-	case *starlark.Tuple:
+	case starlark.Tuple:
 		var (
 			i        int
 			tupleVal starlark.Value
