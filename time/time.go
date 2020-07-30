@@ -256,7 +256,7 @@ func durationnanoseconds(fnname string, recV starlark.Value, args starlark.Tuple
 type Time gotime.Time
 
 // String implements the Stringer interface
-func (t Time) String() string { return gotime.Time(t).String() }
+func (t Time) String() string { return gotime.Time(t).Format(gotime.RFC3339) }
 
 // Type returns a short string describing the value's type.
 func (t Time) Type() string { return "time" }
