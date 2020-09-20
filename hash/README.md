@@ -1,4 +1,4 @@
-# time
+# hash
 
 hash defines hash primitives for starlark
 
