@@ -7,6 +7,7 @@ import (
 	"sync"
 	gotime "time"
 
+	"github.com/cactus/gostrftime"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
 	"go.starlark.net/syntax"
@@ -255,7 +256,7 @@ func durationnanoseconds(fnname string, recV starlark.Value, args starlark.Tuple
 type Time gotime.Time
 
 // String implements the Stringer interface
-func (t Time) String() string { return gotime.Time(t).String() }
+func (t Time) String() string { return gotime.Time(t).Format(gotime.RFC3339) }
 
 // Type returns a short string describing the value's type.
 func (t Time) Type() string { return "time" }
@@ -334,6 +335,7 @@ var timeMethods = map[string]builtinMethod{
 
 	"in_location": timein,
 	"format":      timeformat,
+	"strftime":    timestrftime,
 }
 
 // TODO - consider using a higher order function to generate these
@@ -390,6 +392,16 @@ func timeformat(fnname string, recV starlark.Value, args starlark.Tuple, kwargs 
 
 	recv := gotime.Time(recV.(Time))
 	return starlark.String(recv.Format(string(x))), nil
+}
+
+func timestrftime(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var x starlark.String
+	if err := starlark.UnpackArgs("strftime", args, kwargs, "x", &x); err != nil {
+		return nil, err
+	}
+
+	recv := gotime.Time(recV.(Time))
+	return starlark.String(gostrftime.Format(string(x), recv)), nil
 }
 
 func timein(fnname string, recV starlark.Value, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {

@@ -46,6 +46,9 @@ package from the go standard library.
           format(string) string
             textual representation of time formatted according to the provided
             layout string
+          strftime(string) string
+            textual representation of time formatted according to the provided C-style strftime format string
+            layout string
         operators:
           time == time = boolean
           time < time = boolean

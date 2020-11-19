@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -31,6 +32,14 @@ var (
 	// Guard is a global RequestGuard used in LoadModule. override with a custom
 	// implementation before calling LoadModule
 	Guard RequestGuard
+)
+
+// Encodings for form data.
+//
+// See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST
+const (
+	formEncodingMultipart = "multipart/form-data"
+	formEncodingURL       = "application/x-www-form-urlencoded"
 )
 
 // LoadModule creates an http Module
@@ -80,16 +89,17 @@ func (m *Module) StringDict() starlark.StringDict {
 func (m *Module) reqMethod(method string) func(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	return func(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var (
-			urlv     starlark.String
-			params   = &starlark.Dict{}
-			headers  = &starlark.Dict{}
-			formBody = &starlark.Dict{}
-			auth     starlark.Tuple
-			body     starlark.String
-			jsonBody starlark.Value
+			urlv         starlark.String
+			params       = &starlark.Dict{}
+			headers      = &starlark.Dict{}
+			formBody     = &starlark.Dict{}
+			formEncoding starlark.String
+			auth         starlark.Tuple
+			body         starlark.String
+			jsonBody     starlark.Value
 		)
 
-		if err := starlark.UnpackArgs(method, args, kwargs, "url", &urlv, "params?", &params, "headers", &headers, "body", &body, "form_body", &formBody, "json_body", &jsonBody, "auth", &auth); err != nil {
+		if err := starlark.UnpackArgs(method, args, kwargs, "url", &urlv, "params?", &params, "headers", &headers, "body", &body, "form_body", &formBody, "form_encoding", &formEncoding, "json_body", &jsonBody, "auth", &auth); err != nil {
 			return nil, err
 		}
 
@@ -117,7 +127,7 @@ func (m *Module) reqMethod(method string) func(thread *starlark.Thread, _ *starl
 		if err = setAuth(req, auth); err != nil {
 			return nil, err
 		}
-		if err = setBody(req, body, formBody, jsonBody); err != nil {
+		if err = setBody(req, body, formBody, formEncoding, jsonBody); err != nil {
 			return nil, err
 		}
 
@@ -217,7 +227,7 @@ func setHeaders(req *http.Request, headers *starlark.Dict) error {
 	return nil
 }
 
-func setBody(req *http.Request, body starlark.String, formData *starlark.Dict, jsondata starlark.Value) error {
+func setBody(req *http.Request, body starlark.String, formData *starlark.Dict, formEncoding starlark.String, jsondata starlark.Value) error {
 	if !util.IsEmptyString(body) {
 		uq, err := strconv.Unquote(body.String())
 		if err != nil {
@@ -242,13 +252,7 @@ func setBody(req *http.Request, body starlark.String, formData *starlark.Dict, j
 	}
 
 	if formData != nil && formData.Len() > 0 {
-		if req.Header.Get("Content-Type") == "" {
-			req.Header.Set("Content-Type", "multipart/form-data")
-		}
-
-		if req.Form == nil {
-			req.Form = url.Values{}
-		}
+		form := url.Values{}
 		for _, key := range formData.Keys() {
 			keystr, err := AsString(key)
 			if err != nil {
@@ -267,7 +271,42 @@ func setBody(req *http.Request, body starlark.String, formData *starlark.Dict, j
 				return err
 			}
 
-			req.Form.Add(keystr, valstr)
+			form.Add(keystr, valstr)
+		}
+
+		var contentType string
+		switch formEncoding {
+		case formEncodingURL, "":
+			contentType = formEncodingURL
+			req.Body = ioutil.NopCloser(strings.NewReader(form.Encode()))
+
+		case formEncodingMultipart:
+			var b bytes.Buffer
+			mw := multipart.NewWriter(&b)
+			defer mw.Close()
+
+			contentType = mw.FormDataContentType()
+
+			for k, values := range form {
+				for _, v := range values {
+					w, err := mw.CreateFormField(k)
+					if err != nil {
+						return err
+					}
+					if _, err := w.Write([]byte(v)); err != nil {
+						return err
+					}
+				}
+			}
+
+			req.Body = ioutil.NopCloser(&b)
+
+		default:
+			return fmt.Errorf("unknown form encoding: %s", formEncoding)
+		}
+
+		if req.Header.Get("Content-Type") == "" {
+			req.Header.Set("Content-Type", contentType)
 		}
 	}
 
