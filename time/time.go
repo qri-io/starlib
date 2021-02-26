@@ -120,7 +120,7 @@ func time(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwa
 		return Time(t), nil
 	}
 
-	loc, err := gotime.LoadLocation(location.String())
+	loc, err := gotime.LoadLocation(string(location))
 	if err != nil {
 		return nil, err
 	}
