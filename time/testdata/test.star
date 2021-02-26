@@ -18,6 +18,9 @@ assert.eq(time.zero.format("Mon Jan 2 15:04:05 -0700 MST 2006"), "Mon Jan 1 00:0
 t = time.time("2000-01-02T03:04:05Z")
 assert.eq(t.year(), 2000)
 assert.eq(t.in_location("US/Eastern"), time.time("2000-01-01T22:04:05-05:00"))
+assert.eq(t.in_location("US/Eastern"), time.time("2000-01-01T22:04:05",
+                                                 format="2006-01-02T15:04:05",
+                                                 location="US/Eastern"))
 assert.eq(t.in_location("US/Eastern").format("3 04 PM"), "10 04 PM")
 assert.eq(time.time(str(t)), t)
 
