@@ -45,7 +45,7 @@ func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, e
 	case csv.ModuleName:
 		return csv.LoadModule()
 	case json.ModuleName:
-		return json.LoadModule()
+		return starlark.StringDict{"json": json.Module}, nil
 	case yaml.ModuleName:
 		return yaml.LoadModule()
 	case geo.ModuleName:
