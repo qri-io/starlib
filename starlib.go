@@ -12,11 +12,11 @@ import (
 	"github.com/qri-io/starlib/hash"
 	"github.com/qri-io/starlib/html"
 	"github.com/qri-io/starlib/http"
+	"github.com/qri-io/starlib/math"
 	"github.com/qri-io/starlib/re"
+	"github.com/qri-io/starlib/time"
 	"github.com/qri-io/starlib/xlsx"
 	"github.com/qri-io/starlib/zipfile"
-	"go.starlark.net/lib/math"
-	"go.starlark.net/lib/time"
 	"go.starlark.net/starlark"
 )
 
@@ -26,10 +26,8 @@ const Version = "0.4.3-dev"
 // Loader presents the starlib library as a loader
 func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, err error) {
 	switch module {
-	case time.Module.Name:
-		return starlark.StringDict{
-			"time": time.Module,
-		}, nil
+	case time.ModuleName:
+		return starlark.StringDict{"time": time.Module}, nil
 	case http.ModuleName:
 		return http.LoadModule()
 	case xlsx.ModuleName:
@@ -52,10 +50,8 @@ func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, e
 		return yaml.LoadModule()
 	case geo.ModuleName:
 		return geo.LoadModule()
-	case math.Module.Name:
-		return starlark.StringDict{
-			"math": math.Module,
-		}, nil
+	case math.ModuleName:
+		return starlark.StringDict{"math": math.Module}, nil
 	case hash.ModuleName:
 		return hash.LoadModule()
 	}
