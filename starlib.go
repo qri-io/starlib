@@ -21,7 +21,7 @@ import (
 )
 
 // Version is the current semver for the entire starlib library
-const Version = "0.4.3-dev"
+const Version = "0.5.0"
 
 // Loader presents the starlib library as a loader
 func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, err error) {
