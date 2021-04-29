@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"go.starlark.net/syntax"
 	"testing"
 	"time"
 
@@ -69,11 +70,13 @@ func TestMarshal(t *testing.T) {
 		{int16(42), starlark.MakeInt(42), ""},
 		{int32(42), starlark.MakeInt(42), ""},
 		{int64(42), starlark.MakeInt(42), ""},
+		{int64(1 << 42), starlark.MakeInt(1 << 42), ""},
 		{uint(42), starlark.MakeUint(42), ""},
 		{uint8(42), starlark.MakeUint(42), ""},
 		{uint16(42), starlark.MakeUint(42), ""},
 		{uint32(42), starlark.MakeUint(42), ""},
 		{uint64(42), starlark.MakeUint64(42), ""},
+		{uint64(1 << 42), starlark.MakeUint64(1 << 42), ""},
 		{float32(42), starlark.Float(42), ""},
 		{42., starlark.Float(42), ""},
 		{time.Unix(1588540633, 0), startime.Time(time.Unix(1588540633, 0)), ""},
@@ -95,7 +98,12 @@ func TestMarshal(t *testing.T) {
 			continue
 		}
 
-		assert.EqualValues(t, c.want, got, "case %d: %T -> %T", i, c.in, c.want)
+		compareResult, err := starlark.Equal(c.want, got)
+		if err != nil {
+			t.Errorf("case %d error comparing results: %q", i, err)
+			continue
+		}
+		assert.True(t, compareResult, "case %d: %T -> %T", i, c.in, c.want)
 	}
 }
 
@@ -124,11 +132,13 @@ func TestUnmarshal(t *testing.T) {
 		{starlark.MakeInt(42), int16(42), ""},
 		{starlark.MakeInt(42), int32(42), ""},
 		{starlark.MakeInt(42), int64(42), ""},
+		{starlark.MakeInt(1 << 42), int64(1 << 42), ""},
 		{starlark.MakeUint(42), uint(42), ""},
 		{starlark.MakeUint(42), uint8(42), ""},
 		{starlark.MakeUint(42), uint16(42), ""},
 		{starlark.MakeUint(42), uint32(42), ""},
 		{starlark.MakeUint64(42), uint64(42), ""},
+		{starlark.MakeUint64(1 << 42), uint64(1 << 42), ""},
 		{starlark.Float(42), float32(42), ""},
 		{starlark.Float(42), 42., ""},
 		{startime.Time(time.Unix(1588540633, 0)), time.Unix(1588540633, 0), ""},
@@ -163,6 +173,14 @@ var (
 	_ Marshaler      = (*customType)(nil)
 	_ starlark.Value = (*customType)(nil)
 )
+
+func (c *customType) CompareSameType(op syntax.Token, v starlark.Value, depth int) (bool, error) {
+	if op != syntax.EQL {
+		return false, fmt.Errorf("not expected operator %q", op)
+	}
+	other := v.(*customType)
+	return c.Foo == other.Foo, nil
+}
 
 func (c *customType) UnmarshalStarlark(v starlark.Value) error {
 	// asserts
