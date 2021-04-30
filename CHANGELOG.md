@@ -1,3 +1,50 @@
+<a name="v0.5.0"></a>
+# [v0.5.0](https://github.com/qri-io/starlib/compare/v0.4.2...v0.5.0) (2021-04-29)
+
+version 0.5.0 breaks the APIs of `math`, `time`, and `json`.
+
+After a *large* community effort, we've successfully moved two packages from starlib into go-starlark:
+* math: google/starlark-go#357
+* time: google/starlark-go#327
+
+Both of these packages have had a great deal of vetting & improvement in the process of migrating. While this does introduce many breaking changes for both packages, both packages have better stability & performance characteristics.
+
+Moving forward, we'll try to follow the pattern of developing & testing packages here, and for those deemed worthy, move them up into go-starlark. Once a package lands there, we'll switch starlib to being a strict import-and-document-only, which effectively locks their API. **Keeping package APIs matched to go-starlark will cut down on drift, benefitting the broader starlark ecosystem**. We're currently working on doing the same with the `re` / regexp package.
+
+In the same vein, we've switched to the go-starlark `json` module, which adds another breaking API change for this release.
+
+### Bug Fixes
+
+* **http:** send multipart form data correctly ([c365bf6](https://github.com/qri-io/starlib/commit/c365bf6))
+* **json:** Fix unmarshaling of 64 bit integers ([#71](https://github.com/qri-io/starlib/issues/71)) ([86d6e56](https://github.com/qri-io/starlib/commit/86d6e56))
+* **math,time:** restore ".star" suffixes to math & time modules ([4528225](https://github.com/qri-io/starlib/commit/4528225))
+* **time:** fix location parsing in time() ([aa672aa](https://github.com/qri-io/starlib/commit/aa672aa))
+* **util:** handle tuples correctly ([#61](https://github.com/qri-io/starlib/issues/61)) ([863ced0](https://github.com/qri-io/starlib/commit/863ced0))
+* **version:** correct erroneous version indicator ([#66](https://github.com/qri-io/starlib/issues/66)) ([ce3581b](https://github.com/qri-io/starlib/commit/ce3581b))
+
+
+### Code Refactoring
+
+* **math,time:** replace math & time modules with Starlark upstream versions ([c7a7f60](https://github.com/qri-io/starlib/commit/c7a7f60))
+
+
+### Features
+
+* **http:** support URL encoding for forms ([5c99138](https://github.com/qri-io/starlib/commit/5c99138))
+* **json:** replace encoding/json with go.starlark.net/starlarkjson ([f21f027](https://github.com/qri-io/starlib/commit/f21f027))
+* **time:** Add strftime method to time instances ([08db895](https://github.com/qri-io/starlib/commit/08db895))
+* **time:** make string representation reversible ([5d9d07b](https://github.com/qri-io/starlib/commit/5d9d07b))
+* **util:** unmarshal/marshal for starlib/time.Time to go's standard time.Time and back ([1364b0c](https://github.com/qri-io/starlib/commit/1364b0c))
+
+
+### BREAKING CHANGES
+
+* **json:** overhaul json module. See package doc for details
+* **math,time:** math & time modules have been overhauled. Refer to package documentation for
+details
+
+
+
 <a name="v0.4.2">v0.4.2</a>
 # [v0.4.2](https://github.com/qri-io/starlib/compare/v0.4.1...v0.4.2) (2020-06-29)
 
