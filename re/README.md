@@ -3,6 +3,8 @@ re defines regular expression functions, it's intended to be a drop-in subset of
 
 ## Functions
 
+Note: All but the `compile` function can also be called as methods on a compiled regex object. When used in such a way, drop the `pattern` argument from the call.
+
 ### `compile(pattern, flags=0)`
 Compile a regular expression pattern into a regular expression object, which can be used for matching using its match(), search() and other methods.
 
@@ -21,7 +23,7 @@ Returns all non-overlapping matches of pattern in string, as a list of strings. 
 
 | name | type | description |
 |------|------|-------------|
-| `pattern` | `Regex` | compiled regular expression |
+| `pattern` | `string` | regular expression pattern |
 | `text` | `string` | string to find within |
 | `flags` | `int` | integer flags to control regex behaviour. reserved for future use |
 
@@ -33,7 +35,7 @@ If zero or more characters at the beginning of string match the regular expressi
 
 | name | type | description |
 |------|------|-------------|
-| `pattern` | `Regex` | compiled regular expression |
+| `pattern` | `string` | regular expression pattern |
 | `text` | `string` | string on which to match |
 | `flags` | `int` | integer flags to control regex behaviour. reserved for future use |
 
@@ -45,7 +47,7 @@ Scan through string looking for the first location where the regular expression 
 
 | name | type | description |
 |------|------|-------------|
-| `pattern` | `Regex` | compiled regular expression |
+| `pattern` | `string` | regular expression pattern |
 | `text` | `string` | string to search within |
 | `flags` | `int` | integer flags to control regex behaviour. reserved for future use |
 
@@ -57,7 +59,7 @@ Split text by the occurrences of pattern. If capturing parentheses are used in p
 
 | name | type | description |
 |------|------|-------------|
-| `pattern` | `Regex` | compiled regular expression |
+| `pattern` | `string` | regular expression pattern |
 | `text` | `string` | input string to split |
 | `maxsplit` | `int` | maximum number of splits to make. default 0 splits all matches |
 | `flags` | `int` | integer flags to control regex behaviour. reserved for future use |
@@ -70,7 +72,7 @@ Return the string obtained by replacing the leftmost non-overlapping occurrences
 
 | name | type | description |
 |------|------|-------------|
-| `pattern` | `Regex` | compiled regular expression |
+| `pattern` | `string` | regular expression pattern |
 | `repl` | `string` | string to replace matches with |
 | `text` | `string` | input string to replace |
 | `count` | `int` | number of replacements to make, default 0 means replace all matches |
