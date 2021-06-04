@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/starlib/bsoup"
+	"github.com/qri-io/starlib/dataframe"
 	"github.com/qri-io/starlib/encoding/base64"
 	"github.com/qri-io/starlib/encoding/csv"
 	"github.com/qri-io/starlib/encoding/json"
@@ -54,6 +55,8 @@ func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, e
 		return starlark.StringDict{"math": math.Module}, nil
 	case hash.ModuleName:
 		return hash.LoadModule()
+	case dataframe.ModuleName:
+		return starlark.StringDict{"dataframe": dataframe.Module}, nil
 	}
 
 	return nil, fmt.Errorf("invalid module %q", module)

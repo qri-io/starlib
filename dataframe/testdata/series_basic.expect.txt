@@ -1,0 +1,138 @@
+
+case 0:
+0    123
+1    456
+2    789
+dtype: int64
+
+case 1:
+0    123
+1    456
+2    789
+dtype: int64
+
+case 2:
+0    123
+1    456
+2    789
+dtype: object
+
+case 3:
+0    123.4
+1    456.7
+2    789.1
+dtype: float64
+
+case 4:
+0    3
+dtype: int64
+
+case 5:
+0    123.4
+dtype: float64
+
+case 6:
+0    123
+dtype: object
+
+case 7:
+0    3
+dtype: int64
+
+case 8:
+0    3
+dtype: object
+
+case 9:
+0    3.0
+dtype: float64
+
+case 10:
+a    123
+b    456
+c    789
+dtype: int64
+
+case 11:
+a    123
+b    456
+c    789
+dtype: int64
+
+case 12:
+a    123
+b    456
+c    789
+dtype: int64
+
+case 13:
+a    123
+b    456
+c    789
+dtype: int64
+
+case 14:
+a    123
+b    456
+c    789
+dtype: int64
+
+case 15:
+a    123
+b    456
+c    789
+dtype: int64
+
+case 18:
+0    123
+1    456
+2    789
+Name: numbers, dtype: int64
+
+case 19:
+a    123
+b    456
+c    789
+Name: numbers, dtype: int64
+
+case 20:
+0    123
+1    456
+2    789
+Name: numbers, dtype: int64
+
+case 21:
+0    123.0
+1    456.0
+2    789.0
+Name: numbers, dtype: float64
+
+case 22:
+0    123
+1    456
+2    789
+Name: numbers, dtype: string
+
+case 23:
+0    12.0
+1    34.9
+2    56.0
+dtype: float64
+
+case 24:
+0    12.9
+1    34.0
+2    56.0
+dtype: float64
+
+case 25:
+0    12
+1    34
+2    56
+dtype: object
+
+case 26:
+0    12.9
+1    34.8
+2    56.7
+dtype: object

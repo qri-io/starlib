@@ -1,0 +1,14 @@
+case 0:
+123
+456
+int
+
+case 2:
+123
+456
+string
+
+case 3:
+123.4
+456.7
+float
