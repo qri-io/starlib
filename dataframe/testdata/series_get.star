@@ -22,4 +22,10 @@ def f():
   print(type(series[1]))
   print('')
 
+  print('case 4:')
+  series = dataframe.Series(data=[123,456,789], index=['a', 'b', 'c'])
+  print(series.get(0))
+  print(series.get('a'))
+  print('')
+
 f()

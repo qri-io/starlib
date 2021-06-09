@@ -2,6 +2,7 @@ package dataframe
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -25,10 +26,14 @@ type Series struct {
 // A Series contains values of one of these three types. The which field uses these
 // constants to determine which slice holds the actual values of the Series.
 const (
-	TypeInt   = 1
-	TypeFloat = 2
-	TypeObj   = 3
+	typeInt   = 1
+	typeFloat = 2
+	typeObj   = 3
 )
+
+var seriesMethods = map[string]*starlark.Builtin{
+	"get": starlark.NewBuiltin("get", seriesGet),
+}
 
 // Freeze prevents the series from being mutated
 func (s *Series) Freeze() {
@@ -60,12 +65,12 @@ func (s *Series) Type() string {
 
 // Attr gets a value for a string attribute
 func (s *Series) Attr(name string) (starlark.Value, error) {
-	return nil, starlark.NoSuchAttrError(name)
+	return builtinAttr(s, name, seriesMethods)
 }
 
 // AttrNames lists available attributes
 func (s *Series) AttrNames() []string {
-	return []string{}
+	return builtinAttrNames(seriesMethods)
 }
 
 // Get retrieves a single cell from the Series
@@ -88,7 +93,7 @@ func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, e
 		}
 		return val, true, nil
 	}
-	return starlark.None, false, fmt.Errorf("not found: %v", keyVal)
+	return starlark.None, false, fmt.Errorf("not found: %q", keyVal)
 }
 
 func (s *Series) stringify() string {
@@ -153,13 +158,13 @@ func (s *Series) stringify() string {
 
 // values returns a slice of some go native type
 func (s *Series) values() []interface{} {
-	if s.which == TypeInt {
+	if s.which == typeInt {
 		result := make([]interface{}, len(s.valInts))
 		for i, elem := range s.valInts {
 			result[i] = elem
 		}
 		return result
-	} else if s.which == TypeFloat {
+	} else if s.which == typeFloat {
 		result := make([]interface{}, len(s.valFloats))
 		for i, elem := range s.valFloats {
 			result[i] = elem
@@ -175,13 +180,13 @@ func (s *Series) values() []interface{} {
 
 // stringValues returns a slice of the stringified values, fit for printing
 func (s *Series) stringValues() []string {
-	if s.which == TypeInt {
+	if s.which == typeInt {
 		result := make([]string, len(s.valInts))
 		for i, elem := range s.valInts {
 			result[i] = strconv.Itoa(elem)
 		}
 		return result
-	} else if s.which == TypeFloat {
+	} else if s.which == typeFloat {
 		result := make([]string, len(s.valFloats))
 		for i, elem := range s.valFloats {
 			result[i] = fmt.Sprintf("%1.1f", elem)
@@ -193,55 +198,49 @@ func (s *Series) stringValues() []string {
 
 // len returns the number of values
 func (s *Series) len() int {
-	if s.which == TypeInt {
+	if s.which == typeInt {
 		return len(s.valInts)
-	} else if s.which == TypeFloat {
+	} else if s.which == typeFloat {
 		return len(s.valFloats)
 	}
 	return len(s.valObjs)
 }
 
-// takeFirst returns a series containing just the first 'n' values
-func (s *Series) takeFirst(n int) Series {
-	var valInts []int
-	var valFloats []float64
-	var valObjs []string
-	if s.which == TypeInt {
-		valInts = s.valInts[:n]
-	} else if s.which == TypeFloat {
-		valFloats = s.valFloats[:n]
-	} else {
-		valObjs = s.valObjs[:n]
-	}
-	return Series{
-		which:     s.which,
-		valInts:   valInts,
-		valFloats: valFloats,
-		valObjs:   valObjs,
-		//index: s.index,
-		dtype: s.dtype,
-		name:  s.name,
-	}
-}
-
 // strAt returns the cell at position 'i', as a string fit for printing
 func (s *Series) strAt(i int) string {
-	if s.which == TypeInt {
+	if s.which == typeInt {
 		return strconv.Itoa(s.valInts[i])
-	} else if s.which == TypeFloat {
+	} else if s.which == typeFloat {
 		return fmt.Sprintf("%1.1f", s.valFloats[i])
 	}
 	return s.valObjs[i]
 }
 
-// at returns the cell at position 'i' as a go native type
-func (s *Series) at(i int) interface{} {
-	if s.which == TypeInt {
-		return s.valInts[i]
-	} else if s.which == TypeFloat {
-		return s.valFloats[i]
+func builtinAttr(recv starlark.Value, name string, methods map[string]*starlark.Builtin) (starlark.Value, error) {
+	b := methods[name]
+	if b == nil {
+		return nil, nil // no such method
 	}
-	return s.valObjs[i]
+	return b.BindReceiver(recv), nil
+}
+
+func builtinAttrNames(methods map[string]*starlark.Builtin) []string {
+	names := make([]string, 0, len(methods))
+	for name := range methods {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func seriesGet(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var key starlark.Value
+	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 1, &key); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*Series)
+	ret, _, err := self.Get(key)
+	return ret, err
 }
 
 func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -282,9 +281,9 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 
 	which := 0
 	if dtype == "int64" {
-		which = TypeInt
+		which = typeInt
 	} else if dtype == "float64" {
-		which = TypeFloat
+		which = typeFloat
 	}
 
 	dataList, ok := dataVal.(*starlark.List)
@@ -298,36 +297,36 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 			elemVal := dataList.Index(k)
 			// If an int, convert to float if that's what this Series is typed as
 			if num, ok := toIntMaybe(elemVal); ok {
-				if which == 0 || which == TypeInt {
-					which = TypeInt
+				if which == 0 || which == typeInt {
+					which = typeInt
 					valInts = append(valInts, num)
 					continue
-				} else if which == TypeFloat {
+				} else if which == typeFloat {
 					valFloats = append(valFloats, float64(num))
 					continue
 				}
-				which = TypeObj
+				which = typeObj
 			}
 			// If a float, convert an existing Series of ints to floats
 			if f, ok := toFloatMaybe(elemVal); ok {
-				if which == 0 || which == TypeFloat {
-					which = TypeFloat
+				if which == 0 || which == typeFloat {
+					which = typeFloat
 					valFloats = append(valFloats, f)
 					continue
-				} else if which == TypeInt {
-					which = TypeFloat
+				} else if which == typeInt {
+					which = typeFloat
 					valFloats = append(convertIntsToFloats(valInts), f)
 					continue
 				}
-				which = TypeObj
+				which = typeObj
 			}
 			// Otherwise, or if the type is object, convert everything to strings
-			if which == TypeInt {
+			if which == typeInt {
 				valObjs = convertIntsToStrings(valInts)
-			} else if which == TypeFloat {
+			} else if which == typeFloat {
 				valObjs = convertFloatsToStrings(valFloats)
 			}
-			which = TypeObj
+			which = typeObj
 			valObjs = append(valObjs, toStr(elemVal))
 		}
 
@@ -364,7 +363,7 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 		}
 		return &Series{
 			dtype:   dtype,
-			which:   TypeObj,
+			which:   typeObj,
 			valObjs: valObjs,
 			index:   index,
 			name:    name,
@@ -377,7 +376,7 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 func newSeriesFromInts(vals []int, index []string, name string) *Series {
 	return &Series{
 		dtype:   "int64",
-		which:   TypeInt,
+		which:   typeInt,
 		valInts: vals,
 		index:   index,
 		name:    name,
@@ -387,7 +386,7 @@ func newSeriesFromInts(vals []int, index []string, name string) *Series {
 func newSeriesFromFloats(vals []float64, index []string, name string) *Series {
 	return &Series{
 		dtype:     "float64",
-		which:     TypeFloat,
+		which:     typeFloat,
 		valFloats: vals,
 		index:     index,
 		name:      name,
@@ -397,7 +396,7 @@ func newSeriesFromFloats(vals []float64, index []string, name string) *Series {
 func newSeriesFromStrings(vals, index []string, name string) *Series {
 	return &Series{
 		dtype:   "object",
-		which:   TypeObj,
+		which:   typeObj,
 		valObjs: vals,
 		index:   index,
 		name:    name,
@@ -405,9 +404,9 @@ func newSeriesFromStrings(vals, index []string, name string) *Series {
 }
 
 func dtypeFromWhich(which int) string {
-	if which == TypeInt {
+	if which == typeInt {
 		return "int64"
-	} else if which == TypeFloat {
+	} else if which == typeFloat {
 		return "float64"
 	}
 	return "object"
