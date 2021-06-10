@@ -1,0 +1,14 @@
+     id  animal  sound
+0     1     cat   meow
+1     2     dog   bark
+2     3     eel    zap
+
+           a          b        c
+0      apple     banana   cherry
+1    apricot  blueberry  currant
+
+         city      pop
+0    New York  8419000
+1     Chicago  2710000
+2    San Jose  1028000
+

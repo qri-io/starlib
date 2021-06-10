@@ -150,6 +150,8 @@ func (s *Series) stringify() string {
 		line := ""
 		if len(s.index) == 0 {
 			line = fmt.Sprintf(tmpl, i, elem)
+		} else if i >= len(s.index) {
+			line = "?" + fmt.Sprintf(tmpl, i, elem)
 		} else {
 			line = fmt.Sprintf(tmpl, s.index[i], elem)
 		}
@@ -211,6 +213,29 @@ func (s *Series) len() int {
 	return len(s.valObjs)
 }
 
+// takeFirst returns a series containing just the first 'n' values
+func (s *Series) takeFirst(n int) Series {
+    var valInts []int
+    var valFloats []float64
+    var valObjs []string
+    if s.which == typeInt {
+        valInts = s.valInts[:n]
+    } else if s.which == typeFloat {
+        valFloats = s.valFloats[:n]
+    } else {
+        valObjs = s.valObjs[:n]
+    }
+    return Series{
+        which:     s.which,
+        valInts:   valInts,
+        valFloats: valFloats,
+        valObjs:   valObjs,
+        //index: s.index,
+        dtype: s.dtype,
+        name:  s.name,
+    }
+}
+
 // strAt returns the cell at position 'i', as a string fit for printing
 func (s *Series) strAt(i int) string {
 	if s.which == typeInt {
@@ -219,6 +244,16 @@ func (s *Series) strAt(i int) string {
 		return fmt.Sprintf("%1.1f", s.valFloats[i])
 	}
 	return s.valObjs[i]
+}
+
+// at returns the cell at position 'i' as a go native type
+func (s *Series) at(i int) interface{} {
+    if s.which == typeInt {
+        return s.valInts[i]
+    } else if s.which == typeFloat {
+        return s.valFloats[i]
+    }
+    return s.valObjs[i]
 }
 
 func builtinAttr(recv starlark.Value, name string, methods map[string]*starlark.Builtin) (starlark.Value, error) {
@@ -246,6 +281,32 @@ func seriesGet(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 	self := b.Receiver().(*Series)
 	ret, _, err := self.Get(key)
 	return ret, err
+}
+
+// push adds the element to the end of the values list
+func (s *Series) push(it interface{}) {
+	if s.frozen {
+		return
+	}
+	if s.which == typeInt {
+		num, ok := it.(int)
+		if !ok {
+			panic(fmt.Sprintf("could not push. wanted int, got : %v", it))
+		}
+		s.valInts = append(s.valInts, num)
+	} else if s.which == typeFloat {
+		f, ok := it.(float64)
+		if !ok {
+			panic(fmt.Sprintf("could not push. wanted float, got: %v", it))
+		}
+		s.valFloats = append(s.valFloats, f)
+	} else {
+		str, ok := it.(string)
+		if !ok {
+			panic(fmt.Sprintf("could not push. wanted string, got: %v", it))
+		}
+		s.valObjs = append(s.valObjs, str)
+	}
 }
 
 func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -376,6 +437,31 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 	}
 
 	return starlark.None, fmt.Errorf("`data` type unrecognized: %q of %s", dataVal.String(), dataVal.Type())
+}
+
+func newSeriesFromRepeatScalar(val interface{}, size int) *Series {
+	if num, ok := val.(int); ok {
+		vals := make([]int, size)
+		for i := 0; i < size; i++ {
+			vals[i] = num
+		}
+		return newSeriesFromInts(vals, nil, "")
+	}
+	if f, ok := val.(float64); ok {
+		vals := make([]float64, size)
+		for i := 0; i < size; i++ {
+			vals[i] = f
+		}
+		return newSeriesFromFloats(vals, nil, "")
+	}
+	if str, ok := val.(string); ok {
+		vals := make([]string, size)
+		for i := 0; i < size; i++ {
+			vals[i] = str
+		}
+		return newSeriesFromStrings(vals, nil, "")
+	}
+	return &Series{}
 }
 
 func newSeriesFromInts(vals []int, index []string, name string) *Series {

@@ -1,0 +1,5 @@
+IDs
+a    123
+b    456
+c    789
+Name: Cool Data, dtype: int64

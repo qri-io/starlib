@@ -1,6 +1,7 @@
 package dataframe
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -76,6 +77,14 @@ func toStrMaybe(v starlark.Value) (string, bool) {
 		return string(str), true
 	}
 	return "", false
+}
+
+func marshalRowToString(row []string) string {
+	data, err := json.Marshal(row)
+	if err != nil {
+		return "?"
+	}
+	return string(data)
 }
 
 // convert a list of ints to a list of floats
