@@ -17,6 +17,7 @@ require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/dustmop/soup v1.1.2-0.20190516214245-38228baa104e
+	github.com/google/go-cmp v0.5.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/paulmach/orb v0.1.5
 	github.com/pkg/errors v0.8.1
