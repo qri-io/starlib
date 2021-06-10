@@ -144,8 +144,15 @@ func (s *Series) stringify() string {
 		tmpl = fmt.Sprintf("%%-%ds%s%%%ds", indexWidth, padding, colWidth)
 	}
 
+	// Space for the lines of rendered output, the body, plus optional index.name and types
+	render := make([]string, 0, s.len()+2)
+
+	// If the index has a name, it appears on the first line
+	if s.index != nil && s.index.name != "" {
+		render = append(render, s.index.name)
+	}
+
 	// Render each value in the series
-	render := make([]string, 0, s.len()+1)
 	for i, elem := range s.stringValues() {
 		line := ""
 		if s.index == nil || len(s.index.texts) == 0 {
