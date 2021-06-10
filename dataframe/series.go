@@ -14,11 +14,16 @@ import (
 // of a DataFrame is a Series.
 type Series struct {
 	frozen    bool
+	// which determines which of the slice of values holds meaningful data
 	which     int
 	valInts   []int
 	valFloats []float64
 	valObjs   []string
 	index     []string
+	// dtype is the user-provided and printable data type that the series contains.
+	// This will usually match `which`, but not necessarily
+	// TODO: Do more research to determine how python pandas treats this value, and
+	// when if ever it differs from the true type of data
 	dtype     string
 	name      string
 }
