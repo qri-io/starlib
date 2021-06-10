@@ -329,6 +329,8 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 	dtype := toStrOrEmpty(dtypeVal)
 	index := toStrListOrNil(indexVal)
 
+	// TODO: index should be an Index object, and an index could be passed in as a parameter
+
 	// Series built from a scalar value
 	if scalarNum, ok := toIntMaybe(dataVal); ok {
 		if dtype == "float64" {
