@@ -36,11 +36,9 @@ func unfinishedError(v starlark.Value, msg string) error {
 
 type DataFrame struct {
 	frozen bool
-	// TODO: This shoud be an Index
-	columnNames []string
-	body        []Series
-	// TODO: This shoud be an Index
-	index []string
+	columns *Index
+	index   *Index
+	body    []Series
 }
 
 // compile-time interface assertions
@@ -93,8 +91,8 @@ func readCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, 
 
 	newBody := transposeToSeriesList(csvData, rowLength)
 	return &DataFrame{
-		columnNames: header,
-		body:        newBody,
+		columns: NewIndex(header, ""),
+		body:    newBody,
 	}, nil
 }
 
@@ -114,7 +112,7 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 	}
 
 	columns := toStrListOrNil(columnsVal)
-	index := toStrListOrNil(indexVal)
+	index, _ := toIndexMaybe(indexVal)
 
 	if dataDict, ok := dataVal.(*starlark.Dict); ok {
 		// data is dict
@@ -134,8 +132,8 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 
 		// TODO: `index` will re-index the columns
 		return &DataFrame{
-			columnNames: keyList,
-			body:        newBody,
+			columns: NewIndex(keyList, ""),
+			body:    newBody,
 		}, nil
 	}
 
@@ -150,9 +148,9 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 		}
 		newBody := transposeToSeriesList(collectRows, len(collectRows[0]))
 		return &DataFrame{
-			columnNames: columns,
-			index:       index,
-			body:        newBody,
+			columns: NewIndex(columns, ""),
+			index:   index,
+			body:    newBody,
 		}, nil
 	}
 
@@ -178,7 +176,7 @@ func (df *DataFrame) String() string {
 			labelWidth = k
 		}
 	} else {
-		for _, str := range df.index {
+		for _, str := range df.index.texts {
 			k := len(str)
 			if k > labelWidth {
 				labelWidth = k
@@ -187,8 +185,8 @@ func (df *DataFrame) String() string {
 	}
 
 	// Create array of max widths, starting at 0
-	widths := make([]int, len(df.columnNames))
-	for i, name := range df.columnNames {
+	widths := make([]int, len(df.columns.texts))
+	for i, name := range df.columns.texts {
 		w := len(fmt.Sprintf("%s", name))
 		if w > widths[i] {
 			widths[i] = w
@@ -205,8 +203,8 @@ func (df *DataFrame) String() string {
 	}
 
 	// Render the column names
-	header := make([]string, 0, len(df.columnNames))
-	for i, name := range df.columnNames {
+	header := make([]string, 0, len(df.columns.texts))
+	for i, name := range df.columns.texts {
 		tmpl := fmt.Sprintf("%%%ds", widths[i])
 		header = append(header, fmt.Sprintf(tmpl, name))
 	}
@@ -223,7 +221,7 @@ func (df *DataFrame) String() string {
 			render[0] = fmt.Sprintf(tmpl, i)
 		} else {
 			tmpl := fmt.Sprintf("%%%ds  ", labelWidth)
-			render[0] = fmt.Sprintf(tmpl, df.index[i])
+			render[0] = fmt.Sprintf(tmpl, df.index.texts[i])
 		}
 		// Render each element of the row
 		for j, col := range df.body {
@@ -260,7 +258,7 @@ func (df *DataFrame) Truth() starlark.Bool {
 // in starklark. required by starlark.HasAttrs interface.
 func (df *DataFrame) Attr(name string) (starlark.Value, error) {
 	if name == "columns" {
-		return &Index{texts: df.columnNames}, nil
+		return df.columns, nil
 	}
 	if name == "apply" {
 		impl := func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -317,7 +315,7 @@ func (df *DataFrame) SetField(name string, val starlark.Value) error {
 		if !ok {
 			return fmt.Errorf("cannot assign to 'columns', wrong type")
 		}
-		df.columnNames = idx.texts
+		df.columns = idx
 		return nil
 	}
 	return starlark.NoSuchAttrError(name)
@@ -330,14 +328,14 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 	}
 
 	// Figure out if a column already exists with the given name
-	columnIndex := findKeyPos(name, df.columnNames)
+	columnIndex := findKeyPos(name, df.columns.texts)
 
 	// Either prepend the new column, or keep the names the same
-	newNames := make([]string, 0, len(df.columnNames)+1)
+	newNames := make([]string, 0, len(df.columns.texts)+1)
 	if columnIndex == -1 {
-		newNames = append([]string{name}, df.columnNames...)
+		newNames = append([]string{name}, df.columns.texts...)
 	} else {
-		newNames = df.columnNames
+		newNames = df.columns.texts
 	}
 
 	// Assignment of a scalar int
@@ -350,7 +348,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 			newBody = df.body
 			newBody[columnIndex] = *newCol
 		}
-		df.columnNames = newNames
+		df.columns = NewIndex(newNames, "")
 		df.body = newBody
 		return nil
 	}
@@ -367,7 +365,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 			newBody = df.body
 			newBody[columnIndex] = *newCol
 		}
-		df.columnNames = newNames
+		df.columns = NewIndex(newNames, "")
 		df.body = newBody
 		return nil
 	}
@@ -388,7 +386,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 		newBody = df.body
 		newBody[columnIndex] = *series
 	}
-	df.columnNames = newNames
+	df.columns = NewIndex(newNames, "")
 	df.body = newBody
 	return nil
 }
@@ -413,14 +411,14 @@ func (df *DataFrame) Get(keyVal starlark.Value) (value starlark.Value, found boo
 	}
 
 	// Find the column being retrieved, fail if not found
-	keyPos := findKeyPos(key, df.columnNames)
+	keyPos := findKeyPos(key, df.columns.texts)
 	if keyPos == -1 {
 		return starlark.None, false, fmt.Errorf("not found")
 	}
 
 	got := df.body[keyPos]
 	// TODO: index should be the left-hand-side index, need a test
-	index := []string{}
+	index := NewIndex(nil, "")
 
 	return &Series{
 		name:      key,
@@ -491,7 +489,7 @@ func (df *DataFrame) dataFrameHead(thread *starlark.Thread, fnname string, args 
 	}
 
 	return &DataFrame{
-		columnNames: df.columnNames,
+		columns: df.columns,
 		body:        newBody,
 	}, nil
 }
@@ -524,7 +522,7 @@ func (df *DataFrame) dataFrameGroupBy(thread *starlark.Thread, fnname string, ar
 
 	result := map[string][]*rowTuple{}
 
-	keyPos := findKeyPos(groupBy, df.columnNames)
+	keyPos := findKeyPos(groupBy, df.columns.texts)
 	if keyPos == -1 {
 		return starlark.None, nil
 	}
@@ -535,7 +533,7 @@ func (df *DataFrame) dataFrameGroupBy(thread *starlark.Thread, fnname string, ar
 		result[groupValue] = append(result[groupValue], r)
 	}
 
-	return &GroupByResult{gbLabel: groupBy, columnNames: df.columnNames, grouping: result}, nil
+	return &GroupByResult{gbLabel: groupBy, columns: df.columns, grouping: result}, nil
 }
 
 func (df *DataFrame) dataFrameDropDuplicates(thread *starlark.Thread, fnname string, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -554,7 +552,7 @@ func (df *DataFrame) dataFrameDropDuplicates(thread *starlark.Thread, fnname str
 		// TODO: Assuming len 0
 		elem := subsetList.Index(0)
 		if text, ok := elem.(starlark.String); ok {
-			subsetPos = findKeyPos(string(text), df.columnNames)
+			subsetPos = findKeyPos(string(text), df.columns.texts)
 		}
 	}
 
@@ -570,7 +568,7 @@ func (df *DataFrame) dataFrameDropDuplicates(thread *starlark.Thread, fnname str
 	}
 
 	return &DataFrame{
-		columnNames: df.columnNames,
+		columns: df.columns,
 		body:        makeRows.Body(),
 	}, nil
 }
@@ -609,8 +607,8 @@ func (df *DataFrame) dataFrameMerge(thread *starlark.Thread, fnname string, args
 	leftKey := 0
 	rightKey := 0
 	if leftOnStr != "" {
-		leftKey = findKeyPos(leftOnStr, df.columnNames)
-		rightKey = findKeyPos(rightOnStr, rightFrame.columnNames)
+		leftKey = findKeyPos(leftOnStr, df.columns.texts)
+		rightKey = findKeyPos(rightOnStr, rightFrame.columns.texts)
 		if leftKey == -1 {
 			return starlark.None, fmt.Errorf("left key %q not found", leftOnStr)
 		}
@@ -660,10 +658,10 @@ func (df *DataFrame) dataFrameMerge(thread *starlark.Thread, fnname string, args
 	}
 
 	// If column names of the merge key are the same, don't include the second one, ignore it
-	ignore := findKeyPos(df.columnNames[leftKey], rightFrame.columnNames)
+	ignore := findKeyPos(df.columns.texts[leftKey], rightFrame.columns.texts)
 
-	leftColumns := modifyNames(df.columnNames, suffixes[0], leftKey)
-	rightColumns := modifyNames(rightFrame.columnNames, suffixes[1], rightKey)
+	leftColumns := modifyNames(df.columns.texts, suffixes[0], leftKey)
+	rightColumns := modifyNames(rightFrame.columns.texts, suffixes[1], rightKey)
 	if ignore != -1 {
 		rightColumns = removeFromStringList(rightColumns, ignore)
 	}
@@ -681,8 +679,8 @@ func (df *DataFrame) dataFrameMerge(thread *starlark.Thread, fnname string, args
 	}
 
 	return &DataFrame{
-		columnNames: newColumns,
-		body:        makeRows.Body(),
+		columns: NewIndex(newColumns, ""),
+		body:    makeRows.Body(),
 	}, nil
 }
 
@@ -695,17 +693,17 @@ func (df *DataFrame) dataFrameResetIndex(thread *starlark.Thread, fnname string,
 		return df, nil
 	}
 
-	newColumns := append([]string{"index"}, df.columnNames...)
+	newColumns := append([]string{"index"}, df.columns.texts...)
 	newBody := make([]Series, 0, len(df.body))
 
-	newBody = append(newBody, Series{which: typeObj, valObjs: df.index})
+	newBody = append(newBody, Series{which: typeObj, valObjs: df.index.texts})
 	for _, col := range df.body {
 		newBody = append(newBody, col)
 	}
 
 	return &DataFrame{
-		columnNames: newColumns,
-		body:        newBody,
+		columns: NewIndex(newColumns, ""),
+		body:    newBody,
 	}, nil
 }
 

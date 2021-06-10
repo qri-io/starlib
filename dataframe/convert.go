@@ -79,6 +79,17 @@ func toStrMaybe(v starlark.Value) (string, bool) {
 	return "", false
 }
 
+func toIndexMaybe(v starlark.Value) (*Index, bool) {
+	texts := toStrListOrNil(v)
+	if texts != nil {
+		return NewIndex(texts, ""), true
+	}
+	if index, ok := v.(*Index); ok {
+		return index, true
+	}
+	return nil, false
+}
+
 func marshalRowToString(row []string) string {
 	data, err := json.Marshal(row)
 	if err != nil {

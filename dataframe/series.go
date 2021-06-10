@@ -19,7 +19,7 @@ type Series struct {
 	valInts   []int
 	valFloats []float64
 	valObjs   []string
-	index     []string
+	index     *Index
 	// dtype is the user-provided and printable data type that the series contains.
 	// This will usually match `which`, but not necessarily
 	// TODO: Do more research to determine how python pandas treats this value, and
@@ -81,7 +81,7 @@ func (s *Series) AttrNames() []string {
 // Get retrieves a single cell from the Series
 func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, err error) {
 	if name, ok := toStrMaybe(keyVal); ok {
-		pos := findKeyPos(name, s.index)
+		pos := findKeyPos(name, s.index.texts)
 		if pos == -1 {
 			return starlark.None, false, fmt.Errorf("not found: %q", name)
 		}
@@ -104,10 +104,10 @@ func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, e
 func (s *Series) stringify() string {
 	// Calculate how wide the index column needs to be
 	indexWidth := 0
-	if len(s.index) == 0 {
+	if s.index == nil || len(s.index.texts) == 0 {
 		indexWidth = len(fmt.Sprintf("%d", s.len()-1))
 	} else {
-		for _, elem := range s.index {
+		for _, elem := range s.index.texts {
 			w := len(elem)
 			if w > indexWidth {
 				indexWidth = w
@@ -136,7 +136,7 @@ func (s *Series) stringify() string {
 	// Determine how to format each line, based upon the column width
 	padding := "    "
 	var tmpl string
-	if len(s.index) == 0 {
+	if s.index == nil || len(s.index.texts) == 0 {
 		// Result looks like '%-2d    %6s'
 		tmpl = fmt.Sprintf("%%-%dd%s%%%ds", indexWidth, padding, colWidth)
 	} else {
@@ -148,12 +148,12 @@ func (s *Series) stringify() string {
 	render := make([]string, 0, s.len()+1)
 	for i, elem := range s.stringValues() {
 		line := ""
-		if len(s.index) == 0 {
+		if s.index == nil || len(s.index.texts) == 0 {
 			line = fmt.Sprintf(tmpl, i, elem)
-		} else if i >= len(s.index) {
+		} else if i >= len(s.index.texts) {
 			line = "?" + fmt.Sprintf(tmpl, i, elem)
 		} else {
-			line = fmt.Sprintf(tmpl, s.index[i], elem)
+			line = fmt.Sprintf(tmpl, s.index.texts[i], elem)
 		}
 		render = append(render, line)
 	}
@@ -327,9 +327,7 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 
 	name := toStrOrEmpty(nameVal)
 	dtype := toStrOrEmpty(dtypeVal)
-	index := toStrListOrNil(indexVal)
-
-	// TODO: index should be an Index object, and an index could be passed in as a parameter
+	index, _ := toIndexMaybe(indexVal)
 
 	// Series built from a scalar value
 	if scalarNum, ok := toIntMaybe(dataVal); ok {
@@ -417,7 +415,7 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 	if ok {
 		// Series built from a dict
 		valObjs := make([]string, 0, dataDict.Len())
-		index = make([]string, 0, dataDict.Len())
+		indexTexts := make([]string, 0, dataDict.Len())
 
 		keys := dataDict.Keys()
 		for i := 0; i < len(keys); i++ {
@@ -426,9 +424,10 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 
 			// TODO: Building from a dict coerces everything to string, should retain
 			// types as is done for lists
-			index = append(index, toStr(key))
+			indexTexts = append(indexTexts, toStr(key))
 			valObjs = append(valObjs, toStr(val))
 		}
+		index := NewIndex(indexTexts, "")
 		return &Series{
 			dtype:   dtype,
 			which:   typeObj,
@@ -466,7 +465,7 @@ func newSeriesFromRepeatScalar(val interface{}, size int) *Series {
 	return &Series{}
 }
 
-func newSeriesFromInts(vals []int, index []string, name string) *Series {
+func newSeriesFromInts(vals []int, index *Index, name string) *Series {
 	return &Series{
 		dtype:   "int64",
 		which:   typeInt,
@@ -476,7 +475,7 @@ func newSeriesFromInts(vals []int, index []string, name string) *Series {
 	}
 }
 
-func newSeriesFromFloats(vals []float64, index []string, name string) *Series {
+func newSeriesFromFloats(vals []float64, index *Index, name string) *Series {
 	return &Series{
 		dtype:     "float64",
 		which:     typeFloat,
@@ -486,7 +485,7 @@ func newSeriesFromFloats(vals []float64, index []string, name string) *Series {
 	}
 }
 
-func newSeriesFromStrings(vals, index []string, name string) *Series {
+func newSeriesFromStrings(vals []string, index *Index, name string) *Series {
 	return &Series{
 		dtype:   "object",
 		which:   typeObj,

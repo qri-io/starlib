@@ -67,7 +67,7 @@ func (sgbr *SeriesGroupByResult) seriesGroupByResultSum(thread *starlark.Thread,
 	//tmpDf := &DataFrame{}
 	//makeRows := newRowCollectOfSize(tmpDf, len(newColumns))
 
-	index := []string{}
+	indexTexts := []string{}
 	vals := []int{}
 
 	sortedKeys := getSortedKeys(sgbr.grouping)
@@ -98,7 +98,7 @@ func (sgbr *SeriesGroupByResult) seriesGroupByResultSum(thread *starlark.Thread,
 		makeRows.Push(t)
 */
 
-		index = append(index, groupName)
+		indexTexts = append(indexTexts, groupName)
 		vals = append(vals, sum)
 
 	}
@@ -119,6 +119,7 @@ func (sgbr *SeriesGroupByResult) seriesGroupByResultSum(thread *starlark.Thread,
 	//}, nil
 
 	// TODO: sgbr.gbLabel as the index.name
+	index := NewIndex(indexTexts, "")
 	return newSeriesFromInts(vals, index, sgbr.rhsLabel), nil
 }
 

@@ -7,9 +7,9 @@ import (
 )
 
 type GroupByResult struct {
-	columnNames []string
-	gbLabel     string
-	grouping    map[string][]*rowTuple
+	columns  *Index
+	gbLabel  string
+	grouping map[string][]*rowTuple
 }
 
 // Freeze ...
@@ -55,7 +55,7 @@ func (gbr *GroupByResult) Get(key starlark.Value) (value starlark.Value, found b
 
 	keyStr := string(keyVal)
 
-	keyPos := findKeyPos(keyStr, gbr.columnNames)
+	keyPos := findKeyPos(keyStr, gbr.columns.texts)
 	if keyPos == -1 {
 		return nil, false, fmt.Errorf("not found")
 	}

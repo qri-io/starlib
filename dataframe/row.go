@@ -112,7 +112,8 @@ func (rt *rowTuple) toTuple() starlark.Tuple {
 		items = append(items, v)
 	}
 
-	rowSeries := &Series{which: typeObj, valObjs: items, index: rt.df.columnNames}
+	index := NewIndex(rt.df.columns.texts, "")
+	rowSeries := &Series{which: typeObj, valObjs: items, index: index}
 	arguments := starlark.Tuple{rowSeries}
 	return arguments
 }
