@@ -1,3 +1,7 @@
+Index(['a', 'b', 'c'], dtype='object')
+
+Index(['a', 'b', 'c'], dtype='object', name='IDs')
+
 IDs
 a    123
 b    456

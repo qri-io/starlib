@@ -24,6 +24,7 @@ var Module = &starlarkstruct.Module{
 	Name: Name,
 	Members: starlark.StringDict{
 		"read_csv":  starlark.NewBuiltin("read_csv", readCsv),
+		"Index":     starlark.NewBuiltin("Index", newIndex),
 		"DataFrame": starlark.NewBuiltin("DataFrame", newDataFrame),
 		"Series":    starlark.NewBuiltin("Series", newSeries),
 	},
