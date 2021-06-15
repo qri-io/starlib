@@ -1,0 +1,11 @@
+Index([' First ', 'Second', 'Third Column'], dtype='object')
+Index([' first ', 'second', 'third column'], dtype='object')
+Index(['_First_', 'Second', 'Third_Column'], dtype='object')
+Index(['First', 'Second', 'Third Column'], dtype='object')
+Index(['first', 'second', 'third_column'], dtype='object')
+
+     first  second  third_column
+0      foo       1         300.1
+1      bar       2         301.2
+2      baz       3         303.4
+3      foo       5         305.7

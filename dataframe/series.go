@@ -13,19 +13,19 @@ import (
 // the underlying data structure that is used to create DataFrames. A single column
 // of a DataFrame is a Series.
 type Series struct {
-	frozen    bool
+	frozen bool
 	// which determines which of the slice of values holds meaningful data
 	which     int
 	valInts   []int
 	valFloats []float64
 	valObjs   []string
-	index     []string
+	index     *Index
 	// dtype is the user-provided and printable data type that the series contains.
 	// This will usually match `which`, but not necessarily
 	// TODO: Do more research to determine how python pandas treats this value, and
 	// when if ever it differs from the true type of data
-	dtype     string
-	name      string
+	dtype string
+	name  string
 }
 
 // A Series contains values of one of these three types. The which field uses these
@@ -81,7 +81,7 @@ func (s *Series) AttrNames() []string {
 // Get retrieves a single cell from the Series
 func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, err error) {
 	if name, ok := toStrMaybe(keyVal); ok {
-		pos := findKeyPos(name, s.index)
+		pos := findKeyPos(name, s.index.texts)
 		if pos == -1 {
 			return starlark.None, false, fmt.Errorf("not found: %q", name)
 		}
@@ -98,16 +98,31 @@ func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, e
 		}
 		return val, true, nil
 	}
+	// TODO(dustmop): Also suport series.get(list)
+	if keyList, ok := keyVal.(*Series); ok {
+		vals := s.stringValues()
+		newIdx := make([]string, 0, len(vals))
+		newVals := make([]string, 0, len(vals))
+		// TODO(dustmop): Index using non-bool values
+		for i, key := range keyList.stringValues() {
+			if key == "0" {
+				continue
+			}
+			newIdx = append(newIdx, fmt.Sprintf("%d", i))
+			newVals = append(newVals, vals[i])
+		}
+		return newSeriesFromStrings(newVals, NewIndex(newIdx, ""), s.name), true, nil
+	}
 	return starlark.None, false, fmt.Errorf("not found: %q", keyVal)
 }
 
 func (s *Series) stringify() string {
 	// Calculate how wide the index column needs to be
 	indexWidth := 0
-	if len(s.index) == 0 {
+	if s.index == nil || len(s.index.texts) == 0 {
 		indexWidth = len(fmt.Sprintf("%d", s.len()-1))
 	} else {
-		for _, elem := range s.index {
+		for _, elem := range s.index.texts {
 			w := len(elem)
 			if w > indexWidth {
 				indexWidth = w
@@ -136,7 +151,7 @@ func (s *Series) stringify() string {
 	// Determine how to format each line, based upon the column width
 	padding := "    "
 	var tmpl string
-	if len(s.index) == 0 {
+	if s.index == nil || len(s.index.texts) == 0 {
 		// Result looks like '%-2d    %6s'
 		tmpl = fmt.Sprintf("%%-%dd%s%%%ds", indexWidth, padding, colWidth)
 	} else {
@@ -144,14 +159,23 @@ func (s *Series) stringify() string {
 		tmpl = fmt.Sprintf("%%-%ds%s%%%ds", indexWidth, padding, colWidth)
 	}
 
+	// Space for the lines of rendered output, the body, plus optional index.name and types
+	render := make([]string, 0, s.len()+2)
+
+	// If the index has a name, it appears on the first line
+	if s.index != nil && s.index.name != "" {
+		render = append(render, s.index.name)
+	}
+
 	// Render each value in the series
-	render := make([]string, 0, s.len()+1)
 	for i, elem := range s.stringValues() {
 		line := ""
-		if len(s.index) == 0 {
+		if s.index == nil || len(s.index.texts) == 0 {
 			line = fmt.Sprintf(tmpl, i, elem)
+		} else if i >= len(s.index.texts) {
+			line = "?" + fmt.Sprintf(tmpl, i, elem)
 		} else {
-			line = fmt.Sprintf(tmpl, s.index[i], elem)
+			line = fmt.Sprintf(tmpl, s.index.texts[i], elem)
 		}
 		render = append(render, line)
 	}
@@ -221,6 +245,16 @@ func (s *Series) strAt(i int) string {
 	return s.valObjs[i]
 }
 
+// at returns the cell at position 'i' as a go native type
+func (s *Series) at(i int) interface{} {
+	if s.which == typeInt {
+		return s.valInts[i]
+	} else if s.which == typeFloat {
+		return s.valFloats[i]
+	}
+	return s.valObjs[i]
+}
+
 func builtinAttr(recv starlark.Value, name string, methods map[string]*starlark.Builtin) (starlark.Value, error) {
 	b := methods[name]
 	if b == nil {
@@ -266,7 +300,7 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 
 	name := toStrOrEmpty(nameVal)
 	dtype := toStrOrEmpty(dtypeVal)
-	index := toStrListOrNil(indexVal)
+	index, _ := toIndexMaybe(indexVal)
 
 	// Series built from a scalar value
 	if scalarNum, ok := toIntMaybe(dataVal); ok {
@@ -354,7 +388,7 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 	if ok {
 		// Series built from a dict
 		valObjs := make([]string, 0, dataDict.Len())
-		index = make([]string, 0, dataDict.Len())
+		indexTexts := make([]string, 0, dataDict.Len())
 
 		keys := dataDict.Keys()
 		for i := 0; i < len(keys); i++ {
@@ -363,9 +397,10 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 
 			// TODO: Building from a dict coerces everything to string, should retain
 			// types as is done for lists
-			index = append(index, toStr(key))
+			indexTexts = append(indexTexts, toStr(key))
 			valObjs = append(valObjs, toStr(val))
 		}
+		index := NewIndex(indexTexts, "")
 		return &Series{
 			dtype:   dtype,
 			which:   typeObj,
@@ -378,7 +413,32 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 	return starlark.None, fmt.Errorf("`data` type unrecognized: %q of %s", dataVal.String(), dataVal.Type())
 }
 
-func newSeriesFromInts(vals []int, index []string, name string) *Series {
+func newSeriesFromRepeatScalar(val interface{}, size int) *Series {
+	if num, ok := val.(int); ok {
+		vals := make([]int, size)
+		for i := 0; i < size; i++ {
+			vals[i] = num
+		}
+		return newSeriesFromInts(vals, nil, "")
+	}
+	if f, ok := val.(float64); ok {
+		vals := make([]float64, size)
+		for i := 0; i < size; i++ {
+			vals[i] = f
+		}
+		return newSeriesFromFloats(vals, nil, "")
+	}
+	if str, ok := val.(string); ok {
+		vals := make([]string, size)
+		for i := 0; i < size; i++ {
+			vals[i] = str
+		}
+		return newSeriesFromStrings(vals, nil, "")
+	}
+	return &Series{}
+}
+
+func newSeriesFromInts(vals []int, index *Index, name string) *Series {
 	return &Series{
 		dtype:   "int64",
 		which:   typeInt,
@@ -388,7 +448,7 @@ func newSeriesFromInts(vals []int, index []string, name string) *Series {
 	}
 }
 
-func newSeriesFromFloats(vals []float64, index []string, name string) *Series {
+func newSeriesFromFloats(vals []float64, index *Index, name string) *Series {
 	return &Series{
 		dtype:     "float64",
 		which:     typeFloat,
@@ -398,7 +458,7 @@ func newSeriesFromFloats(vals []float64, index []string, name string) *Series {
 	}
 }
 
-func newSeriesFromStrings(vals, index []string, name string) *Series {
+func newSeriesFromStrings(vals []string, index *Index, name string) *Series {
 	return &Series{
 		dtype:   "object",
 		which:   typeObj,

@@ -78,6 +78,17 @@ func toStrMaybe(v starlark.Value) (string, bool) {
 	return "", false
 }
 
+func toIndexMaybe(v starlark.Value) (*Index, bool) {
+	texts := toStrListOrNil(v)
+	if texts != nil {
+		return NewIndex(texts, ""), true
+	}
+	if index, ok := v.(*Index); ok {
+		return index, true
+	}
+	return nil, false
+}
+
 // convert a list of ints to a list of floats
 func convertIntsToFloats(vals []int) []float64 {
 	result := make([]float64, 0, len(vals))
