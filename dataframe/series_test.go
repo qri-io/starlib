@@ -19,3 +19,7 @@ func TestSeriesGet(t *testing.T) {
 func TestSeriesPrint(t *testing.T) {
 	runTestScript(t, "testdata/series_print.star", "testdata/series_print.expect.txt")
 }
+
+func TestSeriesIndexWithName(t *testing.T) {
+	runTestScript(t, "testdata/series_index_name.star", "testdata/series_index_name.expect.txt")
+}

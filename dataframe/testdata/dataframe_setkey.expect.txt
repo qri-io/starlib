@@ -1,0 +1,30 @@
+case 0:
+     num  id  animal  sound
+0      7   1     cat   meow
+1      7   2     dog   bark
+2      7   3     eel    zap
+
+case 1:
+     num  id  animal  sound
+0      8   1     cat   meow
+1      8   2     dog   bark
+2      8   3     eel    zap
+
+case 2:
+     num  id  animal  sound
+0    abc   1     cat   meow
+1    abc   2     dog   bark
+2    abc   3     eel    zap
+
+case 3:
+     num  id  animal  sound
+0    123   1     cat   meow
+1    456   2     dog   bark
+2    789   3     eel    zap
+
+case 4:
+     more  num  id  animal  sound
+0     123  123   1     cat   meow
+1     456  456   2     dog   bark
+2     789  789   3     eel    zap
+

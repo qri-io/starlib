@@ -56,6 +56,44 @@ func toStrListOrNil(v starlark.Value) []string {
 	return nil
 }
 
+// convert starlark value to a list of any values, or nil if not a list
+func toInterfaceListOrNil(v starlark.Value) []interface{} {
+	if v == nil {
+		return nil
+	}
+	if v == starlark.None {
+		return nil
+	}
+
+	list, ok := v.(*starlark.List)
+	if ok {
+		result := make([]interface{}, 0, list.Len())
+		for i := 0; i < list.Len(); i++ {
+			elem, ok := toScalarMaybe(list.Index(i))
+			if !ok {
+				return nil
+			}
+			result = append(result, elem)
+		}
+		return result
+	}
+
+	tup, ok := v.(starlark.Tuple)
+	if ok {
+		result := make([]interface{}, 0, tup.Len())
+		for i := 0; i < tup.Len(); i++ {
+			elem, ok := toScalarMaybe(tup.Index(i))
+			if !ok {
+				return nil
+			}
+			result = append(result, elem)
+		}
+		return result
+	}
+
+	return nil
+}
+
 // convert starlark value to a go native int if it has the right type
 func toIntMaybe(v starlark.Value) (int, bool) {
 	n, err := starlark.AsInt32(v)
@@ -76,6 +114,46 @@ func toStrMaybe(v starlark.Value) (string, bool) {
 		return string(str), true
 	}
 	return "", false
+}
+
+// convert starlark value to a go native bool if it has the right type
+func toBoolMaybe(v starlark.Value) (bool, bool) {
+	if b, ok := v.(starlark.Bool); ok {
+		return bool(b), true
+	}
+	return false, false
+}
+
+// convert starlark value to go native int, bool, float, or string
+func toScalarMaybe(v starlark.Value) (interface{}, bool) {
+	if num, ok := toIntMaybe(v); ok {
+		return num, true
+	}
+	if f, ok := toFloatMaybe(v); ok {
+		return f, true
+	}
+	if text, ok := toStrMaybe(v); ok {
+		return text, true
+	}
+	if b, ok := toBoolMaybe(v); ok {
+		return b, true
+	}
+	return nil, false
+}
+
+func toIndexMaybe(v starlark.Value) (*Index, bool) {
+	texts := toStrListOrNil(v)
+	if texts != nil {
+		return NewIndex(texts, ""), true
+	}
+	if index, ok := v.(*Index); ok {
+		return index, true
+	}
+	return nil, false
+}
+
+func stringifyFloat(f float64) string {
+	return fmt.Sprintf("%1.1f", f)
 }
 
 // convert a list of ints to a list of floats
@@ -100,7 +178,7 @@ func convertIntsToStrings(vals []int) []string {
 func convertFloatsToStrings(vals []float64) []string {
 	result := make([]string, 0, len(vals))
 	for _, f := range vals {
-		result = append(result, fmt.Sprintf("%1.1f", f))
+		result = append(result, stringifyFloat(f))
 	}
 	return result
 }
@@ -117,4 +195,14 @@ func convertToStarlark(it interface{}) (starlark.Value, error) {
 		return starlark.String(str), nil
 	}
 	return starlark.None, fmt.Errorf("unknown type of %v", it)
+}
+
+func coerceToDatatype(text, dtype string) string {
+	if dtype == "bool" {
+		if text == "1" {
+			return " True"
+		}
+		return "False"
+	}
+	return text
 }

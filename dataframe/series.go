@@ -13,28 +13,20 @@ import (
 // the underlying data structure that is used to create DataFrames. A single column
 // of a DataFrame is a Series.
 type Series struct {
-	frozen    bool
+	frozen bool
 	// which determines which of the slice of values holds meaningful data
 	which     int
 	valInts   []int
 	valFloats []float64
 	valObjs   []string
-	index     []string
+	index     *Index
 	// dtype is the user-provided and printable data type that the series contains.
 	// This will usually match `which`, but not necessarily
 	// TODO: Do more research to determine how python pandas treats this value, and
 	// when if ever it differs from the true type of data
-	dtype     string
-	name      string
+	dtype string
+	name  string
 }
-
-// A Series contains values of one of these three types. The which field uses these
-// constants to determine which slice holds the actual values of the Series.
-const (
-	typeInt   = 1
-	typeFloat = 2
-	typeObj   = 3
-)
 
 var seriesMethods = map[string]*starlark.Builtin{
 	"get": starlark.NewBuiltin("get", seriesGet),
@@ -47,7 +39,7 @@ func (s *Series) Freeze() {
 
 // Hash cannot be used with Series
 func (s *Series) Hash() (uint32, error) {
-	return 0, fmt.Errorf("'Series' objects are mutable, thus they cannot be hashed")
+	return 0, fmt.Errorf("unhashable: Series")
 }
 
 // String returns the Series as a string in a readable, tabular form
@@ -81,7 +73,7 @@ func (s *Series) AttrNames() []string {
 // Get retrieves a single cell from the Series
 func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, err error) {
 	if name, ok := toStrMaybe(keyVal); ok {
-		pos := findKeyPos(name, s.index)
+		pos := findKeyPos(name, s.index.texts)
 		if pos == -1 {
 			return starlark.None, false, fmt.Errorf("not found: %q", name)
 		}
@@ -104,10 +96,10 @@ func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, e
 func (s *Series) stringify() string {
 	// Calculate how wide the index column needs to be
 	indexWidth := 0
-	if len(s.index) == 0 {
+	if s.index.len() == 0 {
 		indexWidth = len(fmt.Sprintf("%d", s.len()-1))
 	} else {
-		for _, elem := range s.index {
+		for _, elem := range s.index.texts {
 			w := len(elem)
 			if w > indexWidth {
 				indexWidth = w
@@ -118,6 +110,7 @@ func (s *Series) stringify() string {
 	// Calculate how wide the data column needs to be
 	colWidth := 0
 	for _, elem := range s.stringValues() {
+		elem = coerceToDatatype(elem, s.dtype)
 		w := len(elem)
 		if w > colWidth {
 			colWidth = w
@@ -136,7 +129,7 @@ func (s *Series) stringify() string {
 	// Determine how to format each line, based upon the column width
 	padding := "    "
 	var tmpl string
-	if len(s.index) == 0 {
+	if s.index.len() == 0 {
 		// Result looks like '%-2d    %6s'
 		tmpl = fmt.Sprintf("%%-%dd%s%%%ds", indexWidth, padding, colWidth)
 	} else {
@@ -144,14 +137,22 @@ func (s *Series) stringify() string {
 		tmpl = fmt.Sprintf("%%-%ds%s%%%ds", indexWidth, padding, colWidth)
 	}
 
+	// Space for the lines of rendered output, the body, plus optional index.name and types
+	render := make([]string, 0, s.len()+2)
+
+	// If the index has a name, it appears on the first line
+	if s.index != nil && s.index.name != "" {
+		render = append(render, s.index.name)
+	}
+
 	// Render each value in the series
-	render := make([]string, 0, s.len()+1)
 	for i, elem := range s.stringValues() {
+		elem = coerceToDatatype(elem, s.dtype)
 		line := ""
-		if len(s.index) == 0 {
+		if s.index.len() == 0 {
 			line = fmt.Sprintf(tmpl, i, elem)
 		} else {
-			line = fmt.Sprintf(tmpl, s.index[i], elem)
+			line = fmt.Sprintf(tmpl, s.index.texts[i], elem)
 		}
 		render = append(render, line)
 	}
@@ -194,7 +195,7 @@ func (s *Series) stringValues() []string {
 	} else if s.which == typeFloat {
 		result := make([]string, len(s.valFloats))
 		for i, elem := range s.valFloats {
-			result[i] = fmt.Sprintf("%1.1f", elem)
+			result[i] = stringifyFloat(elem)
 		}
 		return result
 	}
@@ -216,7 +217,7 @@ func (s *Series) strAt(i int) string {
 	if s.which == typeInt {
 		return strconv.Itoa(s.valInts[i])
 	} else if s.which == typeFloat {
-		return fmt.Sprintf("%1.1f", s.valFloats[i])
+		return stringifyFloat(s.valFloats[i])
 	}
 	return s.valObjs[i]
 }
@@ -266,7 +267,7 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 
 	name := toStrOrEmpty(nameVal)
 	dtype := toStrOrEmpty(dtypeVal)
-	index := toStrListOrNil(indexVal)
+	index, _ := toIndexMaybe(indexVal)
 
 	// Series built from a scalar value
 	if scalarNum, ok := toIntMaybe(dataVal); ok {
@@ -284,101 +285,81 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 		return newSeriesFromStrings([]string{scalarStr}, index, name), nil
 	}
 
-	which := 0
-	if dtype == "int64" {
-		which = typeInt
-	} else if dtype == "float64" {
-		which = typeFloat
-	}
-
 	dataList, ok := dataVal.(*starlark.List)
 	if ok {
-		// Series built from a list
-		valInts := make([]int, 0, dataList.Len())
-		valFloats := make([]float64, 0, dataList.Len())
-		valObjs := make([]string, 0, dataList.Len())
+		builder := newTypedArrayBuilder(dataList.Len())
+		builder.setType(dtype)
 
 		for k := 0; k < dataList.Len(); k++ {
 			elemVal := dataList.Index(k)
-			// If an int, convert to float if that's what this Series is typed as
-			if num, ok := toIntMaybe(elemVal); ok {
-				if which == 0 || which == typeInt {
-					which = typeInt
-					valInts = append(valInts, num)
-					continue
-				} else if which == typeFloat {
-					valFloats = append(valFloats, float64(num))
-					continue
-				}
-				which = typeObj
+			if scalar, ok := toScalarMaybe(elemVal); ok {
+				builder.push(scalar)
+				continue
 			}
-			// If a float, convert an existing Series of ints to floats
-			if f, ok := toFloatMaybe(elemVal); ok {
-				if which == 0 || which == typeFloat {
-					which = typeFloat
-					valFloats = append(valFloats, f)
-					continue
-				} else if which == typeInt {
-					which = typeFloat
-					valFloats = append(convertIntsToFloats(valInts), f)
-					continue
-				}
-				which = typeObj
-			}
-			// Otherwise, or if the type is object, convert everything to strings
-			if which == typeInt {
-				valObjs = convertIntsToStrings(valInts)
-			} else if which == typeFloat {
-				valObjs = convertFloatsToStrings(valFloats)
-			}
-			which = typeObj
-			valObjs = append(valObjs, toStr(elemVal))
+			// TODO: return an error for this invalid element, add a test
 		}
-
-		// If no dtype was provided, derive it from the values in the Series
-		if dtype == "" {
-			dtype = dtypeFromWhich(which)
+		if err := builder.error(); err != nil {
+			return starlark.None, err
 		}
-		return &Series{
-			dtype:     dtype,
-			which:     which,
-			valInts:   valInts,
-			valFloats: valFloats,
-			valObjs:   valObjs,
-			index:     index,
-			name:      name,
-		}, nil
+		return newSeriesFromBuilder(builder, index, name), nil
 	}
 
 	dataDict, ok := dataVal.(*starlark.Dict)
 	if ok {
-		// Series built from a dict
-		valObjs := make([]string, 0, dataDict.Len())
-		index = make([]string, 0, dataDict.Len())
+		builder := newTypedArrayBuilder(dataDict.Len())
+		builder.setType(dtype)
 
 		keys := dataDict.Keys()
 		for i := 0; i < len(keys); i++ {
-			key := keys[i]
-			val, _, _ := dataDict.Get(key)
-
-			// TODO: Building from a dict coerces everything to string, should retain
-			// types as is done for lists
-			index = append(index, toStr(key))
-			valObjs = append(valObjs, toStr(val))
+			keyVal := keys[i]
+			key, ok := keyVal.(starlark.String)
+			if !ok {
+				return nil, fmt.Errorf("dict key must be string")
+			}
+			val, _, _ := dataDict.Get(keyVal)
+			if scalar, ok := toScalarMaybe(val); ok {
+				builder.pushKeyVal(string(key), scalar)
+				continue
+			}
+			// TODO: return an error for this invalid element, add a test
 		}
-		return &Series{
-			dtype:   dtype,
-			which:   typeObj,
-			valObjs: valObjs,
-			index:   index,
-			name:    name,
-		}, nil
+		if err := builder.error(); err != nil {
+			return starlark.None, err
+		}
+		// TODO: If index is provided, reindex the series.
+		index := NewIndex(builder.keys(), "")
+		return newSeriesFromBuilder(builder, index, name), nil
 	}
 
 	return starlark.None, fmt.Errorf("`data` type unrecognized: %q of %s", dataVal.String(), dataVal.Type())
 }
 
-func newSeriesFromInts(vals []int, index []string, name string) *Series {
+func newSeriesFromRepeatScalar(val interface{}, size int) *Series {
+	if num, ok := val.(int); ok {
+		vals := make([]int, size)
+		for i := 0; i < size; i++ {
+			vals[i] = num
+		}
+		return newSeriesFromInts(vals, nil, "")
+	}
+	if f, ok := val.(float64); ok {
+		vals := make([]float64, size)
+		for i := 0; i < size; i++ {
+			vals[i] = f
+		}
+		return newSeriesFromFloats(vals, nil, "")
+	}
+	if str, ok := val.(string); ok {
+		vals := make([]string, size)
+		for i := 0; i < size; i++ {
+			vals[i] = str
+		}
+		return newSeriesFromStrings(vals, nil, "")
+	}
+	return &Series{}
+}
+
+func newSeriesFromInts(vals []int, index *Index, name string) *Series {
 	return &Series{
 		dtype:   "int64",
 		which:   typeInt,
@@ -388,7 +369,7 @@ func newSeriesFromInts(vals []int, index []string, name string) *Series {
 	}
 }
 
-func newSeriesFromFloats(vals []float64, index []string, name string) *Series {
+func newSeriesFromFloats(vals []float64, index *Index, name string) *Series {
 	return &Series{
 		dtype:     "float64",
 		which:     typeFloat,
@@ -398,7 +379,7 @@ func newSeriesFromFloats(vals []float64, index []string, name string) *Series {
 	}
 }
 
-func newSeriesFromStrings(vals, index []string, name string) *Series {
+func newSeriesFromStrings(vals []string, index *Index, name string) *Series {
 	return &Series{
 		dtype:   "object",
 		which:   typeObj,
@@ -408,13 +389,16 @@ func newSeriesFromStrings(vals, index []string, name string) *Series {
 	}
 }
 
-func dtypeFromWhich(which int) string {
-	if which == typeInt {
-		return "int64"
-	} else if which == typeFloat {
-		return "float64"
+func newSeriesFromBuilder(builder *typedArrayBuilder, index *Index, name string) *Series {
+	return &Series{
+		dtype:     builder.dtype(),
+		which:     builder.which(),
+		valInts:   builder.asIntSlice(),
+		valFloats: builder.asFloatSlice(),
+		valObjs:   builder.asObjSlice(),
+		index:     index,
+		name:      name,
 	}
-	return "object"
 }
 
 func findKeyPos(needle string, subject []string) int {
