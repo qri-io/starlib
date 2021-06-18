@@ -28,6 +28,13 @@ type Series struct {
 	name  string
 }
 
+// compile-time interface assertions
+var (
+	_ starlark.Value    = (*Series)(nil)
+	_ starlark.Mapping  = (*Series)(nil)
+	_ starlark.HasAttrs = (*Series)(nil)
+)
+
 var seriesMethods = map[string]*starlark.Builtin{
 	"get": starlark.NewBuiltin("get", seriesGet),
 }
@@ -39,7 +46,7 @@ func (s *Series) Freeze() {
 
 // Hash cannot be used with Series
 func (s *Series) Hash() (uint32, error) {
-	return 0, fmt.Errorf("unhashable: Series")
+	return 0, fmt.Errorf("unhashable: %s", s.Type())
 }
 
 // String returns the Series as a string in a readable, tabular form
@@ -57,7 +64,7 @@ func (s *Series) Truth() starlark.Bool {
 
 // Type returns the type as a string
 func (s *Series) Type() string {
-	return "dataframe.Series"
+	return fmt.Sprintf("%s.Series", Name)
 }
 
 // Attr gets a value for a string attribute
@@ -285,13 +292,13 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 		return newSeriesFromStrings([]string{scalarStr}, index, name), nil
 	}
 
-	dataList, ok := dataVal.(*starlark.List)
-	if ok {
-		builder := newTypedArrayBuilder(dataList.Len())
+	switch inData := dataVal.(type) {
+	case *starlark.List:
+		builder := newTypedArrayBuilder(inData.Len())
 		builder.setType(dtype)
 
-		for k := 0; k < dataList.Len(); k++ {
-			elemVal := dataList.Index(k)
+		for k := 0; k < inData.Len(); k++ {
+			elemVal := inData.Index(k)
 			if scalar, ok := toScalarMaybe(elemVal); ok {
 				builder.push(scalar)
 				continue
@@ -301,22 +308,20 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 		if err := builder.error(); err != nil {
 			return starlark.None, err
 		}
-		return newSeriesFromBuilder(builder, index, name), nil
-	}
-
-	dataDict, ok := dataVal.(*starlark.Dict)
-	if ok {
-		builder := newTypedArrayBuilder(dataDict.Len())
+		series := builder.toSeries(index, name)
+		return &series, nil
+	case *starlark.Dict:
+		builder := newTypedArrayBuilder(inData.Len())
 		builder.setType(dtype)
 
-		keys := dataDict.Keys()
+		keys := inData.Keys()
 		for i := 0; i < len(keys); i++ {
 			keyVal := keys[i]
 			key, ok := keyVal.(starlark.String)
 			if !ok {
 				return nil, fmt.Errorf("dict key must be string")
 			}
-			val, _, _ := dataDict.Get(keyVal)
+			val, _, _ := inData.Get(keyVal)
 			if scalar, ok := toScalarMaybe(val); ok {
 				builder.pushKeyVal(string(key), scalar)
 				continue
@@ -328,35 +333,36 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 		}
 		// TODO: If index is provided, reindex the series.
 		index := NewIndex(builder.keys(), "")
-		return newSeriesFromBuilder(builder, index, name), nil
+		series := builder.toSeries(index, name)
+		return &series, nil
 	}
 
 	return starlark.None, fmt.Errorf("`data` type unrecognized: %q of %s", dataVal.String(), dataVal.Type())
 }
 
 func newSeriesFromRepeatScalar(val interface{}, size int) *Series {
-	if num, ok := val.(int); ok {
+	switch x := val.(type) {
+	case int:
 		vals := make([]int, size)
 		for i := 0; i < size; i++ {
-			vals[i] = num
+			vals[i] = x
 		}
 		return newSeriesFromInts(vals, nil, "")
-	}
-	if f, ok := val.(float64); ok {
+	case float64:
 		vals := make([]float64, size)
 		for i := 0; i < size; i++ {
-			vals[i] = f
+			vals[i] = x
 		}
 		return newSeriesFromFloats(vals, nil, "")
-	}
-	if str, ok := val.(string); ok {
+	case string:
 		vals := make([]string, size)
 		for i := 0; i < size; i++ {
-			vals[i] = str
+			vals[i] = x
 		}
 		return newSeriesFromStrings(vals, nil, "")
+	default:
+		return nil
 	}
-	return &Series{}
 }
 
 func newSeriesFromInts(vals []int, index *Index, name string) *Series {
@@ -386,18 +392,6 @@ func newSeriesFromStrings(vals []string, index *Index, name string) *Series {
 		valObjs: vals,
 		index:   index,
 		name:    name,
-	}
-}
-
-func newSeriesFromBuilder(builder *typedArrayBuilder, index *Index, name string) *Series {
-	return &Series{
-		dtype:     builder.dtype(),
-		which:     builder.which(),
-		valInts:   builder.asIntSlice(),
-		valFloats: builder.asFloatSlice(),
-		valObjs:   builder.asObjSlice(),
-		index:     index,
-		name:      name,
 	}
 }
 

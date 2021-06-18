@@ -12,6 +12,12 @@ type stringMethods struct {
 	subject *Index
 }
 
+// compile-time interface assertions
+var (
+	_ starlark.Value    = (*stringMethods)(nil)
+	_ starlark.HasAttrs = (*stringMethods)(nil)
+)
+
 var stringMethodsMethods = map[string]*starlark.Builtin{
 	"lower":   starlark.NewBuiltin("lower", stringMethodsLower),
 	"replace": starlark.NewBuiltin("replace", stringMethodsReplace),
@@ -25,12 +31,12 @@ func (sm *stringMethods) Freeze() {
 
 // Hash cannot be used with stringMethods
 func (sm *stringMethods) Hash() (uint32, error) {
-	return 0, fmt.Errorf("unhashable: StringMethods")
+	return 0, fmt.Errorf("unhashable: %s", sm.Type())
 }
 
 // String returns a string representation of the stringMethods
 func (sm *stringMethods) String() string {
-	return "<class 'StringMethods'>"
+	return fmt.Sprintf("<%s>", sm.Type())
 }
 
 // Truth converts the stringMethods into a bool
@@ -40,7 +46,7 @@ func (sm *stringMethods) Truth() starlark.Bool {
 
 // Type returns the type as a string
 func (sm *stringMethods) Type() string {
-	return "dataframe.StringMethods"
+	return fmt.Sprintf("%s.StringMethods", Name)
 }
 
 // Attr gets a value for a string attribute

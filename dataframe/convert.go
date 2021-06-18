@@ -2,6 +2,7 @@ package dataframe
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 
 	"go.starlark.net/starlark"
@@ -27,71 +28,51 @@ func toStrOrEmpty(v starlark.Value) string {
 }
 
 // convert starlark value to a list of strings, fit for printing, or nil if not possible
-func toStrListOrNil(v starlark.Value) []string {
-	if v == nil {
-		return nil
-	}
-	if v == starlark.None {
-		return nil
-	}
-
-	list, ok := v.(*starlark.List)
-	if ok {
-		result := make([]string, 0, list.Len())
-		for i := 0; i < list.Len(); i++ {
-			result = append(result, toStr(list.Index(i)))
+func toStrSliceOrNil(v starlark.Value) []string {
+	switch x := v.(type) {
+	case *starlark.List:
+		result := make([]string, 0, x.Len())
+		for i := 0; i < x.Len(); i++ {
+			result = append(result, toStr(x.Index(i)))
 		}
 		return result
-	}
-
-	tup, ok := v.(starlark.Tuple)
-	if ok {
-		result := make([]string, 0, tup.Len())
-		for i := 0; i < tup.Len(); i++ {
-			result = append(result, toStr(tup.Index(i)))
+	case starlark.Tuple:
+		result := make([]string, 0, x.Len())
+		for i := 0; i < x.Len(); i++ {
+			result = append(result, toStr(x.Index(i)))
 		}
 		return result
+	default:
+		return nil
 	}
-
-	return nil
 }
 
 // convert starlark value to a list of any values, or nil if not a list
-func toInterfaceListOrNil(v starlark.Value) []interface{} {
-	if v == nil {
-		return nil
-	}
-	if v == starlark.None {
-		return nil
-	}
-
-	list, ok := v.(*starlark.List)
-	if ok {
-		result := make([]interface{}, 0, list.Len())
-		for i := 0; i < list.Len(); i++ {
-			elem, ok := toScalarMaybe(list.Index(i))
+func toInterfaceSliceOrNil(v starlark.Value) []interface{} {
+	switch x := v.(type) {
+	case *starlark.List:
+		result := make([]interface{}, 0, x.Len())
+		for i := 0; i < x.Len(); i++ {
+			elem, ok := toScalarMaybe(x.Index(i))
 			if !ok {
 				return nil
 			}
 			result = append(result, elem)
 		}
 		return result
-	}
-
-	tup, ok := v.(starlark.Tuple)
-	if ok {
-		result := make([]interface{}, 0, tup.Len())
-		for i := 0; i < tup.Len(); i++ {
-			elem, ok := toScalarMaybe(tup.Index(i))
+	case starlark.Tuple:
+		result := make([]interface{}, 0, x.Len())
+		for i := 0; i < x.Len(); i++ {
+			elem, ok := toScalarMaybe(x.Index(i))
 			if !ok {
 				return nil
 			}
 			result = append(result, elem)
 		}
 		return result
+	default:
+		return nil
 	}
-
-	return nil
 }
 
 // convert starlark value to a go native int if it has the right type
@@ -142,7 +123,7 @@ func toScalarMaybe(v starlark.Value) (interface{}, bool) {
 }
 
 func toIndexMaybe(v starlark.Value) (*Index, bool) {
-	texts := toStrListOrNil(v)
+	texts := toStrSliceOrNil(v)
 	if texts != nil {
 		return NewIndex(texts, ""), true
 	}
@@ -185,24 +166,30 @@ func convertFloatsToStrings(vals []float64) []string {
 
 // convert one of the supported go native data types into a starlark value
 func convertToStarlark(it interface{}) (starlark.Value, error) {
-	if num, ok := it.(int); ok {
-		return starlark.MakeInt(num), nil
+	switch x := it.(type) {
+	case int:
+		return starlark.MakeInt(x), nil
+	case float64:
+		return starlark.Float(x), nil
+	case string:
+		return starlark.String(x), nil
+	default:
+		return starlark.None, fmt.Errorf("unknown type of %v", reflect.TypeOf(it))
 	}
-	if f, ok := it.(float64); ok {
-		return starlark.Float(f), nil
-	}
-	if str, ok := it.(string); ok {
-		return starlark.String(str), nil
-	}
-	return starlark.None, fmt.Errorf("unknown type of %v", it)
 }
 
 func coerceToDatatype(text, dtype string) string {
 	if dtype == "bool" {
+		// Convert bool to string version, instead of int
+		// TODO(dustmop): Bit of a hack, the caller of this should perhaps use
+		// `values()` instead of `stringValues()` so that this argument is an
+		// interface, not a string. That would remove this unneeded stringification
+		// from `1` to `"1"` to `"True"`.
 		if text == "1" {
-			return " True"
+			return "True"
 		}
 		return "False"
 	}
+	// Every other type has been properly stringified by the time it gets here.
 	return text
 }

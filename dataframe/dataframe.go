@@ -59,13 +59,14 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 		return nil, err
 	}
 
-	columns := toStrListOrNil(columnsVal)
+	columns := toStrSliceOrNil(columnsVal)
 	index, _ := toIndexMaybe(indexVal)
 
-	if dataDict, ok := dataVal.(*starlark.Dict); ok {
+	switch inData := dataVal.(type) {
+	case *starlark.Dict:
 		newBody := make([]Series, 0)
-		keyList := make([]string, 0, dataDict.Len())
-		inKeys := dataDict.Keys()
+		keyList := make([]string, 0, inData.Len())
+		inKeys := inData.Keys()
 		numCols := len(inKeys)
 		numRows := -1
 		for i := 0; i < len(inKeys); i++ {
@@ -73,8 +74,8 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 			inKey := inKeys[i]
 			keyList = append(keyList, toStr(inKey))
 			// Get each value, which should be a list of values
-			val, _, _ := dataDict.Get(inKey)
-			items := toInterfaceListOrNil(val)
+			val, _, _ := inData.Get(inKey)
+			items := toInterfaceSliceOrNil(val)
 			if items == nil {
 				return starlark.None, fmt.Errorf("invalid values for column")
 			}
@@ -94,8 +95,7 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 				return starlark.None, err
 			}
 
-			series := newSeriesFromBuilder(builder, nil, "")
-			newBody = append(newBody, *series)
+			newBody = append(newBody, builder.toSeries(nil, ""))
 		}
 
 		if index.len() > 0 && index.len() != numRows {
@@ -112,15 +112,13 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 			columns: NewIndex(keyList, ""),
 			body:    newBody,
 		}, nil
-	}
-
-	if inRowData, ok := dataVal.(*starlark.List); ok {
-		numRows := inRowData.Len()
+	case *starlark.List:
+		numRows := inData.Len()
 		numCols := -1
-		var builders []*typedArrayBuilder
+		var builders []*typedSliceBuilder
 		// Iterate the input data row-size
-		for y := 0; y < inRowData.Len(); y++ {
-			row := toInterfaceListOrNil(inRowData.Index(y))
+		for y := 0; y < inData.Len(); y++ {
+			row := toInterfaceSliceOrNil(inData.Index(y))
 			if row == nil {
 				return starlark.None, fmt.Errorf("invalid values for row")
 			}
@@ -134,7 +132,7 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 			for x := 0; x < numCols; x++ {
 				// Allocate builders once we know how many and how large they are
 				if builders == nil {
-					builders = make([]*typedArrayBuilder, numCols)
+					builders = make([]*typedSliceBuilder, numCols)
 					for i := 0; i < numCols; i++ {
 						builders[i] = newTypedArrayBuilder(numRows)
 					}
@@ -146,8 +144,7 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 		// Get a series for each column of the body
 		newBody := make([]Series, numCols)
 		for x := 0; x < numCols; x++ {
-			series := newSeriesFromBuilder(builders[x], nil, "")
-			newBody[x] = *series
+			newBody[x] = builders[x].toSeries(nil, "")
 		}
 
 		if index.len() > 0 && index.len() != numRows {
@@ -190,7 +187,7 @@ func (df *DataFrame) Freeze() { df.frozen = true }
 // Hash returns a function of x such that Equals(x, y) => Hash(x) == Hash(y)
 // required by starlark.Value interface.
 func (df *DataFrame) Hash() (uint32, error) {
-	return 0, fmt.Errorf("unhashable: DataFrame")
+	return 0, fmt.Errorf("unhashable: %s", df.Type())
 }
 
 // Truth reports whether the DataFrame is non-zero.
@@ -220,7 +217,7 @@ func (df *DataFrame) AttrNames() []string {
 // SetField assigns to a field of the DataFrame
 func (df *DataFrame) SetField(name string, val starlark.Value) error {
 	if df.frozen {
-		return fmt.Errorf("cannot set, dataframe is frozen")
+		return fmt.Errorf("cannot set, DataFrame is frozen")
 	}
 
 	if name == "columns" {
@@ -237,7 +234,7 @@ func (df *DataFrame) SetField(name string, val starlark.Value) error {
 // SetKey assigns a value to a DataFrame at the given key
 func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 	if df.frozen {
-		return fmt.Errorf("cannot set, dataframe is frozen")
+		return fmt.Errorf("cannot set, DataFrame is frozen")
 	}
 
 	name, ok := toStrMaybe(nameVal)

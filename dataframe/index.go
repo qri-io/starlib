@@ -15,6 +15,12 @@ type Index struct {
 	name   string
 }
 
+// compile-time interface assertions
+var (
+	_ starlark.Value    = (*Index)(nil)
+	_ starlark.HasAttrs = (*Index)(nil)
+)
+
 // NewIndex returns a new Index with the text values and name
 func NewIndex(texts []string, name string) *Index {
 	return &Index{texts: texts, name: name}
@@ -27,13 +33,15 @@ func (i *Index) Freeze() {
 
 // Hash cannot be used with Index
 func (i *Index) Hash() (uint32, error) {
-	return 0, fmt.Errorf("unhashable: Index")
+	return 0, fmt.Errorf("unhashable: %s", i.Type())
 }
 
 // String returns the index as a string
 func (i *Index) String() string {
 	result := make([]string, 0, len(i.texts))
 	for _, col := range i.texts {
+		// TODO(dustmop): Use proper Starlark string literal quoting, to handle
+		// column names that have quotes in them.
 		text := fmt.Sprintf("'%s'", col)
 		result = append(result, text)
 	}
@@ -54,7 +62,7 @@ func (i *Index) Truth() starlark.Bool {
 
 // Type returns the type as a string
 func (i *Index) Type() string {
-	return "dataframe.Index"
+	return fmt.Sprintf("%s.Index", Name)
 }
 
 // Attr gets a value for a string attribute
@@ -90,7 +98,7 @@ func newIndex(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple,
 	); err != nil {
 		return nil, err
 	}
-	data := toStrListOrNil(dataVal)
+	data := toStrSliceOrNil(dataVal)
 	name := toStrOrEmpty(nameVal)
 	return NewIndex(data, name), nil
 }

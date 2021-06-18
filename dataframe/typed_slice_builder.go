@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-type typedArrayBuilder struct {
+type typedSliceBuilder struct {
 	size       int
 	keyList    []string
 	valInts    []int
@@ -26,13 +26,13 @@ const (
 	typeObj   = 3
 )
 
-func newTypedArrayBuilder(size int) *typedArrayBuilder {
-	return &typedArrayBuilder{
+func newTypedArrayBuilder(size int) *typedSliceBuilder {
+	return &typedSliceBuilder{
 		size: size,
 	}
 }
 
-func (t *typedArrayBuilder) setType(dtype string) {
+func (t *typedSliceBuilder) setType(dtype string) {
 	if dtype == "" {
 		return
 	}
@@ -53,7 +53,7 @@ func (t *typedArrayBuilder) setType(dtype string) {
 	}
 }
 
-func (t *typedArrayBuilder) push(val interface{}) {
+func (t *typedSliceBuilder) push(val interface{}) {
 	if t.currType == "" {
 		// Initial data type
 		if num, ok := val.(int); ok {
@@ -154,44 +154,36 @@ func (t *typedArrayBuilder) push(val interface{}) {
 	}
 }
 
-func (t *typedArrayBuilder) pushKeyVal(key string, val interface{}) {
+func (t *typedSliceBuilder) pushKeyVal(key string, val interface{}) {
 	t.keyList = append(t.keyList, key)
 	t.push(val)
 }
 
-func (t *typedArrayBuilder) parsePush(text string) {
+func (t *typedSliceBuilder) parsePush(text string) {
 	// TODO: Parse a scalar from the text, push it. Used for csv reader.
 }
 
-func (t *typedArrayBuilder) error() error {
+func (t *typedSliceBuilder) error() error {
 	return t.buildError
 }
 
-func (t *typedArrayBuilder) keys() []string {
+func (t *typedSliceBuilder) keys() []string {
 	return t.keyList
 }
 
-func (t *typedArrayBuilder) dtype() string {
-	if t.dType == "" {
-		if t.currType != "" {
-			t.dType = t.currType
-		}
+// toSeries returns the series that has been built
+func (t *typedSliceBuilder) toSeries(index *Index, name string) Series {
+	dtype := t.dType
+	if dtype == "" && t.currType != "" {
+		dtype = t.currType
 	}
-	return t.dType
-}
-
-func (t *typedArrayBuilder) which() int {
-	return t.whichVals
-}
-
-func (t *typedArrayBuilder) asIntSlice() []int {
-	return t.valInts
-}
-
-func (t *typedArrayBuilder) asFloatSlice() []float64 {
-	return t.valFloats
-}
-
-func (t *typedArrayBuilder) asObjSlice() []string {
-	return t.valObjs
+	return Series{
+		dtype:     dtype,
+		which:     t.whichVals,
+		valInts:   t.valInts,
+		valFloats: t.valFloats,
+		valObjs:   t.valObjs,
+		index:     index,
+		name:      name,
+	}
 }
