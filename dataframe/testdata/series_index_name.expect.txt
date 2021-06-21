@@ -1,0 +1,9 @@
+Index(['a', 'b', 'c'], dtype='object')
+
+Index(['a', 'b', 'c'], dtype='object', name='IDs')
+
+IDs
+a    123
+b    456
+c    789
+Name: Cool Data, dtype: int64

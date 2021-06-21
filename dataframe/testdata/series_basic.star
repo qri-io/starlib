@@ -138,4 +138,9 @@ def f():
   print(series)
   print('')
 
+  print('case 27:')
+  series = dataframe.Series(data=[True, True, False, True, False])
+  print(series)
+  print('')
+
 f()
