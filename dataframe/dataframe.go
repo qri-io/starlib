@@ -1,7 +1,9 @@
 package dataframe
 
 import (
+	"encoding/csv"
 	"fmt"
+	"io"
 	"strings"
 
 	"go.starlark.net/starlark"
@@ -19,6 +21,7 @@ const (
 var Module = &starlarkstruct.Module{
 	Name: Name,
 	Members: starlark.StringDict{
+		"read_csv":  starlark.NewBuiltin("read_csv", readCsv),
 		"DataFrame": starlark.NewBuiltin("DataFrame", newDataFrame),
 		"Index":     starlark.NewBuiltin("Index", newIndex),
 		"Series":    starlark.NewBuiltin("Series", newSeries),
@@ -43,6 +46,65 @@ var (
 	_ starlark.HasSetField = (*DataFrame)(nil)
 	_ starlark.HasSetKey   = (*DataFrame)(nil)
 )
+
+var dataframeMethods = map[string]*starlark.Builtin{
+	"apply":           starlark.NewBuiltin("apply", dataframeApply),
+	"drop_duplicates": starlark.NewBuiltin("drop_duplicates", dataframeDropDuplicates),
+	"groupby":         starlark.NewBuiltin("groupby", dataframeGroupBy),
+	"head":            starlark.NewBuiltin("head", dataframeHead),
+	"merge":           starlark.NewBuiltin("merge", dataframeMerge),
+	"reset_index":     starlark.NewBuiltin("reset_index", dataframeResetIndex),
+}
+
+func readCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var content starlark.Value
+
+	if err := starlark.UnpackArgs("readCsv", args, kwargs,
+		"content", &content,
+	); err != nil {
+		return nil, err
+	}
+
+	text, ok := toStrMaybe(content)
+	if !ok {
+		return nil, fmt.Errorf("not a string")
+	}
+	reader := csv.NewReader(strings.NewReader(text))
+
+	// Assume header row
+	record, err := reader.Read()
+	if err != nil {
+		return nil, err
+	}
+	header := record
+
+	// Body rows
+	rowLength := -1
+	var builder *tableBuilder
+	for lineNum := 0; ; lineNum++ {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if rowLength == -1 {
+			rowLength = len(record)
+		} else if rowLength != len(record) {
+			return nil, fmt.Errorf("rows must be same length, line %d is %d instead of %d", lineNum, len(record), rowLength)
+		}
+		if builder == nil {
+			builder = newTableBuilder(rowLength, 0)
+		}
+		builder.pushTextRow(record)
+	}
+
+	return &DataFrame{
+		columns: NewIndex(header, ""),
+		body:    builder.body(),
+	}, nil
+}
 
 func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
@@ -115,7 +177,7 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 	case *starlark.List:
 		numRows := inData.Len()
 		numCols := -1
-		var builders []*typedSliceBuilder
+		var builder *tableBuilder
 		// Iterate the input data row-size
 		for y := 0; y < inData.Len(); y++ {
 			row := toInterfaceSliceOrNil(inData.Index(y))
@@ -129,23 +191,12 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 			} else if numCols != len(row) {
 				return starlark.None, fmt.Errorf("rows need to be the same length")
 			}
-			for x := 0; x < numCols; x++ {
-				// Allocate builders once we know how many and how large they are
-				if builders == nil {
-					builders = make([]*typedSliceBuilder, numCols)
-					for i := 0; i < numCols; i++ {
-						builders[i] = newTypedArrayBuilder(numRows)
-					}
-				}
-				// Accumlate each cell into the appropriate column builder
-				builders[x].push(row[x])
+			if builder == nil {
+				builder = newTableBuilder(numCols, numRows)
 			}
+			builder.pushRow(row)
 		}
-		// Get a series for each column of the body
-		newBody := make([]Series, numCols)
-		for x := 0; x < numCols; x++ {
-			newBody[x] = builders[x].toSeries(nil, "")
-		}
+		newBody := builder.body()
 
 		if index.len() > 0 && index.len() != numRows {
 			// TODO(dustmop): Add test
@@ -164,6 +215,10 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 	}
 
 	return nil, fmt.Errorf("Not implemented, constructing DataFrame using %s", dataVal.Type())
+}
+
+func (df *DataFrame) numCols() int {
+	return len(df.body)
 }
 
 func (df *DataFrame) numRows() int {
@@ -205,13 +260,14 @@ func (df *DataFrame) Attr(name string) (starlark.Value, error) {
 	case "columns":
 		return df.columns, nil
 	}
-	return nil, nil
+	return builtinAttr(df, name, dataframeMethods)
 }
 
 // AttrNames lists available dot expression strings. required by
 // starlark.HasAttrs interface.
 func (df *DataFrame) AttrNames() []string {
-	return []string{"columns"}
+	methodNames := builtinAttrNames(seriesMethods)
+	return append([]string{"columns"}, methodNames...)
 }
 
 // SetField assigns to a field of the DataFrame
@@ -309,7 +365,14 @@ func (df *DataFrame) Get(keyVal starlark.Value) (value starlark.Value, found boo
 
 	dtype := got.dtype
 	if dtype == "" {
-		dtype = dtypeFromWhich(got.which)
+		switch got.which {
+		case typeInt:
+			dtype = "int64"
+		case typeFloat:
+			dtype = "float64"
+		default:
+			dtype = "object"
+		}
 	}
 
 	return &Series{
@@ -327,7 +390,7 @@ func (df *DataFrame) stringify() string {
 	// Get width of the left-hand label
 	labelWidth := 0
 	if df.index == nil {
-		bodyHeight := len(df.body)
+		bodyHeight := df.numRows()
 		k := len(fmt.Sprintf("%d", bodyHeight))
 		if k > labelWidth {
 			labelWidth = k
@@ -342,7 +405,7 @@ func (df *DataFrame) stringify() string {
 	}
 
 	// Create array of max widths, starting at 0
-	widths := make([]int, len(df.body))
+	widths := make([]int, df.numCols())
 	for i, name := range df.columns.texts {
 		w := len(fmt.Sprintf("%s", name))
 		if w > widths[i] {
@@ -400,13 +463,317 @@ func (df *DataFrame) stringify() string {
 	return answer
 }
 
-func dtypeFromWhich(which int) string {
-	if which == typeInt {
-		return "int64"
-	} else if which == typeFloat {
-		return "float64"
+// apply method iterates the rows of a DataFrame, calls the given function for
+// each row, creating a single Series of the results
+func dataframeApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		funcVal, axisVal starlark.Value
+	)
+	self := b.Receiver().(*DataFrame)
+
+	if err := starlark.UnpackArgs("apply", args, kwargs,
+		"function", &funcVal,
+		"axis?", &axisVal,
+	); err != nil {
+		return nil, err
 	}
-	return "object"
+
+	axis, ok := toIntMaybe(axisVal)
+	if !ok || axis != 1 {
+		return nil, fmt.Errorf("axis must equal 1 for row-wise application")
+	}
+
+	funcObj, ok := funcVal.(*starlark.Function)
+	if !ok {
+		return nil, fmt.Errorf("first argument must be a function")
+	}
+
+	var result []string
+	for rows := newRowIter(self); !rows.Done(); rows.Next() {
+		r := rows.GetRow()
+		arguments := r.toTuple()
+		res, err := starlark.Call(thread, funcObj, arguments, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		text, ok := res.(starlark.String)
+		if !ok {
+			return nil, fmt.Errorf("fn.apply should have returned String")
+		}
+
+		result = append(result, string(text))
+	}
+
+	return &Series{dtype: "object", which: typeObj, valObjs: result}, nil
+}
+
+// head method returns a copy of the DataFrame but only with the first n rows
+func dataframeHead(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var nVal starlark.Value
+
+	if err := starlark.UnpackArgs("head", args, kwargs,
+		"n?", &nVal,
+	); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*DataFrame)
+
+	numRows, ok := toIntMaybe(nVal)
+	if !ok {
+		// n defaults to 5 if not given
+		numRows = 5
+	}
+
+	builder := newTableBuilder(self.numCols(), 0)
+	for rows := newRowIter(self); !rows.Done() && numRows > 0; rows.Next() {
+		r := rows.GetRow()
+		builder.pushRow(r.data)
+		numRows--
+	}
+
+	return &DataFrame{
+		columns: self.columns,
+		body:    builder.body(),
+	}, nil
+}
+
+// groupby method returns a grouped set of rows collected by some given column value
+func dataframeGroupBy(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var by starlark.Value
+
+	if err := starlark.UnpackArgs("groupby", args, kwargs,
+		"by", &by,
+	); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*DataFrame)
+
+	byList, ok := by.(*starlark.List)
+	if !ok {
+		return nil, fmt.Errorf("by should be a list of strings")
+	}
+
+	// TODO(dustmop): Support multiple values for the `by` value
+	first := byList.Index(0)
+	groupBy, ok := toStrMaybe(first)
+	if !ok {
+		return nil, fmt.Errorf("by[0] should be a string")
+	}
+
+	result := map[string][]*rowTuple{}
+	keyPos := findKeyPos(groupBy, self.columns.texts)
+	if keyPos == -1 {
+		return starlark.None, nil
+	}
+
+	for rows := newRowIter(self); !rows.Done(); rows.Next() {
+		r := rows.GetRow()
+		groupValue := rows.GetStr(keyPos)
+		result[groupValue] = append(result[groupValue], r)
+	}
+
+	return &GroupByResult{label: groupBy, columns: self.columns, grouping: result}, nil
+}
+
+// drop_duplicates method returns a copy of a DataFrame without duplicates
+func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		subset starlark.Value
+	)
+	self := b.Receiver().(*DataFrame)
+
+	if err := starlark.UnpackArgs("drop_duplicates", args, kwargs,
+		"subset?", &subset,
+	); err != nil {
+		return nil, err
+	}
+
+	// TODO(dustmop): Support multiple values for the `subset` value
+	subsetPos := -1
+	if subsetList, ok := subset.(*starlark.List); ok {
+		// TODO: Assuming len > 0
+		elem := subsetList.Index(0)
+		if text, ok := elem.(starlark.String); ok {
+			subsetPos = findKeyPos(string(text), self.columns.texts)
+		}
+	}
+
+	seen := map[string]bool{}
+	builder := newTableBuilder(self.numCols(), 0)
+	for rows := newRowIter(self); !rows.Done(); rows.Next() {
+		matchOn := rows.Marshal(subsetPos)
+		if seen[matchOn] {
+			continue
+		}
+		seen[matchOn] = true
+		builder.pushRow(rows.GetRow().data)
+	}
+
+	return &DataFrame{
+		columns: self.columns,
+		body:    builder.body(),
+	}, nil
+}
+
+// rowIndicies is a list of indicies into a row. Used by merge to collect
+// a list of indicies at time, to eventually collect them into a single list
+type rowIndicies struct {
+	is []int
+}
+
+// merge method merges the rows of two DataFrames
+func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		right, leftOn, rightOn, how starlark.Value
+		suffixesVal                 starlark.Value
+	)
+	self := b.Receiver().(*DataFrame)
+
+	if err := starlark.UnpackArgs("merge", args, kwargs,
+		"right", &right,
+		"left_on?", &leftOn,
+		"right_on?", &rightOn,
+		"how?", &how,
+		"suffixes?", &suffixesVal,
+	); err != nil {
+		return nil, err
+	}
+
+	rightFrame, ok := right.(*DataFrame)
+	if !ok {
+		return starlark.None, fmt.Errorf("`right` must be a DataFrame")
+	}
+
+	leftOnStr := toStr(leftOn)
+	rightOnStr := toStr(rightOn)
+	leftKey := 0
+	rightKey := 0
+	if leftOnStr != "" {
+		leftKey = findKeyPos(leftOnStr, self.columns.texts)
+		rightKey = findKeyPos(rightOnStr, rightFrame.columns.texts)
+		if leftKey == -1 {
+			return starlark.None, fmt.Errorf("left key %q not found", leftOnStr)
+		}
+		if rightKey == -1 {
+			return starlark.None, fmt.Errorf("right key %q not found", rightOnStr)
+		}
+	}
+
+	howStr := toStrOrEmpty(how)
+
+	var leftOrder []int
+	if howStr == "" || howStr == "inner" {
+		// For an inner merge, the keys appear with identical keys appearing together
+		seen := make(map[string]int)
+		idxs := make([]rowIndicies, 0)
+		for rows := newRowIter(self); !rows.Done(); rows.Next() {
+			key := rows.GetStr(leftKey)
+			n, has := seen[key]
+			if has {
+				idxs[n].is = append(idxs[n].is, rows.Index())
+			} else {
+				n = len(idxs)
+				idxs = append(idxs, rowIndicies{is: []int{rows.Index()}})
+				seen[key] = n
+			}
+		}
+		// Collect the rows now based upon the desired order
+		for _, numList := range idxs {
+			for _, i := range numList.is {
+				leftOrder = append(leftOrder, i)
+			}
+		}
+	} else if howStr == "left" {
+		leftOrder = nil
+	} else {
+		return starlark.None, fmt.Errorf("not implemented: `how` is %q", howStr)
+	}
+
+	var suffixes []string
+	leftList := toStrSliceOrNil(suffixesVal)
+
+	// TODO(dustmop): Ensure suffixes are the right length, add a test
+	if len(leftList) == 2 {
+		suffixes = leftList
+	} else {
+		// Default column indicies are "_x" and "_y"
+		suffixes = []string{"_x", "_y"}
+	}
+
+	// If column names of the merge key are the same, don't include the second one, ignore it
+	ignore := findKeyPos(self.columns.texts[leftKey], rightFrame.columns.texts)
+
+	leftColumns := addSuffixToStringList(self.columns.texts, suffixes[0], leftKey)
+	rightColumns := addSuffixToStringList(rightFrame.columns.texts, suffixes[1], rightKey)
+	if ignore != -1 {
+		rightColumns = removeElemFromStringList(rightColumns, ignore)
+	}
+	newColumns := append(leftColumns, rightColumns...)
+
+	builder := newTableBuilder(len(newColumns), 0)
+	leftIter := newRowIterWithOrder(self, leftOrder)
+	for ; !leftIter.Done(); leftIter.Next() {
+		for rightIter := newRowIter(rightFrame); !rightIter.Done(); rightIter.Next() {
+			newRow := leftIter.MergeWith(rightIter, leftKey, rightKey, ignore)
+			if newRow != nil {
+				builder.pushRow(newRow.data)
+			}
+		}
+	}
+
+	return &DataFrame{
+		columns: NewIndex(newColumns, ""),
+		body:    builder.body(),
+	}, nil
+}
+
+// reset_index method turns the DataFrame index into a new column
+func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	if err := starlark.UnpackArgs("reset_index", args, kwargs); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*DataFrame)
+
+	if self.index == nil {
+		return self, nil
+	}
+
+	newColumns := append([]string{"index"}, self.columns.texts...)
+	newBody := make([]Series, 0, self.numCols())
+
+	newBody = append(newBody, Series{which: typeObj, valObjs: self.index.texts})
+	for _, col := range self.body {
+		newBody = append(newBody, col)
+	}
+
+	return &DataFrame{
+		columns: NewIndex(newColumns, ""),
+		body:    newBody,
+	}, nil
+}
+
+func addSuffixToStringList(names []string, suffix string, keyPos int) []string {
+	result := make([]string, len(names))
+	for i, elem := range names {
+		if i == keyPos {
+			result[i] = elem
+		} else {
+			result[i] = fmt.Sprintf("%s%s", elem, suffix)
+		}
+	}
+	return result
+}
+
+func removeElemFromStringList(ls []string, i int) []string {
+	if i == -1 {
+		return ls
+	}
+	a := make([]string, len(ls))
+	copy(a, ls)
+	copy(a[i:], a[i+1:])
+	a[len(a)-1] = ""
+	return a[:len(a)-1]
 }
 
 func max(a, b int) int {

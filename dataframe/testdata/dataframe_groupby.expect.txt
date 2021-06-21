@@ -1,0 +1,5 @@
+cat     13
+dog      6
+eel     11
+frog     6
+Name: count, dtype: int64

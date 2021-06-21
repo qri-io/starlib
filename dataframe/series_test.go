@@ -23,3 +23,11 @@ func TestSeriesPrint(t *testing.T) {
 func TestSeriesIndexWithName(t *testing.T) {
 	runTestScript(t, "testdata/series_index_name.star", "testdata/series_index_name.expect.txt")
 }
+
+func TestSeriesAsType(t *testing.T) {
+	runTestScript(t, "testdata/series_astype.star", "testdata/series_astype.expect.txt")
+}
+
+func TestSeriesNotNull(t *testing.T) {
+	runTestScript(t, "testdata/series_notnull.star", "testdata/series_notnull.expect.txt")
+}

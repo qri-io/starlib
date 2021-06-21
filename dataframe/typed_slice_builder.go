@@ -42,7 +42,7 @@ func (t *typedSliceBuilder) setType(dtype string) {
 		t.whichVals = typeInt
 	} else if t.dType == "float64" {
 		t.whichVals = typeFloat
-	} else if t.dType == "object" {
+	} else if t.dType == "object" || t.dType == "datetime64[ns]" {
 		t.whichVals = typeObj
 	} else if t.dType == "string" {
 		// TODO(dustmop): Is string a real type for pandas?
@@ -115,6 +115,8 @@ func (t *typedSliceBuilder) push(val interface{}) {
 				t.currType = "object"
 				t.whichVals = typeObj
 				t.valObjs = convertFloatsToStrings(t.valFloats)
+			} else if t.currType == "datetime64[ns]" {
+				// pass
 			} else if t.currType != "object" {
 				t.buildError = fmt.Errorf("handle coercion: %v to %q", text, t.currType)
 				return
@@ -154,13 +156,27 @@ func (t *typedSliceBuilder) push(val interface{}) {
 	}
 }
 
+func (t *typedSliceBuilder) pushNil() {
+	if t.whichVals == typeInt {
+		t.valInts = append(t.valInts, 0)
+	} else if t.whichVals == typeFloat {
+		t.valFloats = append(t.valFloats, 0.0)
+	} else if t.whichVals == typeObj {
+		// TODO(dustmop): This is a hack. Instead, Series and this builder should
+		// have an actual way of representing null values.
+		t.valObjs = append(t.valObjs, "None")
+	}
+}
+
 func (t *typedSliceBuilder) pushKeyVal(key string, val interface{}) {
 	t.keyList = append(t.keyList, key)
 	t.push(val)
 }
 
 func (t *typedSliceBuilder) parsePush(text string) {
-	// TODO: Parse a scalar from the text, push it. Used for csv reader.
+	// Parse scalar from the text, push it. Used for csv reader.
+	// TODO: Actually parse int and float from text, don't assume it must be string.
+	t.push(text)
 }
 
 func (t *typedSliceBuilder) error() error {

@@ -1,0 +1,48 @@
+     lkey  value
+0     foo      1
+1     bar      2
+2     baz      3
+3     foo      5
+
+     rkey  value
+0     foo      5
+1     bar      6
+2     baz      7
+3     foo      8
+
+     lkey  value_x  rkey  value_y
+0     foo        1   foo        5
+1     foo        1   foo        8
+2     foo        5   foo        5
+3     foo        5   foo        8
+4     bar        2   bar        6
+5     baz        3   baz        7
+
+     lkey  value_x  rkey  value_y
+0     foo        1   foo        5
+1     foo        1   foo        8
+2     bar        2   bar        6
+3     baz        3   baz        7
+4     foo        5   foo        5
+5     foo        5   foo        8
+
+     lkey  value_left  rkey  value_right
+0     foo           1   foo            5
+1     foo           1   foo            8
+2     foo           5   foo            5
+3     foo           5   foo            8
+4     bar           2   bar            6
+5     baz           3   baz            7
+
+     num  animal_x  score_x  animal_y  score_y
+0      1       cat       15       cat        8
+1      2       dog       21       dog       23
+2      3       eel        9      frog       17
+3      4      frog       12       eel       11
+
+     num_x  animal  score_x  num_y  score_y
+0        1     cat       15      1        8
+1        2     dog       21      2       23
+2        3     eel        9      4       11
+3        4    frog       12      3       17
+

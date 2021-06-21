@@ -1,0 +1,19 @@
+0     abc
+1    None
+2        
+3     def
+4    None
+dtype: object
+
+0     True
+1    False
+2     True
+3     True
+4    False
+dtype: bool
+
+0    abc
+2       
+3    def
+dtype: object
+
