@@ -59,7 +59,7 @@ var dataframeMethods = map[string]*starlark.Builtin{
 func readCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var content starlark.Value
 
-	if err := starlark.UnpackArgs("readCsv", args, kwargs,
+	if err := starlark.UnpackArgs("read_csv", args, kwargs,
 		"content", &content,
 	); err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func readCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, 
 	if !ok {
 		return nil, fmt.Errorf("not a string")
 	}
-	reader := csv.NewReader(strings.NewReader(text))
+	reader := csv.NewReader(ReplaceReader(strings.NewReader(text)))
 
 	// Assume header row
 	record, err := reader.Read()
@@ -474,6 +474,7 @@ func dataframeApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.
 	if err := starlark.UnpackArgs("apply", args, kwargs,
 		"function", &funcVal,
 		"axis?", &axisVal,
+		// TODO(dustmop): Add other arguments that pandas.DataFrame.apply has.
 	); err != nil {
 		return nil, err
 	}
@@ -497,6 +498,7 @@ func dataframeApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.
 			return nil, err
 		}
 
+		// TODO(dustmop): Accept other return value types.
 		text, ok := res.(starlark.String)
 		if !ok {
 			return nil, fmt.Errorf("fn.apply should have returned String")
@@ -616,12 +618,6 @@ func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starl
 	}, nil
 }
 
-// rowIndicies is a list of indicies into a row. Used by merge to collect
-// a list of indicies at time, to eventually collect them into a single list
-type rowIndicies struct {
-	is []int
-}
-
 // merge method merges the rows of two DataFrames
 func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
@@ -666,23 +662,26 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	if howStr == "" || howStr == "inner" {
 		// For an inner merge, the keys appear with identical keys appearing together
 		seen := make(map[string]int)
-		idxs := make([]rowIndicies, 0)
+		// Indices are collected using a list of list of ints. Each of the dataframe
+		// rows with the same key will have their indices appear adjacent to each other.
+		// For example, when running the test dataframe_merge.star, for the first
+		// call to `df1.merge`, the `idxs` array will be [[0, 3], [1], [2]], caused by
+		// the key "foo" appearing at positions 0 and 3: its rows end up together.
+		idxs := make([][]int, 0)
 		for rows := newRowIter(self); !rows.Done(); rows.Next() {
 			key := rows.GetStr(leftKey)
 			n, has := seen[key]
 			if has {
-				idxs[n].is = append(idxs[n].is, rows.Index())
+				idxs[n] = append(idxs[n], rows.Index())
 			} else {
 				n = len(idxs)
-				idxs = append(idxs, rowIndicies{is: []int{rows.Index()}})
+				idxs = append(idxs, []int{rows.Index()})
 				seen[key] = n
 			}
 		}
 		// Collect the rows now based upon the desired order
 		for _, numList := range idxs {
-			for _, i := range numList.is {
-				leftOrder = append(leftOrder, i)
-			}
+			leftOrder = append(leftOrder, numList...)
 		}
 	} else if howStr == "left" {
 		leftOrder = nil
