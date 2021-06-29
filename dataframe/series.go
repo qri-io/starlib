@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.starlark.net/starlark"
 )
@@ -36,7 +37,9 @@ var (
 )
 
 var seriesMethods = map[string]*starlark.Builtin{
-	"get": starlark.NewBuiltin("get", seriesGet),
+	"astype":  starlark.NewBuiltin("astype", seriesAsType),
+	"get":     starlark.NewBuiltin("get", seriesGet),
+	"notnull": starlark.NewBuiltin("notnull", seriesNotNull),
 }
 
 // Freeze prevents the series from being mutated
@@ -96,6 +99,22 @@ func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, e
 			return starlark.None, false, err
 		}
 		return val, true, nil
+	}
+	// TODO(dustmop): Also suport series.get(list)
+	if keyList, ok := keyVal.(*Series); ok {
+		vals := s.stringValues()
+		newIdx := make([]string, 0, len(vals))
+		newVals := make([]string, 0, len(vals))
+		// TODO(dustmop): Index using non-bool values
+		for i, key := range keyList.stringValues() {
+			// TODO(dustmop): Hack, bools are being coerced to string here
+			if key == "0" {
+				continue
+			}
+			newIdx = append(newIdx, fmt.Sprintf("%d", i))
+			newVals = append(newVals, vals[i])
+		}
+		return newSeriesFromStrings(newVals, NewIndex(newIdx, ""), s.name), true, nil
 	}
 	return starlark.None, false, fmt.Errorf("not found: %q", keyVal)
 }
@@ -229,6 +248,16 @@ func (s *Series) strAt(i int) string {
 	return s.valObjs[i]
 }
 
+// at returns the cell at position 'i' as a go native type
+func (s *Series) at(i int) interface{} {
+	if s.which == typeInt {
+		return s.valInts[i]
+	} else if s.which == typeFloat {
+		return s.valFloats[i]
+	}
+	return s.valObjs[i]
+}
+
 func builtinAttr(recv starlark.Value, name string, methods map[string]*starlark.Builtin) (starlark.Value, error) {
 	b := methods[name]
 	if b == nil {
@@ -254,6 +283,68 @@ func seriesGet(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 	self := b.Receiver().(*Series)
 	ret, _, err := self.Get(key)
 	return ret, err
+}
+
+// astype method converts a Series by coercing its values to the given type
+func seriesAsType(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var typeVal starlark.Value
+	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 1, &typeVal); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*Series)
+
+	typeName, _ := toStrMaybe(typeVal)
+	if typeName != "int64" {
+		return nil, fmt.Errorf("invalid type, only \"int64\" allowed")
+	}
+
+	newVals := make([]int, 0, self.len())
+	for _, val := range self.values() {
+		text := fmt.Sprintf("%s", val)
+
+		// Special case: convert datetime to nanoseconds
+		if self.dtype == "datetime64[ns]" && self.which == typeObj {
+			t, err := time.Parse("2006-01-02 15:04:05", text)
+			if err != nil {
+				return nil, err
+			}
+			num := t.UnixNano()
+			newVals = append(newVals, int(num))
+			continue
+		}
+
+		// Default case, parse the value as an integer
+		num, err := strconv.Atoi(text)
+		if err != nil {
+			num = -1
+		}
+		newVals = append(newVals, num)
+	}
+
+	return newSeriesFromInts(newVals, self.index, self.name), nil
+}
+
+// notnull method returns a Series of booleans that are true for non-null values
+func seriesNotNull(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*Series)
+
+	newVals := make([]int, 0, self.len())
+	for _, val := range self.values() {
+		text := fmt.Sprintf("%s", val)
+		// TODO(dustmop): This is a hack, null must have its own representation instead
+		if text == "None" {
+			newVals = append(newVals, 0)
+		} else {
+			newVals = append(newVals, 1)
+		}
+	}
+
+	series := newSeriesFromInts(newVals, self.index, self.name)
+	series.dtype = "bool"
+	return series, nil
 }
 
 func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -299,6 +390,10 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 
 		for k := 0; k < inData.Len(); k++ {
 			elemVal := inData.Index(k)
+			if elemVal == nil || elemVal == starlark.None {
+				builder.pushNil()
+				continue
+			}
 			if scalar, ok := toScalarMaybe(elemVal); ok {
 				builder.push(scalar)
 				continue

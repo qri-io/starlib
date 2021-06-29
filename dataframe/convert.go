@@ -77,6 +77,9 @@ func toInterfaceSliceOrNil(v starlark.Value) []interface{} {
 
 // convert starlark value to a go native int if it has the right type
 func toIntMaybe(v starlark.Value) (int, bool) {
+	if v == nil || v == starlark.None {
+		return 0, false
+	}
 	n, err := starlark.AsInt32(v)
 	if err != nil {
 		return 0, false

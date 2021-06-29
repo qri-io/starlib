@@ -1,0 +1,12 @@
+           class  max_speed
+falcon      bird      389.0
+parrot      bird       24.0
+  lion    mammal       80.5
+monkey    mammal        9.2
+
+      index   class  max_speed
+0    falcon    bird      389.0
+1    parrot    bird       24.0
+2      lion  mammal       80.5
+3    monkey  mammal        9.2
+
