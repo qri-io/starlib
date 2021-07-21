@@ -15,7 +15,15 @@ update-changelog:
 	conventional-changelog -p angular -i CHANGELOG.md -s
 
 docs:
-	outline template $(shell find . | grep doc.go | tr '\n' ' ') > ../website/content/docs/transforms/starlib.md
+	@if [ ! -d ../website/content/docs ]; then \
+		echo "website repo not found, should be a sibling to starlib/"; \
+		exit 1; \
+	fi
+	@mkdir -p ../website/content/docs/reference/starlark-standard-library
+	for sourcefile in $$(find . | grep doc.go) ; do \
+		targetfile="`echo $${sourcefile} | sed 's/\/doc.go/.md/' | sed 's/encoding\//encoding_/' `"; \
+		outline template $${sourcefile} > ../website/content/docs/reference/starlark-standard-library/$${targetfile} ; \
+	done
 
 list-deps:
 	go list -f '{{.Deps}}' | tr "[" " " | tr "]" " " | xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}'
