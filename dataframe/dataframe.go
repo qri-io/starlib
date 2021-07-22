@@ -22,7 +22,7 @@ var Module = &starlarkstruct.Module{
 	Name: Name,
 	Members: starlark.StringDict{
 		"read_csv":  starlark.NewBuiltin("read_csv", readCsv),
-		"DataFrame": starlark.NewBuiltin("DataFrame", newDataFrame),
+		"DataFrame": starlark.NewBuiltin("DataFrame", NewDataFrame),
 		"Index":     starlark.NewBuiltin("Index", newIndex),
 		"Series":    starlark.NewBuiltin("Series", newSeries),
 	},
@@ -100,13 +100,44 @@ func readCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, 
 		builder.pushTextRow(record)
 	}
 
+	// Finish building the body, return any errors
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
 	return &DataFrame{
 		columns: NewIndex(header, ""),
-		body:    builder.body(),
+		body:    body,
 	}, nil
 }
 
-func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+// BuildFromRows constructs a dataframe from a list of lists of go values
+func BuildFromRows(rows [][]interface{}) (starlark.Value, error) {
+	rowLength := -1
+	var builder *tableBuilder
+	for lineNum, record := range rows {
+		if rowLength == -1 {
+			rowLength = len(record)
+		} else if rowLength != len(record) {
+			return nil, fmt.Errorf("rows must be same length, line %d is %d instead of %d", lineNum, len(record), rowLength)
+		}
+		if builder == nil {
+			builder = newTableBuilder(rowLength, 0)
+		}
+		builder.pushRow(record)
+	}
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
+	// TODO(dustmop): Allow passing in columns, from the ds.structure
+	return &DataFrame{
+		body: body,
+	}, nil
+}
+
+// NewDataFrame constructs a dataframe from many kinds of starlark values
+func NewDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
 		dataVal, indexVal, columnsVal, dtypeVal starlark.Value
 		kopyVal                                 starlark.Bool
@@ -196,7 +227,10 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 			}
 			builder.pushRow(row)
 		}
-		newBody := builder.body()
+		newBody, err := builder.body()
+		if err != nil {
+			return nil, err
+		}
 
 		if index.len() > 0 && index.len() != numRows {
 			// TODO(dustmop): Add test
@@ -406,7 +440,11 @@ func (df *DataFrame) stringify() string {
 
 	// Create array of max widths, starting at 0
 	widths := make([]int, df.numCols())
-	for i, name := range df.columns.texts {
+	colTexts := []string{}
+	if df.columns != nil {
+		colTexts = df.columns.texts
+	}
+	for i, name := range colTexts {
 		w := len(fmt.Sprintf("%s", name))
 		if w > widths[i] {
 			widths[i] = w
@@ -423,10 +461,10 @@ func (df *DataFrame) stringify() string {
 	}
 
 	// Render columns
-	header := make([]string, 0, len(df.columns.texts))
-	if len(df.columns.texts) > 0 {
+	header := make([]string, 0, len(colTexts))
+	if len(colTexts) > 0 {
 		// Render the column names
-		for i, name := range df.columns.texts {
+		for i, name := range colTexts {
 			tmpl := fmt.Sprintf("%%%ds", widths[i])
 			header = append(header, fmt.Sprintf(tmpl, name))
 		}
@@ -534,9 +572,14 @@ func dataframeHead(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		numRows--
 	}
 
+	// Finish building the body, return any errors
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
 	return &DataFrame{
 		columns: self.columns,
-		body:    builder.body(),
+		body:    body,
 	}, nil
 }
 
@@ -612,9 +655,14 @@ func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starl
 		builder.pushRow(rows.GetRow().data)
 	}
 
+	// Finish building the body, return any errors
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
 	return &DataFrame{
 		columns: self.columns,
-		body:    builder.body(),
+		body:    body,
 	}, nil
 }
 
@@ -721,9 +769,14 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 		}
 	}
 
+	// Finish building the body, return any errors
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
 	return &DataFrame{
 		columns: NewIndex(newColumns, ""),
-		body:    builder.body(),
+		body:    body,
 	}, nil
 }
 

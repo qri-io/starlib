@@ -35,13 +35,18 @@ func (b *tableBuilder) pushTextRow(row []string) {
 	}
 }
 
-func (b *tableBuilder) body() []Series {
+func (b *tableBuilder) body() ([]Series, error) {
 	if b == nil {
-		return []Series{}
+		return []Series{}, nil
+	}
+	for x := 0; x < b.numCols; x++ {
+		if b.builders[x].buildError != nil {
+			return nil, b.builders[x].buildError
+		}
 	}
 	result := make([]Series, b.numCols)
 	for x := 0; x < b.numCols; x++ {
 		result[x] = b.builders[x].toSeries(nil, "")
 	}
-	return result
+	return result, nil
 }
