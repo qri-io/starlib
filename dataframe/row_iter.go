@@ -20,7 +20,7 @@ type rowIter struct {
 }
 
 func newRowIter(df *DataFrame) *rowIter {
-	return &rowIter{idx: 0, df: df, limit: df.numRows()}
+	return &rowIter{idx: 0, df: df, limit: df.NumRows()}
 }
 
 // newRowIterWithOrder returns a rowIter that iterates the rows in a specific order
@@ -29,7 +29,7 @@ func newRowIterWithOrder(df *DataFrame, order []int) *rowIter {
 		return newRowIter(df)
 	}
 	idx := order[0]
-	return &rowIter{idx: idx, df: df, limit: df.numRows(), order: order, step: 0}
+	return &rowIter{idx: idx, df: df, limit: df.NumRows(), order: order, step: 0}
 }
 
 func (r *rowIter) Done() bool {
@@ -64,7 +64,7 @@ func (r *rowIter) GetRow() *rowTuple {
 	var items []interface{}
 	items = make([]interface{}, len(r.df.body))
 	for k := 0; k < len(r.df.body); k++ {
-		items[k] = r.df.body[k].at(r.idx)
+		items[k] = r.df.body[k].At(r.idx)
 	}
 	return &rowTuple{index: r.df.columns, data: items}
 }

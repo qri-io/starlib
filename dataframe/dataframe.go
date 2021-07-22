@@ -2,6 +2,7 @@ package dataframe
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -213,7 +214,8 @@ func NewDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 		for y := 0; y < inData.Len(); y++ {
 			row := toInterfaceSliceOrNil(inData.Index(y))
 			if row == nil {
-				return starlark.None, fmt.Errorf("invalid values for row")
+				data, _ := json.Marshal(inData)
+				return starlark.None, fmt.Errorf("invalid values for row: %s", string(data))
 			}
 			// Validate that the size of each row is the same
 			// TODO(dustmop): Add test
@@ -251,15 +253,30 @@ func NewDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 	return nil, fmt.Errorf("Not implemented, constructing DataFrame using %s", dataVal.Type())
 }
 
-func (df *DataFrame) numCols() int {
+// NumCols returns the number of columns
+func (df *DataFrame) NumCols() int {
 	return len(df.body)
 }
 
-func (df *DataFrame) numRows() int {
+// NumRows returns the number of rows
+func (df *DataFrame) NumRows() int {
 	if len(df.body) == 0 {
 		return 0
 	}
 	return df.body[0].len()
+}
+
+// Row returns the ith row as a slice of go native types
+func (df *DataFrame) Row(i int) []interface{} {
+	if i >= df.NumRows() {
+		return nil
+	}
+	row := make([]interface{}, df.NumCols())
+	for k := 0; k < df.NumCols(); k++ {
+		series := df.body[k]
+		row[k] = series.At(i)
+	}
+	return row
 }
 
 // String returns the DataFrame as a string in a readable, tabular form
@@ -346,7 +363,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 	// Assignment of a scalar (int, bool, float, string) to the column
 	if scalar, ok := toScalarMaybe(val); ok {
 		var newBody []Series
-		newCol := newSeriesFromRepeatScalar(scalar, max(1, df.numRows()))
+		newCol := newSeriesFromRepeatScalar(scalar, max(1, df.NumRows()))
 		if columnIndex == -1 {
 			// New columns are added to the left side of the dataframe
 			newBody = append([]Series{*newCol}, df.body...)
@@ -364,7 +381,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 	if !ok {
 		return fmt.Errorf("SetKey: val must be int, string, or Series")
 	}
-	if df.numRows() > 0 && (df.numRows() != series.len()) {
+	if df.NumRows() > 0 && (df.NumRows() != series.len()) {
 		return fmt.Errorf("SetKey: val len must match number of rows")
 	}
 
@@ -424,7 +441,7 @@ func (df *DataFrame) stringify() string {
 	// Get width of the left-hand label
 	labelWidth := 0
 	if df.index == nil {
-		bodyHeight := df.numRows()
+		bodyHeight := df.NumRows()
 		k := len(fmt.Sprintf("%d", bodyHeight))
 		if k > labelWidth {
 			labelWidth = k
@@ -439,7 +456,7 @@ func (df *DataFrame) stringify() string {
 	}
 
 	// Create array of max widths, starting at 0
-	widths := make([]int, df.numCols())
+	widths := make([]int, df.NumCols())
 	colTexts := []string{}
 	if df.columns != nil {
 		colTexts = df.columns.texts
@@ -450,7 +467,7 @@ func (df *DataFrame) stringify() string {
 			widths[i] = w
 		}
 	}
-	for i := 0; i < df.numRows(); i++ {
+	for i := 0; i < df.NumRows(); i++ {
 		for j, col := range df.body {
 			elem := col.strAt(i)
 			w := len(elem)
@@ -479,7 +496,7 @@ func (df *DataFrame) stringify() string {
 	answer := fmt.Sprintf("%s    %s\n", padding, strings.Join(header, "  "))
 
 	// Render each row
-	for i := 0; i < df.numRows(); i++ {
+	for i := 0; i < df.NumRows(); i++ {
 		render := []string{""}
 		// Render the index number or label to start the line
 		if df.index == nil {
@@ -565,7 +582,7 @@ func dataframeHead(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		numRows = 5
 	}
 
-	builder := newTableBuilder(self.numCols(), 0)
+	builder := newTableBuilder(self.NumCols(), 0)
 	for rows := newRowIter(self); !rows.Done() && numRows > 0; rows.Next() {
 		r := rows.GetRow()
 		builder.pushRow(r.data)
@@ -645,7 +662,7 @@ func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starl
 	}
 
 	seen := map[string]bool{}
-	builder := newTableBuilder(self.numCols(), 0)
+	builder := newTableBuilder(self.NumCols(), 0)
 	for rows := newRowIter(self); !rows.Done(); rows.Next() {
 		matchOn := rows.Marshal(subsetPos)
 		if seen[matchOn] {
@@ -792,7 +809,7 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 	}
 
 	newColumns := append([]string{"index"}, self.columns.texts...)
-	newBody := make([]Series, 0, self.numCols())
+	newBody := make([]Series, 0, self.NumCols())
 
 	newBody = append(newBody, Series{which: typeObj, valObjs: self.index.texts})
 	for _, col := range self.body {

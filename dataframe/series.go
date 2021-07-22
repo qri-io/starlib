@@ -248,8 +248,8 @@ func (s *Series) strAt(i int) string {
 	return s.valObjs[i]
 }
 
-// at returns the cell at position 'i' as a go native type
-func (s *Series) at(i int) interface{} {
+// At returns the cell at position 'i' as a go native type
+func (s *Series) At(i int) interface{} {
 	if s.which == typeInt {
 		return s.valInts[i]
 	} else if s.which == typeFloat {
