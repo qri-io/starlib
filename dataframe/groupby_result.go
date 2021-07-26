@@ -64,7 +64,7 @@ func (gbr *GroupByResult) Get(key starlark.Value) (value starlark.Value, found b
 
 	keyPos := findKeyPos(name, gbr.columns.texts)
 	if keyPos == -1 {
-		return nil, false, fmt.Errorf("not found")
+		return nil, false, fmt.Errorf("GroupbyResult.Get: key not found %q", name)
 	}
 
 	result := map[string][]string{}

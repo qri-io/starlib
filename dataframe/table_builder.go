@@ -12,7 +12,7 @@ type tableBuilder struct {
 func newTableBuilder(numCols, rowCapacity int) *tableBuilder {
 	builders := make([]*typedSliceBuilder, numCols)
 	for x := 0; x < numCols; x++ {
-		builders[x] = newTypedArrayBuilder(rowCapacity)
+		builders[x] = newTypedSliceBuilder(rowCapacity)
 	}
 	return &tableBuilder{numCols: numCols, builders: builders}
 }

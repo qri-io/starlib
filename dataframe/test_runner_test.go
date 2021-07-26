@@ -24,7 +24,7 @@ func runTestScript(t *testing.T, scriptFilename, expectFilename string) {
 
 	_, err := starlark.ExecFile(thread, scriptFilename, nil, nil)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	expect := mustReadFile(t, expectFilename)
 

@@ -26,7 +26,7 @@ const (
 	typeObj   = 3
 )
 
-func newTypedArrayBuilder(size int) *typedSliceBuilder {
+func newTypedSliceBuilder(size int) *typedSliceBuilder {
 	return &typedSliceBuilder{
 		size: size,
 	}
