@@ -1,0 +1,83 @@
+{{- define "mdFn" }}
+
+### {{ .FuncName }}
+
+```
+{{ .Signature }}
+```
+
+{{- if ne .Description "" }}
+
+{{ .Description }}
+
+{{- end -}}
+
+{{- if gt (len .Params) 0 }}
+
+#### parameters:
+
+| name | type | description |
+|------|------|-------------|
+{{ range .Params -}}
+| `{{ .Name }}` | `{{ .Type }}` | {{ .Description }} |
+{{ end -}}
+{{- end -}}
+{{- end -}}
+{{- range . -}}
+
+---
+metaTitle: "{{ .Name}}"
+metaDescription: "{{ .Description }}"
+weight: 2
+---
+
+{{ if ne .Description "" }}{{ .Description }}{{ end }}
+
+{{- if gt (len .Functions) 0 }}
+
+## Functions
+
+{{ range .Functions -}}
+{{ template "mdFn" . }}
+{{ end -}}
+{{- end }}
+{{ if gt (len .Types) 0 }}
+
+## Types
+
+{{ range .Types -}}
+
+### '{{ .Name }}'
+
+{{ if ne .Description "" }}{{ .Description }}{{ end -}}
+{{ if gt (len .Fields) 0 }}
+
+**Fields**
+
+| name | type | description |
+|------|------|-------------|
+{{ range .Fields -}}
+| {{ .Name }} | {{ .Type }} | {{ .Description }} |
+{{ end -}}
+{{ end -}}
+{{ if gt (len .Methods) 0 }}
+
+**Methods**
+
+{{- range .Methods -}}
+{{ template "mdFn" . }}
+{{ end -}}
+{{- if gt (len .Operators) 0 }}
+
+**Operators**
+
+| operator | description |
+|----------|-------------|
+{{ range .Operators -}}
+	| {{ .Opr }} | {{ .Description }} |
+{{ end }}
+{{ end }}
+{{ end }}
+{{- end -}}
+{{- end -}}
+{{ end }}
