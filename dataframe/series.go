@@ -85,7 +85,7 @@ func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, e
 	if name, ok := toStrMaybe(keyVal); ok {
 		pos := findKeyPos(name, s.index.texts)
 		if pos == -1 {
-			return starlark.None, false, fmt.Errorf("not found: %q", name)
+			return starlark.None, false, fmt.Errorf("Series.Get: not found: %q", name)
 		}
 		val, err := convertToStarlark(s.values()[pos])
 		if err != nil {
@@ -116,7 +116,7 @@ func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, e
 		}
 		return newSeriesFromStrings(newVals, NewIndex(newIdx, ""), s.name), true, nil
 	}
-	return starlark.None, false, fmt.Errorf("not found: %q", keyVal)
+	return starlark.None, false, fmt.Errorf("Series.Get: not found: %q", keyVal)
 }
 
 func (s *Series) stringify() string {
@@ -248,8 +248,8 @@ func (s *Series) strAt(i int) string {
 	return s.valObjs[i]
 }
 
-// at returns the cell at position 'i' as a go native type
-func (s *Series) at(i int) interface{} {
+// At returns the cell at position 'i' as a go native type
+func (s *Series) At(i int) interface{} {
 	if s.which == typeInt {
 		return s.valInts[i]
 	} else if s.which == typeFloat {
@@ -385,7 +385,7 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 
 	switch inData := dataVal.(type) {
 	case *starlark.List:
-		builder := newTypedArrayBuilder(inData.Len())
+		builder := newTypedSliceBuilder(inData.Len())
 		builder.setType(dtype)
 
 		for k := 0; k < inData.Len(); k++ {
@@ -406,7 +406,7 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 		series := builder.toSeries(index, name)
 		return &series, nil
 	case *starlark.Dict:
-		builder := newTypedArrayBuilder(inData.Len())
+		builder := newTypedSliceBuilder(inData.Len())
 		builder.setType(dtype)
 
 		keys := inData.Keys()

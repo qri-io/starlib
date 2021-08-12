@@ -2,8 +2,10 @@ package dataframe
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	"go.starlark.net/starlark"
@@ -22,7 +24,7 @@ var Module = &starlarkstruct.Module{
 	Name: Name,
 	Members: starlark.StringDict{
 		"read_csv":  starlark.NewBuiltin("read_csv", readCsv),
-		"DataFrame": starlark.NewBuiltin("DataFrame", newDataFrame),
+		"DataFrame": starlark.NewBuiltin("DataFrame", newDataFrameBuiltin),
 		"Index":     starlark.NewBuiltin("Index", newIndex),
 		"Series":    starlark.NewBuiltin("Series", newSeries),
 	},
@@ -100,13 +102,19 @@ func readCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, 
 		builder.pushTextRow(record)
 	}
 
+	// Finish building the body, return any errors
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
 	return &DataFrame{
 		columns: NewIndex(header, ""),
-		body:    builder.body(),
+		body:    body,
 	}, nil
 }
 
-func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+// newDataFrameBuiltin constructs a dataframe, meant to be called from starlark
+func newDataFrameBuiltin(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
 		dataVal, indexVal, columnsVal, dtypeVal starlark.Value
 		kopyVal                                 starlark.Bool
@@ -124,108 +132,234 @@ func newDataFrame(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 	columns := toStrSliceOrNil(columnsVal)
 	index, _ := toIndexMaybe(indexVal)
 
-	switch inData := dataVal.(type) {
-	case *starlark.Dict:
-		newBody := make([]Series, 0)
-		keyList := make([]string, 0, inData.Len())
-		inKeys := inData.Keys()
-		numCols := len(inKeys)
-		numRows := -1
-		for i := 0; i < len(inKeys); i++ {
-			// Collect each key, use them as the default index
-			inKey := inKeys[i]
-			keyList = append(keyList, toStr(inKey))
-			// Get each value, which should be a list of values
-			val, _, _ := inData.Get(inKey)
-			items := toInterfaceSliceOrNil(val)
-			if items == nil {
-				return starlark.None, fmt.Errorf("invalid values for column")
-			}
-			// Validate that the size of each column is the same
-			// TODO(dustmop): Add test
-			if numRows == -1 {
-				numRows = len(items)
-			} else if numRows != len(items) {
-				return starlark.None, fmt.Errorf("columns need to be the same length")
-			}
-			// The list of values should be of the same type
-			builder := newTypedArrayBuilder(len(items))
-			for _, it := range items {
-				builder.push(it)
-			}
-			if err := builder.error(); err != nil {
-				return starlark.None, err
-			}
-
-			newBody = append(newBody, builder.toSeries(nil, ""))
-		}
-
-		if index.len() > 0 && index.len() != numRows {
-			// TODO(dustmop): Add test
-			return starlark.None, fmt.Errorf("size of index does not match body size")
-		}
-		if len(columns) > 0 && len(columns) != numCols {
-			// TODO(dustmop): Add test
-			return starlark.None, fmt.Errorf("number of columns does not match body size")
-		}
-
-		// TODO(dustmop): `index` will re-index
-		return &DataFrame{
-			columns: NewIndex(keyList, ""),
-			body:    newBody,
-		}, nil
-	case *starlark.List:
-		numRows := inData.Len()
-		numCols := -1
-		var builder *tableBuilder
-		// Iterate the input data row-size
-		for y := 0; y < inData.Len(); y++ {
-			row := toInterfaceSliceOrNil(inData.Index(y))
-			if row == nil {
-				return starlark.None, fmt.Errorf("invalid values for row")
-			}
-			// Validate that the size of each row is the same
-			// TODO(dustmop): Add test
-			if numCols == -1 {
-				numCols = len(row)
-			} else if numCols != len(row) {
-				return starlark.None, fmt.Errorf("rows need to be the same length")
-			}
-			if builder == nil {
-				builder = newTableBuilder(numCols, numRows)
-			}
-			builder.pushRow(row)
-		}
-		newBody := builder.body()
-
-		if index.len() > 0 && index.len() != numRows {
-			// TODO(dustmop): Add test
-			return starlark.None, fmt.Errorf("size of index does not match body size")
-		}
-		if len(columns) > 0 && len(columns) != numCols {
-			// TODO(dustmop): Add test
-			return starlark.None, fmt.Errorf("number of columns does not match body size")
-		}
-
-		return &DataFrame{
-			columns: NewIndex(columns, ""),
-			index:   index,
-			body:    newBody,
-		}, nil
-	}
-
-	return nil, fmt.Errorf("Not implemented, constructing DataFrame using %s", dataVal.Type())
+	return NewDataFrame(dataVal, columns, index)
 }
 
-func (df *DataFrame) numCols() int {
+// NewDataFrame constructs a DataFrame from data, and optionally column names and an index
+// data can be any datatype supported by this DataFrame implementation, either
+// go native types or starlark types
+func NewDataFrame(data interface{}, columnNames []string, index *Index) (*DataFrame, error) {
+	var (
+		body    []Series
+		columns *Index
+		err     error
+	)
+
+	if columnNames != nil {
+		columns = NewIndex(columnNames, "")
+	}
+
+	switch inData := data.(type) {
+	case []interface{}:
+		body, err = constructBodyFromNativeSlice(inData)
+		if err != nil {
+			return nil, err
+		}
+
+	case [][]interface{}:
+		body, err = constructBodyFromRows(inData)
+		if err != nil {
+			return nil, err
+		}
+
+	case Series:
+		body = []Series{inData}
+
+	case *Series:
+		if inData == nil {
+			return nil, fmt.Errorf("cannot convert nil series pointer into a dataframe body")
+		}
+		body = []Series{*inData}
+
+	case *starlark.Dict:
+		var keys []string
+		body, keys, err = constructBodyFromStarlarkDict(inData)
+		if err != nil {
+			return nil, err
+		}
+		columns = NewIndex(keys, "")
+		// TODO(dustmop): `index` will re-index
+
+	case *starlark.List:
+		body, err = constructBodyFromStarlarkList(inData)
+		if err != nil {
+			return nil, err
+		}
+
+	default:
+		return nil, fmt.Errorf("Not implemented, constructing DataFrame using %s", reflect.TypeOf(data))
+	}
+
+	// Check that the index and columns, if present, match the body size
+	numCols, numRows := sizeOfBody(body)
+	if index.len() > 0 && index.len() != numRows {
+		// TODO(dustmop): Add test
+		return nil, fmt.Errorf("size of index does not match body size")
+	}
+	if columns.len() > 0 && columns.len() != numCols {
+		// TODO(dustmop): Add test
+		return nil, fmt.Errorf("number of columns does not match body size")
+	}
+
+	return &DataFrame{
+		columns: columns,
+		index:   index,
+		body:    body,
+	}, nil
+}
+
+// construct a body from a slice, either cooercing it into rows, or treating it as a column
+func constructBodyFromNativeSlice(ls []interface{}) ([]Series, error) {
+	if rows := toTwoDimensionalRows(ls); rows != nil {
+		return constructBodyFromRows(rows)
+	}
+	// One dimensional list, treat it as a column
+	builder := newTypedSliceBuilder(len(ls))
+	for i := 0; i < len(ls); i++ {
+		builder.push(ls[i])
+	}
+	if err := builder.error(); err != nil {
+		return nil, err
+	}
+	s := builder.toSeries(nil, "")
+	return []Series{s}, nil
+}
+
+// try to convert a slice into 2-d rows, returning nil if not possible
+func toTwoDimensionalRows(ls []interface{}) [][]interface{} {
+	build := [][]interface{}{}
+	for i := 0; i < len(ls); i++ {
+		elem := ls[i]
+		items, ok := elem.([]interface{})
+		if !ok {
+			return nil
+		}
+		build = append(build, items)
+	}
+	return build
+}
+
+// construct a body from 2-d rows
+func constructBodyFromRows(rows [][]interface{}) ([]Series, error) {
+	rowLength := -1
+	var builder *tableBuilder
+	for lineNum, record := range rows {
+		if rowLength == -1 {
+			rowLength = len(record)
+		} else if rowLength != len(record) {
+			return nil, fmt.Errorf("rows must be same length, line %d is %d instead of %d", lineNum, len(record), rowLength)
+		}
+		if builder == nil {
+			builder = newTableBuilder(rowLength, 0)
+		}
+		builder.pushRow(record)
+	}
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
+}
+
+// construct a body from a starlark.Dict
+func constructBodyFromStarlarkDict(data *starlark.Dict) ([]Series, []string, error) {
+	newBody := make([]Series, 0)
+	keyList := make([]string, 0, data.Len())
+	inKeys := data.Keys()
+	numRows := -1
+	for i := 0; i < len(inKeys); i++ {
+		// Collect each key, use them as the default index
+		inKey := inKeys[i]
+		keyList = append(keyList, toStr(inKey))
+		// Get each value, which should be a list of values
+		val, _, _ := data.Get(inKey)
+		items := toInterfaceSliceOrNil(val)
+		if items == nil {
+			return nil, nil, fmt.Errorf("invalid values for column")
+		}
+		// Validate that the size of each column is the same
+		// TODO(dustmop): Add test
+		if numRows == -1 {
+			numRows = len(items)
+		} else if numRows != len(items) {
+			return nil, nil, fmt.Errorf("columns need to be the same length")
+		}
+		// The list of values should be of the same type
+		builder := newTypedSliceBuilder(len(items))
+		for _, it := range items {
+			builder.push(it)
+		}
+		if err := builder.error(); err != nil {
+			return nil, nil, err
+		}
+		newBody = append(newBody, builder.toSeries(nil, ""))
+	}
+	return newBody, keyList, nil
+}
+
+// construct a body from a starlark.List
+func constructBodyFromStarlarkList(data *starlark.List) ([]Series, error) {
+	numRows := data.Len()
+	numCols := -1
+	var builder *tableBuilder
+	// Iterate the input data row-size
+	for y := 0; y < data.Len(); y++ {
+		row := toInterfaceSliceOrNil(data.Index(y))
+		if row == nil {
+			obj, _ := json.Marshal(data)
+			return nil, fmt.Errorf("invalid values for row: %s", string(obj))
+		}
+		// Validate that the size of each row is the same
+		// TODO(dustmop): Add test
+		if numCols == -1 {
+			numCols = len(row)
+		} else if numCols != len(row) {
+			return nil, fmt.Errorf("rows need to be the same length")
+		}
+		if builder == nil {
+			builder = newTableBuilder(numCols, numRows)
+		}
+		builder.pushRow(row)
+	}
+	newBody, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
+	return newBody, nil
+}
+
+// get the size of the body, width and height
+func sizeOfBody(body []Series) (int, int) {
+	if len(body) == 0 {
+		return 0, 0
+	}
+	return len(body), body[0].len()
+}
+
+// NumCols returns the number of columns
+func (df *DataFrame) NumCols() int {
 	return len(df.body)
 }
 
-func (df *DataFrame) numRows() int {
+// NumRows returns the number of rows
+func (df *DataFrame) NumRows() int {
 	if len(df.body) == 0 {
 		return 0
 	}
 	return df.body[0].len()
+}
+
+// Row returns the ith row as a slice of go native types
+func (df *DataFrame) Row(i int) []interface{} {
+	if i >= df.NumRows() {
+		return nil
+	}
+	row := make([]interface{}, df.NumCols())
+	for k := 0; k < df.NumCols(); k++ {
+		series := df.body[k]
+		row[k] = series.At(i)
+	}
+	return row
 }
 
 // String returns the DataFrame as a string in a readable, tabular form
@@ -312,7 +446,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 	// Assignment of a scalar (int, bool, float, string) to the column
 	if scalar, ok := toScalarMaybe(val); ok {
 		var newBody []Series
-		newCol := newSeriesFromRepeatScalar(scalar, max(1, df.numRows()))
+		newCol := newSeriesFromRepeatScalar(scalar, max(1, df.NumRows()))
 		if columnIndex == -1 {
 			// New columns are added to the left side of the dataframe
 			newBody = append([]Series{*newCol}, df.body...)
@@ -330,7 +464,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 	if !ok {
 		return fmt.Errorf("SetKey: val must be int, string, or Series")
 	}
-	if df.numRows() > 0 && (df.numRows() != series.len()) {
+	if df.NumRows() > 0 && (df.NumRows() != series.len()) {
 		return fmt.Errorf("SetKey: val len must match number of rows")
 	}
 
@@ -356,7 +490,7 @@ func (df *DataFrame) Get(keyVal starlark.Value) (value starlark.Value, found boo
 	// Find the column being retrieved, fail if not found
 	keyPos := findKeyPos(key, df.columns.texts)
 	if keyPos == -1 {
-		return starlark.None, false, fmt.Errorf("not found")
+		return starlark.None, false, fmt.Errorf("DataFrame.Get: key not found %q", key)
 	}
 
 	got := df.body[keyPos]
@@ -390,7 +524,7 @@ func (df *DataFrame) stringify() string {
 	// Get width of the left-hand label
 	labelWidth := 0
 	if df.index == nil {
-		bodyHeight := df.numRows()
+		bodyHeight := df.NumRows()
 		k := len(fmt.Sprintf("%d", bodyHeight))
 		if k > labelWidth {
 			labelWidth = k
@@ -405,14 +539,18 @@ func (df *DataFrame) stringify() string {
 	}
 
 	// Create array of max widths, starting at 0
-	widths := make([]int, df.numCols())
-	for i, name := range df.columns.texts {
+	widths := make([]int, df.NumCols())
+	colTexts := []string{}
+	if df.columns != nil {
+		colTexts = df.columns.texts
+	}
+	for i, name := range colTexts {
 		w := len(fmt.Sprintf("%s", name))
 		if w > widths[i] {
 			widths[i] = w
 		}
 	}
-	for i := 0; i < df.numRows(); i++ {
+	for i := 0; i < df.NumRows(); i++ {
 		for j, col := range df.body {
 			elem := col.strAt(i)
 			w := len(elem)
@@ -423,10 +561,10 @@ func (df *DataFrame) stringify() string {
 	}
 
 	// Render columns
-	header := make([]string, 0, len(df.columns.texts))
-	if len(df.columns.texts) > 0 {
+	header := make([]string, 0, len(colTexts))
+	if len(colTexts) > 0 {
 		// Render the column names
-		for i, name := range df.columns.texts {
+		for i, name := range colTexts {
 			tmpl := fmt.Sprintf("%%%ds", widths[i])
 			header = append(header, fmt.Sprintf(tmpl, name))
 		}
@@ -441,7 +579,7 @@ func (df *DataFrame) stringify() string {
 	answer := fmt.Sprintf("%s    %s\n", padding, strings.Join(header, "  "))
 
 	// Render each row
-	for i := 0; i < df.numRows(); i++ {
+	for i := 0; i < df.NumRows(); i++ {
 		render := []string{""}
 		// Render the index number or label to start the line
 		if df.index == nil {
@@ -527,16 +665,21 @@ func dataframeHead(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		numRows = 5
 	}
 
-	builder := newTableBuilder(self.numCols(), 0)
+	builder := newTableBuilder(self.NumCols(), 0)
 	for rows := newRowIter(self); !rows.Done() && numRows > 0; rows.Next() {
 		r := rows.GetRow()
 		builder.pushRow(r.data)
 		numRows--
 	}
 
+	// Finish building the body, return any errors
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
 	return &DataFrame{
 		columns: self.columns,
-		body:    builder.body(),
+		body:    body,
 	}, nil
 }
 
@@ -602,7 +745,7 @@ func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starl
 	}
 
 	seen := map[string]bool{}
-	builder := newTableBuilder(self.numCols(), 0)
+	builder := newTableBuilder(self.NumCols(), 0)
 	for rows := newRowIter(self); !rows.Done(); rows.Next() {
 		matchOn := rows.Marshal(subsetPos)
 		if seen[matchOn] {
@@ -612,9 +755,14 @@ func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starl
 		builder.pushRow(rows.GetRow().data)
 	}
 
+	// Finish building the body, return any errors
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
 	return &DataFrame{
 		columns: self.columns,
-		body:    builder.body(),
+		body:    body,
 	}, nil
 }
 
@@ -721,9 +869,14 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 		}
 	}
 
+	// Finish building the body, return any errors
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
 	return &DataFrame{
 		columns: NewIndex(newColumns, ""),
-		body:    builder.body(),
+		body:    body,
 	}, nil
 }
 
@@ -739,7 +892,7 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 	}
 
 	newColumns := append([]string{"index"}, self.columns.texts...)
-	newBody := make([]Series, 0, self.numCols())
+	newBody := make([]Series, 0, self.NumCols())
 
 	newBody = append(newBody, Series{which: typeObj, valObjs: self.index.texts})
 	for _, col := range self.body {

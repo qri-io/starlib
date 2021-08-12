@@ -26,7 +26,7 @@ const (
 	typeObj   = 3
 )
 
-func newTypedArrayBuilder(size int) *typedSliceBuilder {
+func newTypedSliceBuilder(size int) *typedSliceBuilder {
 	return &typedSliceBuilder{
 		size: size,
 	}
@@ -60,6 +60,10 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			t.currType = "int64"
 			t.whichVals = typeInt
 			_ = num
+		} else if num, ok := val.(int64); ok {
+			t.currType = "int64"
+			t.whichVals = typeInt
+			_ = num
 		} else if f, ok := val.(float64); ok {
 			t.currType = "float64"
 			t.whichVals = typeFloat
@@ -86,6 +90,15 @@ func (t *typedSliceBuilder) push(val interface{}) {
 				val = float64(num)
 			} else if t.currType == "object" {
 				val = strconv.Itoa(num)
+			} else if t.currType != "int64" {
+				t.buildError = fmt.Errorf("handle coercion: %v to %q", num, t.currType)
+				return
+			}
+		} else if num, ok := val.(int64); ok {
+			if t.currType == "float64" {
+				val = float64(num)
+			} else if t.currType == "object" {
+				val = strconv.Itoa(int(num))
 			} else if t.currType != "int64" {
 				t.buildError = fmt.Errorf("handle coercion: %v to %q", num, t.currType)
 				return
@@ -142,7 +155,13 @@ func (t *typedSliceBuilder) push(val interface{}) {
 		if t.valInts == nil {
 			t.valInts = make([]int, 0, t.size)
 		}
-		t.valInts = append(t.valInts, val.(int))
+		if n, ok := val.(int); ok {
+			t.valInts = append(t.valInts, n)
+		} else if n, ok := val.(int64); ok {
+			t.valInts = append(t.valInts, int(n))
+		} else {
+			t.buildError = fmt.Errorf("wanted int, got %v of type %s", val, reflect.TypeOf(val))
+		}
 	} else if t.whichVals == typeFloat {
 		if t.valFloats == nil {
 			t.valFloats = make([]float64, 0, t.size)
