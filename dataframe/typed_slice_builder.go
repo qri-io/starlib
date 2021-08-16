@@ -32,6 +32,17 @@ func newTypedSliceBuilder(size int) *typedSliceBuilder {
 	}
 }
 
+func newTypedSliceBuilderFromSeries(series *Series) *typedSliceBuilder {
+	return &typedSliceBuilder{
+		size:      series.len(),
+		whichVals: series.which,
+		valInts:   series.valInts,
+		valFloats: series.valFloats,
+		valObjs:   series.valObjs,
+		dType:     series.dtype,
+	}
+}
+
 func (t *typedSliceBuilder) setType(dtype string) {
 	if dtype == "" {
 		return
