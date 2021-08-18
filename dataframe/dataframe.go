@@ -56,6 +56,8 @@ var dataframeMethods = map[string]*starlark.Builtin{
 	"head":            starlark.NewBuiltin("head", dataframeHead),
 	"merge":           starlark.NewBuiltin("merge", dataframeMerge),
 	"reset_index":     starlark.NewBuiltin("reset_index", dataframeResetIndex),
+	"append":          starlark.NewBuiltin("append", dataframeAppend),
+	"set_csv":         starlark.NewBuiltin("set_csv", dataframeSetCSV),
 }
 
 func readCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -71,39 +73,7 @@ func readCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, 
 	if !ok {
 		return nil, fmt.Errorf("not a string")
 	}
-	reader := csv.NewReader(ReplaceReader(strings.NewReader(text)))
-
-	// Assume header row
-	record, err := reader.Read()
-	if err != nil {
-		return nil, err
-	}
-	header := record
-
-	// Body rows
-	rowLength := -1
-	var builder *tableBuilder
-	for lineNum := 0; ; lineNum++ {
-		record, err := reader.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		if rowLength == -1 {
-			rowLength = len(record)
-		} else if rowLength != len(record) {
-			return nil, fmt.Errorf("rows must be same length, line %d is %d instead of %d", lineNum, len(record), rowLength)
-		}
-		if builder == nil {
-			builder = newTableBuilder(rowLength, 0)
-		}
-		builder.pushTextRow(record)
-	}
-
-	// Finish building the body, return any errors
-	body, err := builder.body()
+	body, header, err := constructBodyHeaderFromCSV(text, true)
 	if err != nil {
 		return nil, err
 	}
@@ -150,6 +120,9 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index) (*DataFr
 	}
 
 	switch inData := data.(type) {
+	case nil:
+		body = []Series{}
+
 	case []interface{}:
 		body, err = constructBodyFromNativeSlice(inData)
 		if err != nil {
@@ -170,6 +143,9 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index) (*DataFr
 			return nil, fmt.Errorf("cannot convert nil series pointer into a dataframe body")
 		}
 		body = []Series{*inData}
+
+	case *DataFrame:
+		body = inData.body
 
 	case *starlark.Dict:
 		var keys []string
@@ -326,6 +302,46 @@ func constructBodyFromStarlarkList(data *starlark.List) ([]Series, error) {
 		return nil, err
 	}
 	return newBody, nil
+}
+
+func constructBodyHeaderFromCSV(text string, hasHeader bool) ([]Series, []string, error) {
+	reader := csv.NewReader(ReplaceReader(strings.NewReader(text)))
+
+	header := []string{}
+	if hasHeader {
+		record, err := reader.Read()
+		if err != nil {
+			return nil, nil, err
+		}
+		header = record
+	}
+
+	// Body rows
+	rowLength := -1
+	var builder *tableBuilder
+	for lineNum := 0; ; lineNum++ {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		if rowLength == -1 {
+			rowLength = len(record)
+		} else if rowLength != len(record) {
+			return nil, nil, fmt.Errorf("rows must be same length, line %d is %d instead of %d", lineNum, len(record), rowLength)
+		}
+		if builder == nil {
+			builder = newTableBuilder(rowLength, 0)
+		}
+		builder.pushTextRow(record)
+	}
+	body, err := builder.body()
+	if err != nil {
+		return nil, nil, err
+	}
+	return body, header, nil
 }
 
 // get the size of the body, width and height
@@ -901,6 +917,76 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 
 	return &DataFrame{
 		columns: NewIndex(newColumns, ""),
+		body:    newBody,
+	}, nil
+}
+
+// set_csv parses csv data and assigns it to the body
+func dataframeSetCSV(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var textVal starlark.String
+
+	if err := starlark.UnpackArgs("text", args, kwargs,
+		"text", &textVal,
+	); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*DataFrame)
+
+	body, _, err := constructBodyHeaderFromCSV(string(textVal), false)
+	if err != nil {
+		return nil, err
+	}
+
+	self.body = body
+	return starlark.None, nil
+}
+
+// append adds a new row to the body
+func dataframeAppend(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var otherVal starlark.Value
+	self := b.Receiver().(*DataFrame)
+
+	if err := starlark.UnpackArgs("append", args, kwargs,
+		"other", &otherVal,
+	); err != nil {
+		return nil, err
+	}
+
+	dataCols := -1
+	var data [][]interface{}
+	ls, ok := otherVal.(*starlark.List)
+	if !ok {
+		return nil, fmt.Errorf("append requires a list to append")
+	}
+	for i := 0; i < ls.Len(); i++ {
+		elem := ls.Index(i)
+		arr := toInterfaceSliceOrNil(elem)
+		if arr == nil {
+			return nil, fmt.Errorf("append requires a list of lists")
+		}
+		if dataCols == -1 {
+			dataCols = len(arr)
+		}
+		data = append(data, arr)
+	}
+	dataRows := len(data)
+
+	newBody := make([]Series, len(self.body))
+	for x := 0; x < dataCols; x++ {
+		col := self.body[x]
+		builder := newTypedSliceBuilderFromSeries(&col)
+		for y := 0; y < dataRows; y++ {
+			builder.push(data[y][x])
+		}
+		if err := builder.error(); err != nil {
+			return nil, err
+		}
+		newBody[x] = builder.toSeries(nil, "")
+	}
+
+	return &DataFrame{
+		columns: self.columns,
+		index:   self.index,
 		body:    newBody,
 	}, nil
 }

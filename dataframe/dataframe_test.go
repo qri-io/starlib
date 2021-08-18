@@ -20,6 +20,10 @@ func TestDataframeApply(t *testing.T) {
 	runTestScript(t, "testdata/dataframe_apply.star", "testdata/dataframe_apply.expect.txt")
 }
 
+func TestDataframeAppend(t *testing.T) {
+	runTestScript(t, "testdata/dataframe_append.star", "testdata/dataframe_append.expect.txt")
+}
+
 func TestDataframeDropDuplicates(t *testing.T) {
 	runTestScript(t, "testdata/dataframe_drop_duplicates.star",
 		"testdata/dataframe_drop_duplicates.expect.txt")
@@ -47,6 +51,10 @@ func TestDataframeColumns(t *testing.T) {
 
 func TestDataframeGroupBy(t *testing.T) {
 	runTestScript(t, "testdata/dataframe_groupby.star", "testdata/dataframe_groupby.expect.txt")
+}
+
+func TestDataframeSetCSV(t *testing.T) {
+	runTestScript(t, "testdata/dataframe_set_csv.star", "testdata/dataframe_set_csv.expect.txt")
 }
 
 type invalidData struct{}
