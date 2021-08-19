@@ -25,3 +25,8 @@ dataframe.Series
    feline    1  cat  meow
    canine    2  dog  bark
 anguillid    3  eel   zap
+
+
+     0  1      2  3  4
+0    a  b      c  1  2
+1    d  e  False  0  3

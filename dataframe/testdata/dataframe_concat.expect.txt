@@ -1,0 +1,5 @@
+        0       1
+0     cat    meow
+1     dog    bark
+2     eel     zap
+3    frog  ribbit

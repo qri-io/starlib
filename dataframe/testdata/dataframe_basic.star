@@ -33,6 +33,11 @@ def f():
   print(df)
   print('')
 
+  df = dataframe.DataFrame([["a", "b", "c", True, 2],
+                            ["d", "e", False, False, 3]])
+  print(df)
+  print('')
+
 
 f()
 

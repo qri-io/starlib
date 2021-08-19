@@ -102,7 +102,7 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			} else if t.currType == "object" {
 				val = strconv.Itoa(num)
 			} else if t.currType != "int64" {
-				t.buildError = fmt.Errorf("handle coercion: %v to %q", num, t.currType)
+				t.buildError = fmt.Errorf("coercion failed, int: %v to %q", num, t.currType)
 				return
 			}
 		} else if num, ok := val.(int64); ok {
@@ -111,7 +111,7 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			} else if t.currType == "object" {
 				val = strconv.Itoa(int(num))
 			} else if t.currType != "int64" {
-				t.buildError = fmt.Errorf("handle coercion: %v to %q", num, t.currType)
+				t.buildError = fmt.Errorf("coercion failed, int64: %v to %q", num, t.currType)
 				return
 			}
 		} else if f, ok := val.(float64); ok {
@@ -125,7 +125,7 @@ func (t *typedSliceBuilder) push(val interface{}) {
 				//
 				val = stringifyFloat(f)
 			} else if t.currType != "float64" {
-				t.buildError = fmt.Errorf("handle coercion: %v to %q", f, t.currType)
+				t.buildError = fmt.Errorf("coercion failed, float64: %v to %q", f, t.currType)
 				return
 			}
 		} else if text, ok := val.(string); ok {
@@ -142,7 +142,7 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			} else if t.currType == "datetime64[ns]" {
 				// pass
 			} else if t.currType != "object" {
-				t.buildError = fmt.Errorf("handle coercion: %v to %q", text, t.currType)
+				t.buildError = fmt.Errorf("coercion failed, string: %v to %q", text, t.currType)
 				return
 			}
 		} else if b, ok := val.(bool); ok {
@@ -151,8 +151,10 @@ func (t *typedSliceBuilder) push(val interface{}) {
 				if b {
 					val = 1
 				}
-			} else if t.currType != "bool" {
-				t.buildError = fmt.Errorf("handle coercion: %v to %q", text, t.currType)
+			} else if t.currType == "object" {
+				val = stringifyBool(b)
+			} else {
+				t.buildError = fmt.Errorf("coercion failed, bool: %v to %q", b, t.currType)
 				return
 			}
 		} else {
