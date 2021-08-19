@@ -1,0 +1,34 @@
+        0       1
+0     cat    meow
+1     dog    bark
+2     eel     zap
+3    frog  ribbit
+
+
+RangeIndex(start=0, stop=4, step=1)
+
+4
+(4, 2)
+
+0
+1
+2
+3
+
+               0       1
+Garfield     cat    meow
+Clifford     dog    bark
+   Abaia     eel     zap
+  Kermit    frog  ribbit
+
+
+Index(['Garfield', 'Clifford', 'Abaia', 'Kermit'], dtype='object')
+
+4
+(4, 2)
+
+Garfield
+Clifford
+Abaia
+Kermit
+

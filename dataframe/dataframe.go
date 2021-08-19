@@ -50,13 +50,13 @@ var (
 )
 
 var dataframeMethods = map[string]*starlark.Builtin{
+	"append":          starlark.NewBuiltin("append", dataframeAppend),
 	"apply":           starlark.NewBuiltin("apply", dataframeApply),
 	"drop_duplicates": starlark.NewBuiltin("drop_duplicates", dataframeDropDuplicates),
 	"groupby":         starlark.NewBuiltin("groupby", dataframeGroupBy),
 	"head":            starlark.NewBuiltin("head", dataframeHead),
 	"merge":           starlark.NewBuiltin("merge", dataframeMerge),
 	"reset_index":     starlark.NewBuiltin("reset_index", dataframeResetIndex),
-	"append":          starlark.NewBuiltin("append", dataframeAppend),
 	"set_csv":         starlark.NewBuiltin("set_csv", dataframeSetCSV),
 }
 
@@ -168,11 +168,11 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index) (*DataFr
 
 	// Check that the index and columns, if present, match the body size
 	numCols, numRows := sizeOfBody(body)
-	if index.len() > 0 && index.len() != numRows {
+	if index.Len() > 0 && index.Len() != numRows {
 		// TODO(dustmop): Add test
 		return nil, fmt.Errorf("size of index does not match body size")
 	}
-	if columns.len() > 0 && columns.len() != numCols {
+	if columns.Len() > 0 && columns.Len() != numCols {
 		// TODO(dustmop): Add test
 		return nil, fmt.Errorf("number of columns does not match body size")
 	}
@@ -409,6 +409,13 @@ func (df *DataFrame) Attr(name string) (starlark.Value, error) {
 	switch name {
 	case "columns":
 		return df.columns, nil
+	case "index":
+		if df.index == nil {
+			return NewRangeIndex(df.NumRows()), nil
+		}
+		return df.index, nil
+	case "shape":
+		return dataframePropertyShape(df)
 	}
 	return builtinAttr(df, name, dataframeMethods)
 }
@@ -417,7 +424,7 @@ func (df *DataFrame) Attr(name string) (starlark.Value, error) {
 // starlark.HasAttrs interface.
 func (df *DataFrame) AttrNames() []string {
 	methodNames := builtinAttrNames(seriesMethods)
-	return append([]string{"columns"}, methodNames...)
+	return append([]string{"columns", "index"}, methodNames...)
 }
 
 // SetField assigns to a field of the DataFrame
@@ -925,7 +932,7 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 func dataframeSetCSV(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var textVal starlark.String
 
-	if err := starlark.UnpackArgs("text", args, kwargs,
+	if err := starlark.UnpackArgs("set_csv", args, kwargs,
 		"text", &textVal,
 	); err != nil {
 		return nil, err
@@ -939,6 +946,13 @@ func dataframeSetCSV(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 
 	self.body = body
 	return starlark.None, nil
+}
+
+// shape returns a tuple with the rows and columns in the dataframe
+func dataframePropertyShape(self *DataFrame) (starlark.Value, error) {
+	rows := starlark.MakeInt(self.NumRows())
+	cols := starlark.MakeInt(self.NumCols())
+	return starlark.Tuple{rows, cols}, nil
 }
 
 // append adds a new row to the body

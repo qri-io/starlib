@@ -19,6 +19,7 @@ type Index struct {
 var (
 	_ starlark.Value    = (*Index)(nil)
 	_ starlark.HasAttrs = (*Index)(nil)
+	_ starlark.Sequence = (*Index)(nil)
 )
 
 // NewIndex returns a new Index with the text values and name
@@ -81,7 +82,13 @@ func (i *Index) AttrNames() []string {
 	return []string{"name", "str"}
 }
 
-func (i *Index) len() int {
+// Iterate returns an iterator for the index
+func (i *Index) Iterate() starlark.Iterator {
+	return &indexIterator{idx: i, count: 0}
+}
+
+// Len returns the length of the index
+func (i *Index) Len() int {
 	if i == nil {
 		return 0
 	}
@@ -101,4 +108,22 @@ func newIndex(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple,
 	data := toStrSliceOrNil(dataVal)
 	name := toStrOrEmpty(nameVal)
 	return NewIndex(data, name), nil
+}
+
+type indexIterator struct {
+	count int
+	idx   *Index
+}
+
+// Done does cleanup work when iteration finishes, not needed
+func (it *indexIterator) Done() {}
+
+// Next assigns the next item and returns whether one was found
+func (it *indexIterator) Next(p *starlark.Value) bool {
+	if it.count < len(it.idx.texts) {
+		*p = starlark.String(it.idx.texts[it.count])
+		it.count++
+		return true
+	}
+	return false
 }

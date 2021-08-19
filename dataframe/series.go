@@ -122,7 +122,7 @@ func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, e
 func (s *Series) stringify() string {
 	// Calculate how wide the index column needs to be
 	indexWidth := 0
-	if s.index.len() == 0 {
+	if s.index.Len() == 0 {
 		indexWidth = len(fmt.Sprintf("%d", s.len()-1))
 	} else {
 		for _, elem := range s.index.texts {
@@ -155,7 +155,7 @@ func (s *Series) stringify() string {
 	// Determine how to format each line, based upon the column width
 	padding := "    "
 	var tmpl string
-	if s.index.len() == 0 {
+	if s.index.Len() == 0 {
 		// Result looks like '%-2d    %6s'
 		tmpl = fmt.Sprintf("%%-%dd%s%%%ds", indexWidth, padding, colWidth)
 	} else {
@@ -175,7 +175,7 @@ func (s *Series) stringify() string {
 	for i, elem := range s.stringValues() {
 		elem = coerceToDatatype(elem, s.dtype)
 		line := ""
-		if s.index.len() == 0 {
+		if s.index.Len() == 0 {
 			line = fmt.Sprintf(tmpl, i, elem)
 		} else {
 			line = fmt.Sprintf(tmpl, s.index.texts[i], elem)
