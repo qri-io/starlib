@@ -8,6 +8,14 @@ func TestDataframeBasic(t *testing.T) {
 	runTestScript(t, "testdata/dataframe_basic.star", "testdata/dataframe_basic.expect.txt")
 }
 
+func TestDataframeSize(t *testing.T) {
+	runTestScript(t, "testdata/dataframe_size.star", "testdata/dataframe_size.expect.txt")
+}
+
+func TestDataframeConcat(t *testing.T) {
+	runTestScript(t, "testdata/dataframe_concat.star", "testdata/dataframe_concat.expect.txt")
+}
+
 func TestDataframeSetKey(t *testing.T) {
 	runTestScript(t, "testdata/dataframe_setkey.star", "testdata/dataframe_setkey.expect.txt")
 }

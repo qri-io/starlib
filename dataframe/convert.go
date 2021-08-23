@@ -140,6 +140,13 @@ func stringifyFloat(f float64) string {
 	return fmt.Sprintf("%1.1f", f)
 }
 
+func stringifyBool(b bool) string {
+	if b {
+		return "True"
+	}
+	return "False"
+}
+
 // convert a list of ints to a list of floats
 func convertIntsToFloats(vals []int) []float64 {
 	result := make([]float64, 0, len(vals))
