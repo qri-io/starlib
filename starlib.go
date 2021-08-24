@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/starlib/bsoup"
+	"github.com/qri-io/starlib/compress/gzip"
 	"github.com/qri-io/starlib/dataframe"
 	"github.com/qri-io/starlib/encoding/base64"
 	"github.com/qri-io/starlib/encoding/csv"
@@ -29,6 +30,8 @@ func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, e
 	switch module {
 	case time.ModuleName:
 		return starlark.StringDict{"time": time.Module}, nil
+	case gzip.ModuleName:
+		return starlark.StringDict{"gzip": gzip.Module}, nil
 	case http.ModuleName:
 		return http.LoadModule()
 	case xlsx.ModuleName:

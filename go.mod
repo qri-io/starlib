@@ -22,7 +22,7 @@ require (
 	github.com/paulmach/orb v0.1.5
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.5.1
-	go.starlark.net v0.0.0-20210406145628-7a1108eaa012
+	go.starlark.net v0.0.0-20210602144842-1cdb82c9e17a
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.2.8
