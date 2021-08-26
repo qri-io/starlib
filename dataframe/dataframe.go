@@ -351,7 +351,7 @@ func sizeOfBody(body []Series) (int, int) {
 	if len(body) == 0 {
 		return 0, 0
 	}
-	return len(body), body[0].len()
+	return len(body), body[0].Len()
 }
 
 // NumCols returns the number of columns
@@ -364,7 +364,7 @@ func (df *DataFrame) NumRows() int {
 	if len(df.body) == 0 {
 		return 0
 	}
-	return df.body[0].len()
+	return df.body[0].Len()
 }
 
 // Row returns the ith row as a slice of go native types
@@ -489,7 +489,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 	if !ok {
 		return fmt.Errorf("SetKey: val must be int, string, or Series")
 	}
-	if df.NumRows() > 0 && (df.NumRows() != series.len()) {
+	if df.NumRows() > 0 && (df.NumRows() != series.Len()) {
 		return fmt.Errorf("SetKey: val len must match number of rows")
 	}
 

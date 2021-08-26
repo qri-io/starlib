@@ -31,9 +31,10 @@ type Series struct {
 
 // compile-time interface assertions
 var (
-	_ starlark.Value    = (*Series)(nil)
-	_ starlark.Mapping  = (*Series)(nil)
-	_ starlark.HasAttrs = (*Series)(nil)
+	_ starlark.Value     = (*Series)(nil)
+	_ starlark.Mapping   = (*Series)(nil)
+	_ starlark.HasAttrs  = (*Series)(nil)
+	_ starlark.Indexable = (*Series)(nil)
 )
 
 var seriesMethods = map[string]*starlark.Builtin{
@@ -123,7 +124,7 @@ func (s *Series) stringify() string {
 	// Calculate how wide the index column needs to be
 	indexWidth := 0
 	if s.index.Len() == 0 {
-		indexWidth = len(fmt.Sprintf("%d", s.len()-1))
+		indexWidth = len(fmt.Sprintf("%d", s.Len()-1))
 	} else {
 		for _, elem := range s.index.texts {
 			w := len(elem)
@@ -164,7 +165,7 @@ func (s *Series) stringify() string {
 	}
 
 	// Space for the lines of rendered output, the body, plus optional index.name and types
-	render := make([]string, 0, s.len()+2)
+	render := make([]string, 0, s.Len()+2)
 
 	// If the index has a name, it appears on the first line
 	if s.index != nil && s.index.name != "" {
@@ -228,14 +229,23 @@ func (s *Series) stringValues() []string {
 	return s.valObjs
 }
 
-// len returns the number of values
-func (s *Series) len() int {
+// Len returns the number of values
+func (s *Series) Len() int {
 	if s.which == typeInt {
 		return len(s.valInts)
 	} else if s.which == typeFloat {
 		return len(s.valFloats)
 	}
 	return len(s.valObjs)
+}
+
+// Index returns the element at index i as a starlark value
+func (s *Series) Index(i int) starlark.Value {
+	obj, err := convertToStarlark(s.At(i))
+	if err != nil {
+		return starlark.None
+	}
+	return obj
 }
 
 // strAt returns the cell at position 'i', as a string fit for printing
@@ -298,7 +308,7 @@ func seriesAsType(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 		return nil, fmt.Errorf("invalid type, only \"int64\" allowed")
 	}
 
-	newVals := make([]int, 0, self.len())
+	newVals := make([]int, 0, self.Len())
 	for _, val := range self.values() {
 		text := fmt.Sprintf("%s", val)
 
@@ -331,7 +341,7 @@ func seriesNotNull(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	}
 	self := b.Receiver().(*Series)
 
-	newVals := make([]int, 0, self.len())
+	newVals := make([]int, 0, self.Len())
 	for _, val := range self.values() {
 		text := fmt.Sprintf("%s", val)
 		// TODO(dustmop): This is a hack, null must have its own representation instead

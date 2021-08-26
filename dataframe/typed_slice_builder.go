@@ -34,7 +34,7 @@ func newTypedSliceBuilder(size int) *typedSliceBuilder {
 
 func newTypedSliceBuilderFromSeries(series *Series) *typedSliceBuilder {
 	return &typedSliceBuilder{
-		size:      series.len(),
+		size:      series.Len(),
 		whichVals: series.which,
 		valInts:   series.valInts,
 		valFloats: series.valFloats,
