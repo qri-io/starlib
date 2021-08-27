@@ -3,7 +3,6 @@ package dataframe
 import (
 	"fmt"
 	"reflect"
-	"strconv"
 
 	"go.starlark.net/starlark"
 )
@@ -156,20 +155,42 @@ func convertIntsToFloats(vals []int) []float64 {
 	return result
 }
 
-// convert a list of ints to a list of strings
-func convertIntsToStrings(vals []int) []string {
-	result := make([]string, 0, len(vals))
+// convert a list of ints to a list of objects
+func convertIntsToObjects(vals []int) []interface{} {
+	result := make([]interface{}, 0, len(vals))
 	for _, n := range vals {
-		result = append(result, strconv.Itoa(n))
+		result = append(result, n)
 	}
 	return result
 }
 
-// convert a list of floats to a list of strings
-func convertFloatsToStrings(vals []float64) []string {
-	result := make([]string, 0, len(vals))
+// convert a list of bools, represented as ints, to a list of objects
+func convertBoolsToObjects(vals []int) []interface{} {
+	result := make([]interface{}, 0, len(vals))
+	for _, n := range vals {
+		if n == 0 {
+			result = append(result, false)
+		} else {
+			result = append(result, true)
+		}
+	}
+	return result
+}
+
+// convert a list of floats to a list of objects
+func convertFloatsToObjects(vals []float64) []interface{} {
+	result := make([]interface{}, 0, len(vals))
 	for _, f := range vals {
-		result = append(result, stringifyFloat(f))
+		result = append(result, f)
+	}
+	return result
+}
+
+// convert a list of strings to a list of objects
+func convertStringsToObjects(vals []string) []interface{} {
+	result := make([]interface{}, 0, len(vals))
+	for _, v := range vals {
+		result = append(result, v)
 	}
 	return result
 }
@@ -186,20 +207,4 @@ func convertToStarlark(it interface{}) (starlark.Value, error) {
 	default:
 		return starlark.None, fmt.Errorf("unknown type of %v", reflect.TypeOf(it))
 	}
-}
-
-func coerceToDatatype(text, dtype string) string {
-	if dtype == "bool" {
-		// Convert bool to string version, instead of int
-		// TODO(dustmop): Bit of a hack, the caller of this should perhaps use
-		// `values()` instead of `stringValues()` so that this argument is an
-		// interface, not a string. That would remove this unneeded stringification
-		// from `1` to `"1"` to `"True"`.
-		if text == "1" {
-			return "True"
-		}
-		return "False"
-	}
-	// Every other type has been properly stringified by the time it gets here.
-	return text
 }

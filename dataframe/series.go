@@ -19,7 +19,7 @@ type Series struct {
 	which     int
 	valInts   []int
 	valFloats []float64
-	valObjs   []string
+	valObjs   []interface{}
 	index     *Index
 	// dtype is the user-provided and printable data type that the series contains.
 	// This will usually match `which`, but not necessarily
@@ -103,19 +103,21 @@ func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, e
 	}
 	// TODO(dustmop): Also suport series.get(list)
 	if keyList, ok := keyVal.(*Series); ok {
+		if keyList.dtype != "bool" {
+			return starlark.None, false, fmt.Errorf("Series.Get[series] only supported for dtype bool")
+		}
 		vals := s.stringValues()
 		newIdx := make([]string, 0, len(vals))
-		newVals := make([]string, 0, len(vals))
-		// TODO(dustmop): Index using non-bool values
-		for i, key := range keyList.stringValues() {
-			// TODO(dustmop): Hack, bools are being coerced to string here
-			if key == "0" {
+		newVals := make([]interface{}, 0, len(vals))
+		for i, key := range keyList.values() {
+			// NOTE: The dtype is checked above, to validate it is "bool"
+			if key == 0 {
 				continue
 			}
 			newIdx = append(newIdx, fmt.Sprintf("%d", i))
 			newVals = append(newVals, vals[i])
 		}
-		return newSeriesFromStrings(newVals, NewIndex(newIdx, ""), s.name), true, nil
+		return newSeriesFromObjects(newVals, NewIndex(newIdx, ""), s.name), true, nil
 	}
 	return starlark.None, false, fmt.Errorf("Series.Get: not found: %q", keyVal)
 }
@@ -137,7 +139,6 @@ func (s *Series) stringify() string {
 	// Calculate how wide the data column needs to be
 	colWidth := 0
 	for _, elem := range s.stringValues() {
-		elem = coerceToDatatype(elem, s.dtype)
 		w := len(elem)
 		if w > colWidth {
 			colWidth = w
@@ -174,7 +175,6 @@ func (s *Series) stringify() string {
 
 	// Render each value in the series
 	for i, elem := range s.stringValues() {
-		elem = coerceToDatatype(elem, s.dtype)
 		line := ""
 		if s.index.Len() == 0 {
 			line = fmt.Sprintf(tmpl, i, elem)
@@ -215,6 +215,16 @@ func (s *Series) values() []interface{} {
 func (s *Series) stringValues() []string {
 	if s.which == typeInt {
 		result := make([]string, len(s.valInts))
+		if s.dtype == "bool" {
+			for i, elem := range s.valInts {
+				if elem == 0 {
+					result[i] = "False"
+				} else {
+					result[i] = "True"
+				}
+			}
+			return result
+		}
 		for i, elem := range s.valInts {
 			result[i] = strconv.Itoa(elem)
 		}
@@ -226,7 +236,19 @@ func (s *Series) stringValues() []string {
 		}
 		return result
 	}
-	return s.valObjs
+	result := make([]string, len(s.valObjs))
+	for i, elem := range s.valObjs {
+		if elem == nil {
+			result[i] = "None"
+		} else if elem == true {
+			result[i] = "True"
+		} else if elem == false {
+			result[i] = "False"
+		} else {
+			result[i] = fmt.Sprintf("%v", elem)
+		}
+	}
+	return result
 }
 
 // Len returns the number of values
@@ -251,21 +273,65 @@ func (s *Series) Index(i int) starlark.Value {
 // strAt returns the cell at position 'i', as a string fit for printing
 func (s *Series) strAt(i int) string {
 	if s.which == typeInt {
+		if s.dtype == "bool" {
+			if s.valInts[i] == 0 {
+				return "False"
+			}
+			return "True"
+		}
 		return strconv.Itoa(s.valInts[i])
 	} else if s.which == typeFloat {
 		return stringifyFloat(s.valFloats[i])
 	}
-	return s.valObjs[i]
+	if s.valObjs[i] == nil {
+		return "None"
+	} else if s.valObjs[i] == true {
+		return "True"
+	} else if s.valObjs[i] == false {
+		return "False"
+	}
+	return fmt.Sprintf("%v", s.valObjs[i])
 }
 
 // At returns the cell at position 'i' as a go native type
 func (s *Series) At(i int) interface{} {
 	if s.which == typeInt {
+		if s.dtype == "bool" {
+			if s.valInts[i] == 0 {
+				return false
+			}
+			return true
+		}
 		return s.valInts[i]
 	} else if s.which == typeFloat {
 		return s.valFloats[i]
 	}
 	return s.valObjs[i]
+}
+
+// SetAt assigns a go native type to the cell at position 'i'
+func (s *Series) SetAt(i int, any interface{}) error {
+	switch item := any.(type) {
+	case int:
+		if s.which == typeInt {
+			s.valInts[i] = item
+		} else {
+			return fmt.Errorf("TODO: implement SetAt(int) conversion")
+		}
+	case string:
+		if s.which == typeObj {
+			s.valObjs[i] = item
+		} else {
+			return fmt.Errorf("TODO: implement SetAt(string) conversion")
+		}
+	case interface{}:
+		if s.which == typeObj {
+			s.valObjs[i] = item
+		} else {
+			return fmt.Errorf("TODO: implement SetAt(interface) conversion")
+		}
+	}
+	return nil
 }
 
 func builtinAttr(recv starlark.Value, name string, methods map[string]*starlark.Builtin) (starlark.Value, error) {
@@ -343,9 +409,7 @@ func seriesNotNull(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 
 	newVals := make([]int, 0, self.Len())
 	for _, val := range self.values() {
-		text := fmt.Sprintf("%s", val)
-		// TODO(dustmop): This is a hack, null must have its own representation instead
-		if text == "None" {
+		if val == nil {
 			newVals = append(newVals, 0)
 		} else {
 			newVals = append(newVals, 1)
@@ -382,7 +446,7 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 		if dtype == "float64" {
 			return newSeriesFromFloats([]float64{float64(scalarNum)}, index, name), nil
 		} else if dtype == "object" {
-			return newSeriesFromStrings([]string{strconv.Itoa(scalarNum)}, index, name), nil
+			return newSeriesFromObjects([]interface{}{scalarNum}, index, name), nil
 		}
 		return newSeriesFromInts([]int{scalarNum}, index, name), nil
 	}
@@ -390,7 +454,7 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 		return newSeriesFromFloats([]float64{scalarFloat}, index, name), nil
 	}
 	if scalarStr, ok := toStrMaybe(dataVal); ok {
-		return newSeriesFromStrings([]string{scalarStr}, index, name), nil
+		return newSeriesFromObjects([]interface{}{scalarStr}, index, name), nil
 	}
 
 	switch inData := dataVal.(type) {
@@ -460,11 +524,11 @@ func newSeriesFromRepeatScalar(val interface{}, size int) *Series {
 		}
 		return newSeriesFromFloats(vals, nil, "")
 	case string:
-		vals := make([]string, size)
+		vals := make([]interface{}, size)
 		for i := 0; i < size; i++ {
 			vals[i] = x
 		}
-		return newSeriesFromStrings(vals, nil, "")
+		return newSeriesFromObjects(vals, nil, "")
 	default:
 		return nil
 	}
@@ -490,7 +554,7 @@ func newSeriesFromFloats(vals []float64, index *Index, name string) *Series {
 	}
 }
 
-func newSeriesFromStrings(vals []string, index *Index, name string) *Series {
+func newSeriesFromObjects(vals []interface{}, index *Index, name string) *Series {
 	return &Series{
 		dtype:   "object",
 		which:   typeObj,

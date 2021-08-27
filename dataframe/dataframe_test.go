@@ -1,6 +1,7 @@
 package dataframe
 
 import (
+	"github.com/google/go-cmp/cmp"
 	"testing"
 )
 
@@ -154,7 +155,7 @@ func TestDataframeFromList(t *testing.T) {
 }
 
 func TestDataframeFromSeries(t *testing.T) {
-	s := newSeriesFromStrings([]string{"a", "b", "c"}, nil, "")
+	s := newSeriesFromObjects([]interface{}{"a", "b", "c"}, nil, "")
 	df, err := NewDataFrame(s, nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -168,5 +169,95 @@ func TestDataframeFromSeries(t *testing.T) {
 `
 	if got != expect {
 		t.Errorf("mismatch: expect %q, got %q", expect, got)
+	}
+}
+
+type someStruct struct {
+	ID     int
+	Name   string
+	Sounds []string
+}
+
+func TestDataframeAccessor(t *testing.T) {
+	// Construct a dataframe with a few rows and columns
+	rows := [][]interface{}{
+		[]interface{}{"test", 31.2, 11.4, "ok", int64(597), "", 107, 6.91},
+		[]interface{}{"more", 7.8, 44.1, "hi", int64(612), "", 94, 3.1},
+		[]interface{}{"last", 90.2, 26.8, "yo", int64(493), "", 272, 4.3},
+	}
+	df, err := NewDataFrame(rows, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Print it and test the result
+	got := df.String()
+	expectText := `        0     1     2   3    4  5    6    7
+0    test  31.2  11.4  ok  597    107  6.9
+1    more   7.8  44.1  hi  612     94  3.1
+2    last  90.2  26.8  yo  493    272  4.3
+`
+	if diff := cmp.Diff(expectText, got); diff != "" {
+		t.Errorf("mismatch (-want +got):%s\n", diff)
+	}
+
+	// Retrieve a single element
+	actual, err := df.At2d(1, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check that it is correct
+	expectNum := 94
+	if diff := cmp.Diff(expectNum, actual); diff != "" {
+		t.Errorf("mismatch (-want +got):%s\n", diff)
+	}
+
+	// Modify an element
+	if err := df.SetAt2d(2, 3, "ah"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Print it and test the result has been modified
+	got = df.String()
+	expectText = `        0     1     2   3    4  5    6    7
+0    test  31.2  11.4  ok  597    107  6.9
+1    more   7.8  44.1  hi  612     94  3.1
+2    last  90.2  26.8  ah  493    272  4.3
+`
+	if diff := cmp.Diff(expectText, got); diff != "" {
+		t.Errorf("mismatch (-want +got):%s\n", diff)
+	}
+
+	// Modify an element by assigning a structured object
+	structObj := someStruct{
+		ID:     1,
+		Name:   "cat",
+		Sounds: []string{"meow", "purr"},
+	}
+	if err := df.SetAt2d(0, 3, structObj); err != nil {
+		t.Fatal(err)
+	}
+
+	// Retrieve the struct element, and type convert it
+	actual, err = df.At2d(0, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actualObj, ok := actual.(someStruct)
+	if !ok {
+		t.Fatalf("expected to retrieve a someStruct{}, got %v", actual)
+	}
+
+	// Check that it is correct
+	if actualObj.ID != 1 {
+		t.Errorf("expectd ID == 1, got %v", actualObj.ID)
+	}
+	if actualObj.Name != "cat" {
+		t.Errorf("expected Name == cat, got %v", actualObj.Name)
+	}
+	expectSounds := []string{"meow", "purr"}
+	if diff := cmp.Diff(expectSounds, actualObj.Sounds); diff != "" {
+		t.Errorf("mismatch (-want +got):%s\n", diff)
 	}
 }

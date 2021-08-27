@@ -114,7 +114,7 @@ func (rt *rowTuple) concat(other *rowTuple) []interface{} {
 }
 
 func (rt *rowTuple) toTuple() starlark.Tuple {
-	var items []string
+	var items []interface{}
 	for _, r := range rt.data {
 		v := fmt.Sprintf("%v", r)
 		items = append(items, v)
