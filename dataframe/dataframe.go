@@ -409,6 +409,8 @@ func (df *DataFrame) Truth() starlark.Bool {
 // in starklark. required by starlark.HasAttrs interface.
 func (df *DataFrame) Attr(name string) (starlark.Value, error) {
 	switch name {
+	case "at":
+		return NewAtIndexer(df), nil
 	case "columns":
 		return df.columns, nil
 	case "index":

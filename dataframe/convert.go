@@ -124,6 +124,32 @@ func toScalarMaybe(v starlark.Value) (interface{}, bool) {
 	return nil, false
 }
 
+// convert starlark value to a go native datum
+func toNativeValue(v starlark.Value) interface{} {
+	val, ok := toScalarMaybe(v)
+	if ok {
+		return val
+	}
+	if list, ok := v.(*starlark.List); ok {
+		res := make([]interface{}, list.Len())
+		for i := 0; i < list.Len(); i++ {
+			res[i] = toNativeValue(list.Index(i))
+		}
+		return res
+	}
+	if dict, ok := v.(*starlark.Dict); ok {
+		m := make(map[string]interface{})
+		keys := dict.Keys()
+		for i := 0; i < len(keys); i++ {
+			key := keys[i]
+			val, _, _ := dict.Get(key)
+			m[toStr(key)] = toNativeValue(val)
+		}
+		return m
+	}
+	return nil
+}
+
 func toIndexMaybe(v starlark.Value) (*Index, bool) {
 	texts := toStrSliceOrNil(v)
 	if texts != nil {

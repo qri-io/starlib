@@ -17,6 +17,10 @@ func TestDataframeConcat(t *testing.T) {
 	runTestScript(t, "testdata/dataframe_concat.star", "testdata/dataframe_concat.expect.txt")
 }
 
+func TestDataframeAt(t *testing.T) {
+	runTestScript(t, "testdata/dataframe_at.star", "testdata/dataframe_at.expect.txt")
+}
+
 func TestDataframeSetKey(t *testing.T) {
 	runTestScript(t, "testdata/dataframe_setkey.star", "testdata/dataframe_setkey.expect.txt")
 }
