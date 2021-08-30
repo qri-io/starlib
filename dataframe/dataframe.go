@@ -351,7 +351,7 @@ func sizeOfBody(body []Series) (int, int) {
 	if len(body) == 0 {
 		return 0, 0
 	}
-	return len(body), body[0].len()
+	return len(body), body[0].Len()
 }
 
 // NumCols returns the number of columns
@@ -364,7 +364,7 @@ func (df *DataFrame) NumRows() int {
 	if len(df.body) == 0 {
 		return 0
 	}
-	return df.body[0].len()
+	return df.body[0].Len()
 }
 
 // Row returns the ith row as a slice of go native types
@@ -409,6 +409,8 @@ func (df *DataFrame) Truth() starlark.Bool {
 // in starklark. required by starlark.HasAttrs interface.
 func (df *DataFrame) Attr(name string) (starlark.Value, error) {
 	switch name {
+	case "at":
+		return NewAtIndexer(df), nil
 	case "columns":
 		return df.columns, nil
 	case "index":
@@ -489,7 +491,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 	if !ok {
 		return fmt.Errorf("SetKey: val must be int, string, or Series")
 	}
-	if df.NumRows() > 0 && (df.NumRows() != series.len()) {
+	if df.NumRows() > 0 && (df.NumRows() != series.Len()) {
 		return fmt.Errorf("SetKey: val len must match number of rows")
 	}
 
@@ -543,6 +545,31 @@ func (df *DataFrame) Get(keyVal starlark.Value) (value starlark.Value, found boo
 		valObjs:   got.valObjs,
 		index:     index,
 	}, true, nil
+}
+
+// At2d returns the cell as position 'i,j' as a go native type
+func (df *DataFrame) At2d(i, j int) (interface{}, error) {
+	if j >= len(df.body) {
+		return nil, fmt.Errorf("index (%d,%d) out of range: %d >= %d (num cols)", i, j, j, len(df.body))
+	}
+	series := df.body[j]
+	if i >= series.Len() {
+		return nil, fmt.Errorf("index (%d,%d) out of range: %d >= %d (num rows)", i, j, i, series.Len())
+	}
+	cell := series.At(i)
+	return cell, nil
+}
+
+// SetAt2d assigns a go native type to the cell at position 'i,j'
+func (df *DataFrame) SetAt2d(i, j int, any interface{}) error {
+	if j >= len(df.body) {
+		return fmt.Errorf("index (%d,%d) out of range: %d >= %d (num cols)", i, j, j, len(df.body))
+	}
+	series := df.body[j]
+	if i >= series.Len() {
+		return fmt.Errorf("index (%d,%d) out of range: %d >= %d (num rows)", i, j, i, series.Len())
+	}
+	return series.SetAt(i, any)
 }
 
 // Binary performs binary operations (like addition) on the DataFrame
@@ -642,13 +669,13 @@ func (df *DataFrame) stringify() string {
 	if len(colTexts) > 0 {
 		// Render the column names
 		for i, name := range colTexts {
-			tmpl := fmt.Sprintf("%%%ds", widths[i])
+			tmpl := fmt.Sprintf("%%%dv", widths[i])
 			header = append(header, fmt.Sprintf(tmpl, name))
 		}
 	} else {
 		// Render the column indicies
 		for i := range df.body {
-			tmpl := fmt.Sprintf("%%%dd", widths[i])
+			tmpl := fmt.Sprintf("%%%dv", widths[i])
 			header = append(header, fmt.Sprintf(tmpl, i))
 		}
 	}
@@ -658,18 +685,17 @@ func (df *DataFrame) stringify() string {
 	// Render each row
 	for i := 0; i < df.NumRows(); i++ {
 		render := []string{""}
+		tmpl := fmt.Sprintf("%%%dv  ", labelWidth)
 		// Render the index number or label to start the line
 		if df.index == nil {
-			tmpl := fmt.Sprintf("%%%dd  ", labelWidth)
 			render[0] = fmt.Sprintf(tmpl, i)
 		} else {
-			tmpl := fmt.Sprintf("%%%ds  ", labelWidth)
 			render[0] = fmt.Sprintf(tmpl, df.index.texts[i])
 		}
 		// Render each element of the row
 		for j, col := range df.body {
 			elem := col.strAt(i)
-			tmpl := fmt.Sprintf("%%%ds", widths[j])
+			tmpl := fmt.Sprintf("%%%dv", widths[j])
 			render = append(render, fmt.Sprintf(tmpl, elem))
 		}
 		answer += strings.Join(render, "  ") + "\n"
@@ -704,7 +730,7 @@ func dataframeApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.
 		return nil, fmt.Errorf("first argument must be a function")
 	}
 
-	var result []string
+	builder := newTypedSliceBuilder(self.NumRows())
 	for rows := newRowIter(self); !rows.Done(); rows.Next() {
 		r := rows.GetRow()
 		arguments := r.toTuple()
@@ -712,17 +738,18 @@ func dataframeApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.
 		if err != nil {
 			return nil, err
 		}
-
-		// TODO(dustmop): Accept other return value types.
-		text, ok := res.(starlark.String)
+		// TODO(dustmop): This won't handle complex types.
+		obj, ok := toScalarMaybe(res)
 		if !ok {
-			return nil, fmt.Errorf("fn.apply should have returned String")
+			return nil, fmt.Errorf("could not convert: %v", res)
 		}
-
-		result = append(result, string(text))
+		builder.push(obj)
 	}
-
-	return &Series{dtype: "object", which: typeObj, valObjs: result}, nil
+	if err := builder.error(); err != nil {
+		return nil, err
+	}
+	s := builder.toSeries(nil, "")
+	return &s, nil
 }
 
 // head method returns a copy of the DataFrame but only with the first n rows
@@ -971,7 +998,8 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 	newColumns := append([]string{"index"}, self.columns.texts...)
 	newBody := make([]Series, 0, self.NumCols())
 
-	newBody = append(newBody, Series{which: typeObj, valObjs: self.index.texts})
+	objs := convertStringsToObjects(self.index.texts)
+	newBody = append(newBody, Series{which: typeObj, valObjs: objs})
 	for _, col := range self.body {
 		newBody = append(newBody, col)
 	}

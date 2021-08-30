@@ -2,16 +2,16 @@ package dataframe
 
 import (
 	"fmt"
+	"math"
 	"reflect"
-	"strconv"
 )
 
 type typedSliceBuilder struct {
-	size       int
+	capHint    int
 	keyList    []string
 	valInts    []int
 	valFloats  []float64
-	valObjs    []string
+	valObjs    []interface{}
 	whichVals  int
 	dType      string
 	currType   string
@@ -26,15 +26,15 @@ const (
 	typeObj   = 3
 )
 
-func newTypedSliceBuilder(size int) *typedSliceBuilder {
+func newTypedSliceBuilder(capacityHint int) *typedSliceBuilder {
 	return &typedSliceBuilder{
-		size: size,
+		capHint: capacityHint,
 	}
 }
 
 func newTypedSliceBuilderFromSeries(series *Series) *typedSliceBuilder {
 	return &typedSliceBuilder{
-		size:      series.len(),
+		capHint:   series.Len(),
 		whichVals: series.which,
 		valInts:   series.valInts,
 		valFloats: series.valFloats,
@@ -100,7 +100,7 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			if t.currType == "float64" {
 				val = float64(num)
 			} else if t.currType == "object" {
-				val = strconv.Itoa(num)
+				// no need to convert
 			} else if t.currType != "int64" {
 				t.buildError = fmt.Errorf("coercion failed, int: %v to %q", num, t.currType)
 				return
@@ -109,7 +109,7 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			if t.currType == "float64" {
 				val = float64(num)
 			} else if t.currType == "object" {
-				val = strconv.Itoa(int(num))
+				// no need to convert
 			} else if t.currType != "int64" {
 				t.buildError = fmt.Errorf("coercion failed, int64: %v to %q", num, t.currType)
 				return
@@ -122,8 +122,7 @@ func (t *typedSliceBuilder) push(val interface{}) {
 				t.whichVals = typeFloat
 				t.valFloats = convertIntsToFloats(t.valInts)
 			} else if t.currType == "object" {
-				//
-				val = stringifyFloat(f)
+				// no need to convert
 			} else if t.currType != "float64" {
 				t.buildError = fmt.Errorf("coercion failed, float64: %v to %q", f, t.currType)
 				return
@@ -133,14 +132,14 @@ func (t *typedSliceBuilder) push(val interface{}) {
 				// The list was ints, found a string, coerce the previous list to objects
 				t.currType = "object"
 				t.whichVals = typeObj
-				t.valObjs = convertIntsToStrings(t.valInts)
+				t.valObjs = convertIntsToObjects(t.valInts)
 			} else if t.currType == "float64" && t.dType == "" {
 				// The list was floats, found a string, coerce the previous list to objects
 				t.currType = "object"
 				t.whichVals = typeObj
-				t.valObjs = convertFloatsToStrings(t.valFloats)
+				t.valObjs = convertFloatsToObjects(t.valFloats)
 			} else if t.currType == "datetime64[ns]" {
-				// pass
+				// no need to convert
 			} else if t.currType != "object" {
 				t.buildError = fmt.Errorf("coercion failed, string: %v to %q", text, t.currType)
 				return
@@ -152,10 +151,24 @@ func (t *typedSliceBuilder) push(val interface{}) {
 					val = 1
 				}
 			} else if t.currType == "object" {
-				val = stringifyBool(b)
+				// no need to convert
 			} else {
 				t.buildError = fmt.Errorf("coercion failed, bool: %v to %q", b, t.currType)
 				return
+			}
+		} else if val == nil {
+			if t.currType == "float64" {
+				val = math.NaN()
+			} else {
+				if t.whichVals == typeInt {
+					if t.currType == "bool" {
+						t.valObjs = convertBoolsToObjects(t.valInts)
+					} else {
+						t.valObjs = convertIntsToObjects(t.valInts)
+					}
+				}
+				t.whichVals = typeObj
+				t.currType = "object"
 			}
 		} else {
 			t.buildError = fmt.Errorf("invalid object %v of type %s", val, reflect.TypeOf(val))
@@ -166,25 +179,29 @@ func (t *typedSliceBuilder) push(val interface{}) {
 	// Add to the appropriate array
 	if t.whichVals == typeInt {
 		if t.valInts == nil {
-			t.valInts = make([]int, 0, t.size)
+			t.valInts = make([]int, 0, t.capHint)
 		}
 		if n, ok := val.(int); ok {
 			t.valInts = append(t.valInts, n)
 		} else if n, ok := val.(int64); ok {
 			t.valInts = append(t.valInts, int(n))
+		} else if val == nil {
+			t.whichVals = typeObj
+			t.valObjs = convertIntsToObjects(t.valInts)
+			t.valObjs = append(t.valObjs, val)
 		} else {
 			t.buildError = fmt.Errorf("wanted int, got %v of type %s", val, reflect.TypeOf(val))
 		}
 	} else if t.whichVals == typeFloat {
 		if t.valFloats == nil {
-			t.valFloats = make([]float64, 0, t.size)
+			t.valFloats = make([]float64, 0, t.capHint)
 		}
 		t.valFloats = append(t.valFloats, val.(float64))
 	} else if t.whichVals == typeObj {
 		if t.valObjs == nil {
-			t.valObjs = make([]string, 0, t.size)
+			t.valObjs = make([]interface{}, 0, t.capHint)
 		}
-		t.valObjs = append(t.valObjs, val.(string))
+		t.valObjs = append(t.valObjs, val)
 	}
 }
 
@@ -194,9 +211,7 @@ func (t *typedSliceBuilder) pushNil() {
 	} else if t.whichVals == typeFloat {
 		t.valFloats = append(t.valFloats, 0.0)
 	} else if t.whichVals == typeObj {
-		// TODO(dustmop): This is a hack. Instead, Series and this builder should
-		// have an actual way of representing null values.
-		t.valObjs = append(t.valObjs, "None")
+		t.valObjs = append(t.valObjs, nil)
 	}
 }
 
