@@ -34,7 +34,7 @@ func (ai *AtIndexer) Hash() (uint32, error) {
 
 // String returns the index as a string
 func (ai *AtIndexer) String() string {
-	return fmt.Sprintf("AtIndexer(...)")
+	return fmt.Sprintf("AtIndexer()")
 }
 
 // Truth converts the index into a bool
@@ -48,6 +48,7 @@ func (ai *AtIndexer) Type() string {
 }
 
 // Get returns the value at the given key, which must be an int pair
+// implements the Mapping interface
 func (ai *AtIndexer) Get(key starlark.Value) (starlark.Value, bool, error) {
 	keyOne, keyTwo, ok := keyToIntPair(key)
 	if !ok {
@@ -63,6 +64,7 @@ func (ai *AtIndexer) Get(key starlark.Value) (starlark.Value, bool, error) {
 }
 
 // SetKey sets a value at the given key, which must be an int pair
+// implements the HasSetKey interface
 func (ai *AtIndexer) SetKey(key, val starlark.Value) error {
 	keyOne, keyTwo, ok := keyToIntPair(key)
 	if !ok {

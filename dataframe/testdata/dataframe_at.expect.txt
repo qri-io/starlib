@@ -4,7 +4,7 @@
 2    last  90.2  26.8  yo  272  4.3
 
 
-AtIndexer(...)
+AtIndexer()
 
 hi
 
