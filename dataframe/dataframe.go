@@ -2,7 +2,6 @@ package dataframe
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
@@ -59,7 +58,6 @@ var dataframeMethods = map[string]*starlark.Builtin{
 	"head":            starlark.NewBuiltin("head", dataframeHead),
 	"merge":           starlark.NewBuiltin("merge", dataframeMerge),
 	"reset_index":     starlark.NewBuiltin("reset_index", dataframeResetIndex),
-	"set_csv":         starlark.NewBuiltin("set_csv", dataframeSetCSV),
 }
 
 func readCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -284,8 +282,7 @@ func constructBodyFromStarlarkList(data *starlark.List) ([]Series, error) {
 	for y := 0; y < data.Len(); y++ {
 		row := toInterfaceSliceOrNil(data.Index(y))
 		if row == nil {
-			obj, _ := json.Marshal(data)
-			return nil, fmt.Errorf("invalid values for row: %s", string(obj))
+			return nil, fmt.Errorf("invalid values for body: %v, TODO(dustmop): 1d list should construct columnar body", data)
 		}
 		// Validate that the size of each row is the same
 		// TODO(dustmop): Add test
@@ -1008,26 +1005,6 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 		columns: NewIndex(newColumns, ""),
 		body:    newBody,
 	}, nil
-}
-
-// set_csv parses csv data and assigns it to the body
-func dataframeSetCSV(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var textVal starlark.String
-
-	if err := starlark.UnpackArgs("set_csv", args, kwargs,
-		"text", &textVal,
-	); err != nil {
-		return nil, err
-	}
-	self := b.Receiver().(*DataFrame)
-
-	body, _, err := constructBodyHeaderFromCSV(string(textVal), false)
-	if err != nil {
-		return nil, err
-	}
-
-	self.body = body
-	return starlark.None, nil
 }
 
 // shape returns a tuple with the rows and columns in the dataframe

@@ -66,10 +66,6 @@ func TestDataframeGroupBy(t *testing.T) {
 	runTestScript(t, "testdata/dataframe_groupby.star", "testdata/dataframe_groupby.expect.txt")
 }
 
-func TestDataframeSetCSV(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_set_csv.star", "testdata/dataframe_set_csv.expect.txt")
-}
-
 type invalidData struct{}
 
 func TestDataframeFromRows(t *testing.T) {
