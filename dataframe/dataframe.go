@@ -50,16 +50,6 @@ var (
 	_ starlark.HasBinary   = (*DataFrame)(nil)
 )
 
-var dataframeMethods = map[string]*starlark.Builtin{
-	"append":          starlark.NewBuiltin("append", dataframeAppend),
-	"apply":           starlark.NewBuiltin("apply", dataframeApply),
-	"drop_duplicates": starlark.NewBuiltin("drop_duplicates", dataframeDropDuplicates),
-	"groupby":         starlark.NewBuiltin("groupby", dataframeGroupBy),
-	"head":            starlark.NewBuiltin("head", dataframeHead),
-	"merge":           starlark.NewBuiltin("merge", dataframeMerge),
-	"reset_index":     starlark.NewBuiltin("reset_index", dataframeResetIndex),
-}
-
 func readCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var content starlark.Value
 
