@@ -12,7 +12,7 @@ import (
 	"go.starlark.net/starlarktest"
 )
 
-func runTestScript(t *testing.T, scriptFilename, expectFilename string) {
+func runScript(t *testing.T, scriptFilename string) (string, error) {
 	output := "\n"
 	printCollect := func(thread *starlark.Thread, msg string) {
 		output = fmt.Sprintf("%s%s\n", output, msg)
@@ -23,6 +23,11 @@ func runTestScript(t *testing.T, scriptFilename, expectFilename string) {
 	starlarktest.SetReporter(thread, t)
 
 	_, err := starlark.ExecFile(thread, scriptFilename, nil, nil)
+	return strings.Trim(output, "\n"), err
+}
+
+func expectScriptOutput(t *testing.T, scriptFilename, expectFilename string) {
+	output, err := runScript(t, scriptFilename)
 	if err != nil {
 		t.Fatal(err)
 	}

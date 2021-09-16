@@ -39,6 +39,7 @@ var (
 
 var seriesMethods = map[string]*starlark.Builtin{
 	"astype":  starlark.NewBuiltin("astype", seriesAsType),
+	"equals":  starlark.NewBuiltin("equals", seriesEquals),
 	"get":     starlark.NewBuiltin("get", seriesGet),
 	"notnull": starlark.NewBuiltin("notnull", seriesNotNull),
 }
@@ -120,6 +121,43 @@ func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, e
 		return newSeriesFromObjects(newVals, NewIndex(newIdx, ""), s.name), true, nil
 	}
 	return starlark.None, false, fmt.Errorf("Series.Get: not found: %q", keyVal)
+}
+
+func seriesEquals(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var key starlark.String
+	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 1, &key); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*Series)
+	return self.selectElemsWhereEqString(string(key))
+}
+
+func (s *Series) selectElemsWhereEqString(cmp string) (*Series, error) {
+	builder := newTypedSliceBuilder(s.Len())
+	builder.setType("bool")
+
+	for k := 0; k < s.Len(); k++ {
+		elemVal := s.Index(k)
+		if elemVal == nil || elemVal == starlark.None {
+			builder.pushNil()
+			continue
+		}
+		if elemStr, ok := toStrMaybe(elemVal); ok {
+			if elemStr == cmp {
+				builder.push(true)
+			} else {
+				builder.push(false)
+			}
+			continue
+		} else {
+			return nil, fmt.Errorf("expected Series to contain strings, got %v", elemVal)
+		}
+	}
+	if err := builder.error(); err != nil {
+		return nil, err
+	}
+	ans := builder.toSeries(nil, s.name)
+	return &ans, nil
 }
 
 func (s *Series) stringify() string {
