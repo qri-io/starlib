@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"sort"
 	"strings"
 
 	"go.starlark.net/starlark"
@@ -395,18 +396,9 @@ func (df *DataFrame) Truth() starlark.Bool {
 // Attr gets a value for a string attribute, implementing dot expression support
 // in starklark. required by starlark.HasAttrs interface.
 func (df *DataFrame) Attr(name string) (starlark.Value, error) {
-	switch name {
-	case "at":
-		return NewAtIndexer(df), nil
-	case "columns":
-		return df.columns, nil
-	case "index":
-		if df.index == nil {
-			return NewRangeIndex(df.NumRows()), nil
-		}
-		return df.index, nil
-	case "shape":
-		return dataframePropertyShape(df)
+	attrImpl, found := dataframeAttributes[name]
+	if found {
+		return attrImpl(df)
 	}
 	return builtinAttr(df, name, dataframeMethods)
 }
@@ -414,8 +406,14 @@ func (df *DataFrame) Attr(name string) (starlark.Value, error) {
 // AttrNames lists available dot expression strings. required by
 // starlark.HasAttrs interface.
 func (df *DataFrame) AttrNames() []string {
-	methodNames := builtinAttrNames(seriesMethods)
-	return append([]string{"columns", "index"}, methodNames...)
+	// get the non-method attributes
+	attrNames := make([]string, 0, len(dataframeAttributes))
+	for name := range dataframeAttributes {
+		attrNames = append(attrNames, name)
+	}
+	sort.Strings(attrNames)
+	// append the methods
+	return append(attrNames, builtinAttrNames(dataframeMethods)...)
 }
 
 // SetField assigns to a field of the DataFrame
@@ -689,6 +687,31 @@ func (df *DataFrame) stringify() string {
 	}
 
 	return answer
+}
+
+// at returns an atIndexer which can retrieve or set individual cells
+func dataframeAttrAt(self *DataFrame) (starlark.Value, error) {
+	return NewAtIndexer(self), nil
+}
+
+// columns returns the columns of the dataframe as an index
+func dataframeAttrColumns(self *DataFrame) (starlark.Value, error) {
+	return self.columns, nil
+}
+
+// index returns the index of the dataframe, or a rangeIndex if none exists
+func dataframeAttrIndex(self *DataFrame) (starlark.Value, error) {
+	if self.index == nil {
+		return NewRangeIndex(self.NumRows()), nil
+	}
+	return self.index, nil
+}
+
+// shape returns a tuple with the rows and columns in the dataframe
+func dataframeAttrShape(self *DataFrame) (starlark.Value, error) {
+	rows := starlark.MakeInt(self.NumRows())
+	cols := starlark.MakeInt(self.NumCols())
+	return starlark.Tuple{rows, cols}, nil
 }
 
 // apply method iterates the rows of a DataFrame, calls the given function for
@@ -995,13 +1018,6 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 		columns: NewIndex(newColumns, ""),
 		body:    newBody,
 	}, nil
-}
-
-// shape returns a tuple with the rows and columns in the dataframe
-func dataframePropertyShape(self *DataFrame) (starlark.Value, error) {
-	rows := starlark.MakeInt(self.NumRows())
-	cols := starlark.MakeInt(self.NumCols())
-	return starlark.Tuple{rows, cols}, nil
 }
 
 // append adds a new row to the body

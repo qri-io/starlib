@@ -6,6 +6,27 @@ import (
 	"go.starlark.net/starlark"
 )
 
+type dataframeAttrImpl func(*DataFrame) (starlark.Value, error)
+
+var dataframeAttributes = map[string]dataframeAttrImpl{
+	"at":      dataframeAttrAt,
+	"attrs":   attrNoImpl("attrs"),
+	"axes":    attrNoImpl("axes"),
+	"columns": dataframeAttrColumns,
+	"dtypes":  attrNoImpl("dtypes"),
+	"empty":   attrNoImpl("empty"),
+	"flags":   attrNoImpl("flags"),
+	"iat":     attrNoImpl("iat"),
+	"iloc":    attrNoImpl("iloc"),
+	"index":   dataframeAttrIndex,
+	"loc":     attrNoImpl("loc"),
+	"ndim":    attrNoImpl("ndim"),
+	"shape":   dataframeAttrShape,
+	"size":    attrNoImpl("sizes"),
+	"style":   attrNoImpl("style"),
+	"values":  attrNoImpl("values"),
+}
+
 var dataframeMethods = map[string]*starlark.Builtin{
 	"abs":               starlark.NewBuiltin("abs", methNoImpl("abs")),
 	"add":               starlark.NewBuiltin("add", methNoImpl("add")),
@@ -167,7 +188,7 @@ var dataframeMethods = map[string]*starlark.Builtin{
 	"swaplevel":         starlark.NewBuiltin("swaplevel", methNoImpl("swaplevel")),
 	"tail":              starlark.NewBuiltin("tail", methNoImpl("tail")),
 	"take":              starlark.NewBuiltin("take", methNoImpl("take")),
-	"to_clipboard":      starlark.NewBuiltin("to_clipboard", methNoImpl("to_clipboard")),
+	"to_clipboard":      starlark.NewBuiltin("to_clipboard", methMissing("to_clipboard")),
 	"to_csv":            starlark.NewBuiltin("to_csv", methNoImpl("to_csv")),
 	"to_dict":           starlark.NewBuiltin("to_dict", methNoImpl("to_dict")),
 	"to_excel":          starlark.NewBuiltin("to_excel", methNoImpl("to_excel")),
@@ -181,7 +202,7 @@ var dataframeMethods = map[string]*starlark.Builtin{
 	"to_numpy":          starlark.NewBuiltin("to_numpy", methNoImpl("to_numpy")),
 	"to_parquet":        starlark.NewBuiltin("to_parquet", methNoImpl("to_parquet")),
 	"to_period":         starlark.NewBuiltin("to_period", methNoImpl("to_period")),
-	"to_pickle":         starlark.NewBuiltin("to_pickle", methNoImpl("to_pickle")),
+	"to_pickle":         starlark.NewBuiltin("to_pickle", methMissing("to_pickle")),
 	"to_records":        starlark.NewBuiltin("to_records", methNoImpl("to_records")),
 	"to_sql":            starlark.NewBuiltin("to_sql", methNoImpl("to_sql")),
 	"to_stata":          starlark.NewBuiltin("to_stata", methNoImpl("to_stata")),
@@ -206,8 +227,20 @@ var dataframeMethods = map[string]*starlark.Builtin{
 
 type starlarkMethod func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error)
 
+func attrNoImpl(attrName string) dataframeAttrImpl {
+	return func(*DataFrame) (starlark.Value, error) {
+		return nil, fmt.Errorf("dataframe.%s is not implemented. If you need this functionality to exist, file an issue at 'https://github.com/qri-io/starlib/issues' with the title 'dataframe.%s needs implementation'. Please first search if an issue exists already", attrName, attrName)
+	}
+}
+
 func methNoImpl(methodName string) starlarkMethod {
 	return func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		return nil, fmt.Errorf("dataframe.%s is not implemented. If you need this functionality to exist, file an issue at 'https://github.com/qri-io/starlib/issues' with the title 'dataframe.%s needs implementation'. Please first search if an issue exists already", methodName, methodName)
+	}
+}
+
+func methMissing(methodName string) starlarkMethod {
+	return func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		return nil, fmt.Errorf("dataframe.%s does not exist in this environment", methodName)
 	}
 }
