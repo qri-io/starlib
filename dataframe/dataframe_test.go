@@ -1,8 +1,13 @@
 package dataframe
 
 import (
-	"github.com/google/go-cmp/cmp"
+	"fmt"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/starlib/testdata"
+	"go.starlark.net/starlark"
+	"go.starlark.net/starlarktest"
 )
 
 func TestDataframeBasic(t *testing.T) {
@@ -64,6 +69,28 @@ func TestDataframeColumns(t *testing.T) {
 
 func TestDataframeGroupBy(t *testing.T) {
 	runTestScript(t, "testdata/dataframe_groupby.star", "testdata/dataframe_groupby.expect.txt")
+}
+
+func TestDataframeNotImplemented(t *testing.T) {
+	scriptFilename := "testdata/dataframe_not_implemented.star"
+
+	output := "\n"
+	printCollect := func(thread *starlark.Thread, msg string) {
+		output = fmt.Sprintf("%s%s\n", output, msg)
+	}
+
+	thread := &starlark.Thread{Load: testdata.NewModuleLoader(Module)}
+	thread.Print = printCollect
+	starlarktest.SetReporter(thread, t)
+
+	_, err := starlark.ExecFile(thread, scriptFilename, nil, nil)
+	if err == nil {
+		t.Fatal("error expected, did not get one")
+	}
+	expectErr := `dataframe.ffill is not implemented. If you need this functionality to exist, file an issue at 'https://github.com/qri-io/starlib/issues' with the title 'dataframe.ffill needs implementation'. Please first search if an issue exists already`
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch\nwant: %s\ngot: %s", expectErr, err)
+	}
 }
 
 type invalidData struct{}
