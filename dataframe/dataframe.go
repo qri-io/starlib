@@ -26,6 +26,7 @@ var Module = &starlarkstruct.Module{
 	Name: Name,
 	Members: starlark.StringDict{
 		"read_csv":  starlark.NewBuiltin("read_csv", readCsv),
+		"parse_csv": starlark.NewBuiltin("parse_csv", parseCsv),
 		"DataFrame": starlark.NewBuiltin("DataFrame", newDataFrameBuiltin),
 		"Index":     starlark.NewBuiltin("Index", newIndex),
 		"Series":    starlark.NewBuiltin("Series", newSeries),
@@ -53,9 +54,13 @@ var (
 )
 
 func readCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return starlark.None, fmt.Errorf("dataframe.read_csv is disabled, use dataframe.parse_csv(string) instead to parse csv text that was already downloaded using the http package. In the future, dataframe.read_csv(url) will be restored")
+}
+
+func parseCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var content starlark.Value
 
-	if err := starlark.UnpackArgs("read_csv", args, kwargs,
+	if err := starlark.UnpackArgs("parse_csv", args, kwargs,
 		"content", &content,
 	); err != nil {
 		return nil, err

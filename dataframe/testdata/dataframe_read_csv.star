@@ -2,7 +2,7 @@ load("dataframe.star", "dataframe")
 
 
 def f():
-  df = dataframe.read_csv("""id,animal,sound
+  df = dataframe.parse_csv("""id,animal,sound
 1,cat,meow
 2,dog,bark
 3,eel,zap
