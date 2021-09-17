@@ -82,7 +82,7 @@ func TestDataframeColumns(t *testing.T) {
 }
 
 func TestDataframeColumnsNone(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_columns_none.star",
+	expectScriptOutput(t, "testdata/dataframe_columns_none.star",
 		"testdata/dataframe_columns_none.expect.txt")
 }
 
