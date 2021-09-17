@@ -1,70 +1,84 @@
 package dataframe
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/starlib/testdata"
-	"go.starlark.net/starlark"
-	"go.starlark.net/starlarktest"
 )
 
 func TestDataframeBasic(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_basic.star", "testdata/dataframe_basic.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_basic.star", "testdata/dataframe_basic.expect.txt")
+}
+
+func TestDataframeBoolSelect(t *testing.T) {
+	expectScriptOutput(t, "testdata/dataframe_bool_select.star",
+		"testdata/dataframe_bool_select.expect.txt")
+}
+
+func TestDataframeBoolSelectDontUseEqualOperator(t *testing.T) {
+	_, err := runScript(t, "testdata/dataframe_bool_select_failure.star")
+	if err == nil {
+		t.Fatal("error expected, did not get one")
+	}
+	expectErr := "cannot call DataFrame.Get with bool. If you are trying `df[df[column] == val], instead use `df[df[column].equals(val)]`"
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch\nwant: %s\ngot: %s", expectErr, err)
+	}
 }
 
 func TestDataframeSize(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_size.star", "testdata/dataframe_size.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_size.star", "testdata/dataframe_size.expect.txt")
 }
 
 func TestDataframeConcat(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_concat.star", "testdata/dataframe_concat.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_concat.star", "testdata/dataframe_concat.expect.txt")
 }
 
 func TestDataframeAt(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_at.star", "testdata/dataframe_at.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_at.star", "testdata/dataframe_at.expect.txt")
 }
 
 func TestDataframeSetKey(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_setkey.star", "testdata/dataframe_setkey.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_setkey.star", "testdata/dataframe_setkey.expect.txt")
 }
 
 func TestDataframeGetKey(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_getkey.star", "testdata/dataframe_getkey.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_getkey.star", "testdata/dataframe_getkey.expect.txt")
 }
 
 func TestDataframeApply(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_apply.star", "testdata/dataframe_apply.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_apply.star", "testdata/dataframe_apply.expect.txt")
 }
 
 func TestDataframeAppend(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_append.star", "testdata/dataframe_append.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_append.star", "testdata/dataframe_append.expect.txt")
 }
 
 func TestDataframeDropDuplicates(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_drop_duplicates.star",
+	expectScriptOutput(t, "testdata/dataframe_drop_duplicates.star",
 		"testdata/dataframe_drop_duplicates.expect.txt")
 }
 
 func TestDataframeHead(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_head.star", "testdata/dataframe_head.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_head.star", "testdata/dataframe_head.expect.txt")
 }
 
 func TestDataframeMerge(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_merge.star", "testdata/dataframe_merge.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_merge.star", "testdata/dataframe_merge.expect.txt")
 }
 
 func TestDataframeReadCSV(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_read_csv.star", "testdata/dataframe_read_csv.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_read_csv.star",
+		"testdata/dataframe_read_csv.expect.txt")
 }
 
 func TestDataframeResetIndex(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_reset_index.star", "testdata/dataframe_reset_index.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_reset_index.star",
+		"testdata/dataframe_reset_index.expect.txt")
 }
 
 func TestDataframeColumns(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_columns.star", "testdata/dataframe_columns.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_columns.star", "testdata/dataframe_columns.expect.txt")
 }
 
 func TestDataframeColumnsNone(t *testing.T) {
@@ -73,22 +87,11 @@ func TestDataframeColumnsNone(t *testing.T) {
 }
 
 func TestDataframeGroupBy(t *testing.T) {
-	runTestScript(t, "testdata/dataframe_groupby.star", "testdata/dataframe_groupby.expect.txt")
+	expectScriptOutput(t, "testdata/dataframe_groupby.star", "testdata/dataframe_groupby.expect.txt")
 }
 
 func TestDataframeNotImplemented(t *testing.T) {
-	scriptFilename := "testdata/dataframe_not_implemented.star"
-
-	output := "\n"
-	printCollect := func(thread *starlark.Thread, msg string) {
-		output = fmt.Sprintf("%s%s\n", output, msg)
-	}
-
-	thread := &starlark.Thread{Load: testdata.NewModuleLoader(Module)}
-	thread.Print = printCollect
-	starlarktest.SetReporter(thread, t)
-
-	_, err := starlark.ExecFile(thread, scriptFilename, nil, nil)
+	_, err := runScript(t, "testdata/dataframe_not_implemented.star")
 	if err == nil {
 		t.Fatal("error expected, did not get one")
 	}

@@ -1,0 +1,22 @@
+0    123
+1    cat
+2    456
+3    789
+4    cat
+5    cat
+6    321
+dtype: object
+
+0    False
+1     True
+2    False
+3    False
+4     True
+5     True
+6    False
+dtype: bool
+
+1    cat
+4    cat
+5    cat
+dtype: object

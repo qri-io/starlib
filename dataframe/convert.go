@@ -225,6 +225,11 @@ func convertToStarlark(it interface{}) (starlark.Value, error) {
 	switch x := it.(type) {
 	case int:
 		return starlark.MakeInt(x), nil
+	case bool:
+		if x {
+			return starlark.True, nil
+		}
+		return starlark.False, nil
 	case float64:
 		return starlark.Float(x), nil
 	case string:

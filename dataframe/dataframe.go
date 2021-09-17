@@ -6,6 +6,7 @@ import (
 	"io"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 
 	"go.starlark.net/starlark"
@@ -494,11 +495,22 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 
 // Get returns a column of the DataFrame as a Series
 func (df *DataFrame) Get(keyVal starlark.Value) (value starlark.Value, found bool, err error) {
-	key, ok := toStrMaybe(keyVal)
-	if !ok {
-		return starlark.None, false, fmt.Errorf("Get key must be string")
+	if key, ok := toStrMaybe(keyVal); ok {
+		return df.accessDataFrameByString(key)
 	}
 
+	if _, ok := keyVal.(starlark.Bool); ok {
+		return nil, false, fmt.Errorf("cannot call DataFrame.Get with bool. If you are trying `df[df[column] == val], instead use `df[df[column].equals(val)]`")
+	}
+
+	if ser, ok := keyVal.(*Series); ok {
+		return df.accessDataFrameBySeries(ser)
+	}
+
+	return nil, false, fmt.Errorf("DataFrame.Get given %v", keyVal)
+}
+
+func (df *DataFrame) accessDataFrameByString(key string) (starlark.Value, bool, error) {
 	// Find the column being retrieved, fail if not found
 	keyPos := findKeyPos(key, df.columns.texts)
 	if keyPos == -1 {
@@ -529,6 +541,37 @@ func (df *DataFrame) Get(keyVal starlark.Value) (value starlark.Value, found boo
 		valFloats: got.valFloats,
 		valObjs:   got.valObjs,
 		index:     index,
+	}, true, nil
+}
+
+func (df *DataFrame) accessDataFrameBySeries(series *Series) (starlark.Value, bool, error) {
+	builder := newTableBuilder(df.NumCols(), df.NumRows())
+	indexVals := make([]string, 0, df.NumRows())
+	line := 0
+	for rows := newRowIter(df); !rows.Done(); rows.Next() {
+		if line >= series.Len() {
+			break
+		}
+		elem := series.Index(line)
+		b, ok := elem.(starlark.Bool)
+		if !ok {
+			return starlark.None, false, fmt.Errorf("DataFrame.Get(Series) must be a Series of bools, got %d: %v of %T", line, elem, elem)
+		}
+		if b {
+			builder.pushRow(rows.GetRow().data)
+			indexVals = append(indexVals, strconv.Itoa(line))
+		}
+		line++
+	}
+	// Finish building the body, return any errors
+	body, err := builder.body()
+	if err != nil {
+		return nil, false, err
+	}
+	return &DataFrame{
+		columns: df.columns,
+		index:   NewIndex(indexVals, ""),
+		body:    body,
 	}, true, nil
 }
 
