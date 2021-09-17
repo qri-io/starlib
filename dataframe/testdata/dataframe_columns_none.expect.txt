@@ -1,0 +1,2 @@
+RangeIndex(start=0, stop=3, step=1)
+RangeIndex(start=0, stop=2, step=1)

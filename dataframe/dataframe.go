@@ -696,6 +696,9 @@ func dataframeAttrAt(self *DataFrame) (starlark.Value, error) {
 
 // columns returns the columns of the dataframe as an index
 func dataframeAttrColumns(self *DataFrame) (starlark.Value, error) {
+	if self.columns == nil {
+		return NewRangeIndex(self.NumCols()), nil
+	}
 	return self.columns, nil
 }
 

@@ -67,6 +67,11 @@ func TestDataframeColumns(t *testing.T) {
 	runTestScript(t, "testdata/dataframe_columns.star", "testdata/dataframe_columns.expect.txt")
 }
 
+func TestDataframeColumnsNone(t *testing.T) {
+	runTestScript(t, "testdata/dataframe_columns_none.star",
+		"testdata/dataframe_columns_none.expect.txt")
+}
+
 func TestDataframeGroupBy(t *testing.T) {
 	runTestScript(t, "testdata/dataframe_groupby.star", "testdata/dataframe_groupby.expect.txt")
 }
