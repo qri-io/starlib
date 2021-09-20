@@ -1,1 +1,1 @@
-["astype", "equals", "get", "notnull"]
+["astype", "equals", "get", "notequals", "notnull", "str"]

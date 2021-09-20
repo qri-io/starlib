@@ -15,6 +15,22 @@ func TestDataframeBoolSelect(t *testing.T) {
 		"testdata/dataframe_bool_select.expect.txt")
 }
 
+func TestDataframeSeriesStrSelect(t *testing.T) {
+	expectScriptOutput(t, "testdata/dataframe_series_str_select.star",
+		"testdata/dataframe_series_str_select.expect.txt")
+}
+
+func TestDataframeSelectBadLengthError(t *testing.T) {
+	_, err := runScript(t, "testdata/dataframe_select_bad_length.star")
+	if err == nil {
+		t.Fatal("error expected, did not get one")
+	}
+	expectErr := `Item wrong length 5 instead of 8`
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch\nwant: %s\ngot: %s", expectErr, err)
+	}
+}
+
 func TestDataframeBoolSelectDontUseEqualOperator(t *testing.T) {
 	_, err := runScript(t, "testdata/dataframe_bool_select_failure.star")
 	if err == nil {

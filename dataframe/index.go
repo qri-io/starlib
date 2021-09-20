@@ -27,6 +27,14 @@ func NewIndex(texts []string, name string) *Index {
 	return &Index{texts: texts, name: name}
 }
 
+// CloneWithStrings returns a clone of the index but with replaced string values
+func (i *Index) CloneWithStrings(txts []string) starlark.Value {
+	return &Index{
+		texts: txts,
+		name:  i.name,
+	}
+}
+
 // Freeze prevents the index from being mutated
 func (i *Index) Freeze() {
 	i.frozen = true
@@ -93,6 +101,11 @@ func (i *Index) Len() int {
 		return 0
 	}
 	return len(i.texts)
+}
+
+// StrAt returns the string at index k
+func (i *Index) StrAt(k int) string {
+	return i.texts[k]
 }
 
 func newIndex(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {

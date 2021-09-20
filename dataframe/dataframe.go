@@ -402,10 +402,17 @@ func (df *DataFrame) Truth() starlark.Bool {
 // Attr gets a value for a string attribute, implementing dot expression support
 // in starklark. required by starlark.HasAttrs interface.
 func (df *DataFrame) Attr(name string) (starlark.Value, error) {
+	// Column names can be accessed as attributes
+	v, found, err := df.Get(starlark.String(name))
+	if found {
+		return v, err
+	}
+	// Find non-method attribute
 	attrImpl, found := dataframeAttributes[name]
 	if found {
 		return attrImpl(df)
 	}
+	// Find method
 	return builtinAttr(df, name, dataframeMethods)
 }
 
@@ -501,7 +508,11 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 // Get returns a column of the DataFrame as a Series
 func (df *DataFrame) Get(keyVal starlark.Value) (value starlark.Value, found bool, err error) {
 	if key, ok := toStrMaybe(keyVal); ok {
-		return df.accessDataFrameByString(key)
+		val, err := df.accessDataFrameByString(key)
+		if err != nil {
+			return val, false, err
+		}
+		return val, true, nil
 	}
 
 	if _, ok := keyVal.(starlark.Bool); ok {
@@ -509,17 +520,33 @@ func (df *DataFrame) Get(keyVal starlark.Value) (value starlark.Value, found boo
 	}
 
 	if ser, ok := keyVal.(*Series); ok {
-		return df.accessDataFrameBySeries(ser)
+		val, err := df.accessDataFrameBySeries(ser)
+		if err != nil {
+			return val, false, err
+		}
+		return val, true, nil
+	}
+
+	if list, ok := keyVal.(*starlark.List); ok {
+		val, err := df.accessDataFrameByList(list)
+		if err != nil {
+			return val, false, err
+		}
+		return val, true, nil
 	}
 
 	return nil, false, fmt.Errorf("DataFrame.Get given %v", keyVal)
 }
 
-func (df *DataFrame) accessDataFrameByString(key string) (starlark.Value, bool, error) {
+func (df *DataFrame) accessDataFrameByString(key string) (starlark.Value, error) {
+	if df.columns == nil {
+		return starlark.None, fmt.Errorf("DataFrame.Get: key not found %q", key)
+	}
+
 	// Find the column being retrieved, fail if not found
 	keyPos := findKeyPos(key, df.columns.texts)
 	if keyPos == -1 {
-		return starlark.None, false, fmt.Errorf("DataFrame.Get: key not found %q", key)
+		return starlark.None, fmt.Errorf("DataFrame.Get: key not found %q", key)
 	}
 
 	got := df.body[keyPos]
@@ -546,10 +573,16 @@ func (df *DataFrame) accessDataFrameByString(key string) (starlark.Value, bool, 
 		valFloats: got.valFloats,
 		valObjs:   got.valObjs,
 		index:     index,
-	}, true, nil
+	}, nil
 }
 
-func (df *DataFrame) accessDataFrameBySeries(series *Series) (starlark.Value, bool, error) {
+// accessing a dataframe using a series of bools (example: df[Series([True, False])])
+// will return a new dataframe that only contains the rows which correspond to
+// True booleans
+func (df *DataFrame) accessDataFrameBySeries(series *Series) (starlark.Value, error) {
+	if series.Len() != df.NumRows() {
+		return starlark.None, fmt.Errorf("Item wrong length %d instead of %d", series.Len(), df.NumRows())
+	}
 	builder := newTableBuilder(df.NumCols(), df.NumRows())
 	indexVals := make([]string, 0, df.NumRows())
 	line := 0
@@ -560,7 +593,7 @@ func (df *DataFrame) accessDataFrameBySeries(series *Series) (starlark.Value, bo
 		elem := series.Index(line)
 		b, ok := elem.(starlark.Bool)
 		if !ok {
-			return starlark.None, false, fmt.Errorf("DataFrame.Get(Series) must be a Series of bools, got %d: %v of %T", line, elem, elem)
+			return starlark.None, fmt.Errorf("DataFrame.Get(Series) must be a Series of bools, got %d: %v of %T", line, elem, elem)
 		}
 		if b {
 			builder.pushRow(rows.GetRow().data)
@@ -571,13 +604,32 @@ func (df *DataFrame) accessDataFrameBySeries(series *Series) (starlark.Value, bo
 	// Finish building the body, return any errors
 	body, err := builder.body()
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	return &DataFrame{
 		columns: df.columns,
 		index:   NewIndex(indexVals, ""),
 		body:    body,
-	}, true, nil
+	}, nil
+}
+
+// accessing a dataframe using a list of bools (example: df[[True, False, True]])
+// will return a new dataframe that only contains the rows which correspond to
+// True booleans
+func (df *DataFrame) accessDataFrameByList(list *starlark.List) (starlark.Value, error) {
+	if list.Len() != df.NumRows() {
+		return starlark.None, fmt.Errorf("Item wrong length %d instead of %d", list.Len(), df.NumRows())
+	}
+	bs := make([]bool, list.Len())
+	for i := 0; i < list.Len(); i++ {
+		val := list.Index(i)
+		b, ok := val.(starlark.Bool)
+		if !ok {
+			return starlark.None, fmt.Errorf("DataFrame.Get(list) must be a list of bools, got %d: %v of %T", i, val, val)
+		}
+		bs[i] = bool(b)
+	}
+	return df.accessDataFrameBySeries(newSeriesFromBools(bs, nil, ""))
 }
 
 // At2d returns the cell as position 'i,j' as a go native type
@@ -689,7 +741,7 @@ func (df *DataFrame) stringify() string {
 	}
 	for i := 0; i < df.NumRows(); i++ {
 		for j, col := range df.body {
-			elem := col.strAt(i)
+			elem := col.StrAt(i)
 			w := len(elem)
 			if w > widths[j] {
 				widths[j] = w
@@ -727,7 +779,7 @@ func (df *DataFrame) stringify() string {
 		}
 		// Render each element of the row
 		for j, col := range df.body {
-			elem := col.strAt(i)
+			elem := col.StrAt(i)
 			tmpl := fmt.Sprintf("%%%dv", widths[j])
 			render = append(render, fmt.Sprintf(tmpl, elem))
 		}

@@ -1,0 +1,71 @@
+Full DataFrame:
+        name   sound
+0        cat    meow
+1        dog    bark
+2        eel     zap
+3       frog  ribbit
+4    giraffe     hum
+5      hippo   grunt
+6       ibex   bleat
+7     jaguar    roar
+
+
+name ends with "g":
+     name   sound
+1     dog    bark
+3    frog  ribbit
+
+
+sound starts with "b":
+     name  sound
+1     dog   bark
+6    ibex  bleat
+
+
+sound does not start with "b":
+        name   sound
+0        cat    meow
+2        eel     zap
+3       frog  ribbit
+4    giraffe     hum
+5      hippo   grunt
+7     jaguar    roar
+
+
+sound's 1-th char is "a":
+     name  sound
+1     dog   bark
+2     eel    zap
+
+
+name's 1-th char is not "i":
+       name   sound
+0       cat    meow
+1       dog    bark
+2       eel     zap
+3      frog  ribbit
+6      ibex   bleat
+7    jaguar    roar
+
+
+name contains an "o":
+      name   sound
+1      dog    bark
+3     frog  ribbit
+5    hippo   grunt
+
+
+sound starts with "b", using list comprehension:
+     name  sound
+1     dog   bark
+6    ibex  bleat
+
+
+name's 2-th char is not "g", using list comprehension:
+        name   sound
+0        cat    meow
+2        eel     zap
+3       frog  ribbit
+4    giraffe     hum
+5      hippo   grunt
+6       ibex   bleat
