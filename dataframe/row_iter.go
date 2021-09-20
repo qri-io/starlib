@@ -70,7 +70,7 @@ func (r *rowIter) GetRow() *rowTuple {
 }
 
 func (r *rowIter) GetStr(pos int) string {
-	return r.df.body[pos].strAt(r.idx)
+	return r.df.body[pos].StrAt(r.idx)
 }
 
 func (r *rowIter) Index() int {
@@ -126,7 +126,7 @@ func (rt *rowTuple) toTuple() starlark.Tuple {
 	return arguments
 }
 
-func (rt *rowTuple) strAt(pos int) string {
+func (rt *rowTuple) StrAt(pos int) string {
 	it := rt.data[pos]
 	if num, ok := it.(int); ok {
 		return strconv.Itoa(num)

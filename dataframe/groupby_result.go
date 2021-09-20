@@ -71,7 +71,7 @@ func (gbr *GroupByResult) Get(key starlark.Value) (value starlark.Value, found b
 	for group, frame := range gbr.grouping {
 		newRow := []string{}
 		for _, row := range frame {
-			val := row.strAt(keyPos)
+			val := row.StrAt(keyPos)
 			newRow = append(newRow, val)
 		}
 		result[group] = newRow

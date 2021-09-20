@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.starlark.net/starlark"
+	"go.starlark.net/syntax"
 )
 
 // Series represents a sequence of values, either ints, floats, or objects. This is
@@ -35,13 +36,16 @@ var (
 	_ starlark.Mapping   = (*Series)(nil)
 	_ starlark.HasAttrs  = (*Series)(nil)
 	_ starlark.Indexable = (*Series)(nil)
+	_ starlark.Sequence  = (*Series)(nil)
+	_ starlark.HasUnary  = (*Series)(nil)
 )
 
 var seriesMethods = map[string]*starlark.Builtin{
-	"astype":  starlark.NewBuiltin("astype", seriesAsType),
-	"equals":  starlark.NewBuiltin("equals", seriesEquals),
-	"get":     starlark.NewBuiltin("get", seriesGet),
-	"notnull": starlark.NewBuiltin("notnull", seriesNotNull),
+	"astype":    starlark.NewBuiltin("astype", seriesAsType),
+	"equals":    starlark.NewBuiltin("equals", seriesEquals),
+	"notequals": starlark.NewBuiltin("notequals", seriesNotEquals),
+	"get":       starlark.NewBuiltin("get", seriesGet),
+	"notnull":   starlark.NewBuiltin("notnull", seriesNotNull),
 }
 
 // Freeze prevents the series from being mutated
@@ -74,12 +78,16 @@ func (s *Series) Type() string {
 
 // Attr gets a value for a string attribute
 func (s *Series) Attr(name string) (starlark.Value, error) {
+	if name == "str" {
+		return &stringMethods{subject: s}, nil
+	}
 	return builtinAttr(s, name, seriesMethods)
 }
 
 // AttrNames lists available attributes
 func (s *Series) AttrNames() []string {
-	return builtinAttrNames(seriesMethods)
+	attributeNames := []string{"str"}
+	return append(attributeNames, builtinAttrNames(seriesMethods)...)
 }
 
 // Get retrieves a single cell from the Series
@@ -158,6 +166,23 @@ func (s *Series) selectElemsWhereEqString(cmp string) (*Series, error) {
 	}
 	ans := builder.toSeries(nil, s.name)
 	return &ans, nil
+}
+
+func seriesNotEquals(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	val, err := seriesEquals(thread, b, args, kwargs)
+	if err != nil {
+		return val, err
+	}
+
+	series := val.(*Series)
+	res := make([]bool, series.Len())
+	for k := 0; k < series.Len(); k++ {
+		elem := series.Index(k)
+		b := elem.(starlark.Bool)
+		res[k] = !bool(b)
+	}
+
+	return newSeriesFromBools(res, series.index, series.name), nil
 }
 
 func (s *Series) stringify() string {
@@ -289,6 +314,11 @@ func (s *Series) stringValues() []string {
 	return result
 }
 
+// Iterate returns an iterator for the series
+func (s *Series) Iterate() starlark.Iterator {
+	return &seriesIterator{series: s, count: 0}
+}
+
 // Len returns the number of values
 func (s *Series) Len() int {
 	if s.which == typeInt {
@@ -308,8 +338,8 @@ func (s *Series) Index(i int) starlark.Value {
 	return obj
 }
 
-// strAt returns the cell at position 'i', as a string fit for printing
-func (s *Series) strAt(i int) string {
+// StrAt returns the cell at position 'i', as a string fit for printing
+func (s *Series) StrAt(i int) string {
 	if s.which == typeInt {
 		if s.dtype == "bool" {
 			if s.valInts[i] == 0 {
@@ -370,6 +400,38 @@ func (s *Series) SetAt(i int, any interface{}) error {
 		}
 	}
 	return nil
+}
+
+// CloneWithStrings returns a clone of the series with contents replaced with the given strings
+func (s *Series) CloneWithStrings(txts []string) starlark.Value {
+	return &Series{
+		dtype:   "object",
+		which:   typeObj,
+		valObjs: convertStringsToObjects(txts),
+		index:   s.index,
+		name:    s.name,
+	}
+}
+
+// Unary implements unary operators, only the tilde (negation) is supported
+func (s *Series) Unary(op syntax.Token) (value starlark.Value, err error) {
+	if op != syntax.TILDE {
+		return starlark.None, fmt.Errorf("only unary ~ is supported")
+	}
+
+	result := make([]bool, s.Len())
+	for i := 0; i < s.Len(); i++ {
+		obj := s.At(i)
+		if b, ok := obj.(bool); ok {
+			if !b {
+				result[i] = true
+				continue
+			}
+		}
+		result[i] = false
+	}
+
+	return newSeriesFromBools(result, s.index, s.name), nil
 }
 
 func builtinAttr(recv starlark.Value, name string, methods map[string]*starlark.Builtin) (starlark.Value, error) {
@@ -582,6 +644,20 @@ func newSeriesFromInts(vals []int, index *Index, name string) *Series {
 	}
 }
 
+func newSeriesFromBools(vals []bool, index *Index, name string) *Series {
+	newVals := make([]int, len(vals))
+	for i, b := range vals {
+		if b {
+			newVals[i] = 1
+		} else {
+			newVals[i] = 0
+		}
+	}
+	series := newSeriesFromInts(newVals, index, name)
+	series.dtype = "bool"
+	return series
+}
+
 func newSeriesFromFloats(vals []float64, index *Index, name string) *Series {
 	return &Series{
 		dtype:     "float64",
@@ -609,4 +685,22 @@ func findKeyPos(needle string, subject []string) int {
 		}
 	}
 	return -1
+}
+
+type seriesIterator struct {
+	count  int
+	series *Series
+}
+
+// Done does cleanup work when iteration finishes, not needed
+func (it *seriesIterator) Done() {}
+
+// Next assigns the next item and returns whether one was found
+func (it *seriesIterator) Next(p *starlark.Value) bool {
+	if it.count < it.series.Len() {
+		*p = it.series.Index(it.count)
+		it.count++
+		return true
+	}
+	return false
 }
