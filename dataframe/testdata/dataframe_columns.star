@@ -26,5 +26,14 @@ def f():
   print(df)
   print('')
 
+  new = dataframe.DataFrame()
+  new['my_column'] = [123, 456, 789]
+  print(new)
+  print('')
+
+  new['another_col'] = ['cat', 'dog', 'eel']
+  print(new)
+  print('')
+
 
 f()

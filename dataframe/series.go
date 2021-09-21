@@ -636,6 +636,20 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 	return starlark.None, fmt.Errorf("`data` type unrecognized: %q of %s", dataVal.String(), dataVal.Type())
 }
 
+func newSeriesFromList(list starlark.List) (*Series, error) {
+	builder := newTypedSliceBuilder(list.Len())
+	for k := 0; k < list.Len(); k++ {
+		elemVal := list.Index(k)
+		elem := toNativeValue(elemVal)
+		builder.push(elem)
+	}
+	if err := builder.error(); err != nil {
+		return nil, err
+	}
+	s := builder.toSeries(nil, "")
+	return &s, nil
+}
+
 func newSeriesFromRepeatScalar(val interface{}, size int) *Series {
 	switch x := val.(type) {
 	case int:

@@ -9,3 +9,15 @@ Index(['first', 'second', 'third_column'], dtype='object')
 1      bar       2         301.2
 2      baz       3         303.4
 3      foo       5         305.7
+
+
+     my_column
+0          123
+1          456
+2          789
+
+
+     another_col  my_column
+0            cat        123
+1            dog        456
+2            eel        789
