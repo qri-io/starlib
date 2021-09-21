@@ -43,9 +43,10 @@ var (
 var seriesMethods = map[string]*starlark.Builtin{
 	"astype":    starlark.NewBuiltin("astype", seriesAsType),
 	"equals":    starlark.NewBuiltin("equals", seriesEquals),
-	"notequals": starlark.NewBuiltin("notequals", seriesNotEquals),
 	"get":       starlark.NewBuiltin("get", seriesGet),
+	"notequals": starlark.NewBuiltin("notequals", seriesNotEquals),
 	"notnull":   starlark.NewBuiltin("notnull", seriesNotNull),
+	"unique":    starlark.NewBuiltin("unique", seriesUnique),
 }
 
 // Freeze prevents the series from being mutated
@@ -519,6 +520,32 @@ func seriesNotNull(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	series := newSeriesFromInts(newVals, self.index, self.name)
 	series.dtype = "bool"
 	return series, nil
+}
+
+// unique method returns a list of the unique elements from the series
+func seriesUnique(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*Series)
+
+	have := make(map[string]struct{})
+
+	items := make([]starlark.Value, 0)
+	for k := 0; k < self.Len(); k++ {
+		key := self.StrAt(k)
+		if _, found := have[key]; found {
+			continue
+		}
+		have[key] = struct{}{}
+		it, err := convertToStarlark(self.At(k))
+		if err != nil {
+			return starlark.None, err
+		}
+		items = append(items, it)
+	}
+
+	return starlark.NewList(items), nil
 }
 
 func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
