@@ -36,3 +36,7 @@ func TestSeriesAsType(t *testing.T) {
 func TestSeriesNotNull(t *testing.T) {
 	expectScriptOutput(t, "testdata/series_notnull.star", "testdata/series_notnull.expect.txt")
 }
+
+func TestSeriesUnique(t *testing.T) {
+	expectScriptOutput(t, "testdata/series_unique.star", "testdata/series_unique.expect.txt")
+}

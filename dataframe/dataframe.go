@@ -457,6 +457,11 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 		return fmt.Errorf("SetKey: name must be string")
 	}
 
+	// If dataframe has no columns yet, create an empty index
+	if df.columns == nil {
+		df.columns = NewIndex([]string{}, "")
+	}
+
 	// Figure out if a column already exists with the given name
 	columnIndex := findKeyPos(name, df.columns.texts)
 
@@ -484,10 +489,19 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 		return nil
 	}
 
+	// Convert list to a series
+	if list, ok := val.(*starlark.List); ok {
+		var err error
+		val, err = newSeriesFromList(*list)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Assignment of a Series to the column
 	series, ok := val.(*Series)
 	if !ok {
-		return fmt.Errorf("SetKey: val must be int, string, or Series")
+		return fmt.Errorf("SetKey: val must be int, string, list, or Series")
 	}
 	if df.NumRows() > 0 && (df.NumRows() != series.Len()) {
 		return fmt.Errorf("SetKey: val len must match number of rows")
