@@ -1,30 +1,29 @@
 case 0:
-     num  id  animal  sound
-0      7   1     cat   meow
-1      7   2     dog   bark
-2      7   3     eel    zap
+     id  animal  sound  num
+0     1     cat   meow    7
+1     2     dog   bark    7
+2     3     eel    zap    7
 
 case 1:
-     num  id  animal  sound
-0      8   1     cat   meow
-1      8   2     dog   bark
-2      8   3     eel    zap
+     id  animal  sound  num
+0     1     cat   meow    8
+1     2     dog   bark    8
+2     3     eel    zap    8
 
 case 2:
-     num  id  animal  sound
-0    abc   1     cat   meow
-1    abc   2     dog   bark
-2    abc   3     eel    zap
+     id  animal  sound  num
+0     1     cat   meow  abc
+1     2     dog   bark  abc
+2     3     eel    zap  abc
 
 case 3:
-     num  id  animal  sound
-0    123   1     cat   meow
-1    456   2     dog   bark
-2    789   3     eel    zap
+     id  animal  sound  num
+0     1     cat   meow  123
+1     2     dog   bark  456
+2     3     eel    zap  789
 
 case 4:
-     more  num  id  animal  sound
-0     123  123   1     cat   meow
-1     456  456   2     dog   bark
-2     789  789   3     eel    zap
-
+     id  animal  sound  num  more
+0     1     cat   meow  123   123
+1     2     dog   bark  456   456
+2     3     eel    zap  789   789
