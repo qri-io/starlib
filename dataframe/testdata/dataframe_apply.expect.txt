@@ -4,9 +4,9 @@
 3    foo:5
 dtype: object
 
-     combined  lkey  value
-0       foo:1   foo      1
-1       bar:2   bar      2
-2       baz:3   baz      3
-3       foo:5   foo      5
+     lkey  value  combined
+0     foo      1     foo:1
+1     bar      2     bar:2
+2     baz      3     baz:3
+3     foo      5     foo:5
 

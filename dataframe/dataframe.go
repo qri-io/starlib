@@ -468,7 +468,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 	// Either prepend the new column, or keep the names the same
 	newNames := make([]string, 0, len(df.columns.texts)+1)
 	if columnIndex == -1 {
-		newNames = append([]string{name}, df.columns.texts...)
+		newNames = append(df.columns.texts, name)
 	} else {
 		newNames = df.columns.texts
 	}
@@ -478,8 +478,8 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 		var newBody []Series
 		newCol := newSeriesFromRepeatScalar(scalar, max(1, df.NumRows()))
 		if columnIndex == -1 {
-			// New columns are added to the left side of the dataframe
-			newBody = append([]Series{*newCol}, df.body...)
+			// New columns are added to the right side of the dataframe
+			newBody = append(df.body, *newCol)
 		} else {
 			newBody = df.body
 			newBody[columnIndex] = *newCol
@@ -509,7 +509,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 
 	var newBody []Series
 	if columnIndex == -1 {
-		newBody = append([]Series{*series}, df.body...)
+		newBody = append(df.body, *series)
 	} else {
 		newBody = df.body
 		newBody[columnIndex] = *series
@@ -801,6 +801,20 @@ func (df *DataFrame) stringify() string {
 	}
 
 	return answer
+}
+
+// ColumnNamesTypes returns the column names and types if they exist
+func (df *DataFrame) ColumnNamesTypes() ([]string, []string) {
+	if df.columns == nil {
+		return nil, nil
+	}
+
+	dtypes := make([]string, len(df.body))
+	for i, series := range df.body {
+		dtypes[i] = series.dtype
+	}
+
+	return df.columns.texts, dtypes
 }
 
 // at returns an atIndexer which can retrieve or set individual cells

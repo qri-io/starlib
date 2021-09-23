@@ -17,7 +17,7 @@ Index(['first', 'second', 'third_column'], dtype='object')
 2          789
 
 
-     another_col  my_column
-0            cat        123
-1            dog        456
-2            eel        789
+     my_column  another_col
+0          123          cat
+1          456          dog
+2          789          eel

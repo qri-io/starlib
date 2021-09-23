@@ -312,3 +312,38 @@ func TestDataframeAccessor(t *testing.T) {
 		t.Errorf("mismatch (-want +got):%s\n", diff)
 	}
 }
+
+func TestDataframeColumnNamesTypes(t *testing.T) {
+	// Construct a dataframe with a few rows and columns
+	rows := [][]interface{}{
+		[]interface{}{"test", 31.2, 11.4, "ok", int64(597), "", 107, 6.91},
+		[]interface{}{"more", 7.8, 44.1, "hi", int64(612), "", 94, 3.1},
+		[]interface{}{"last", 90.2, 26.8, "yo", int64(493), "", 272, 4.3},
+	}
+	columns := []string{"word", "num0", "num1", "text", "num64", "blank", "id", "amount"}
+	df, err := NewDataFrame(rows, columns, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Print it and test the result
+	got := df.String()
+	expectText := `     word  num0  num1  text  num64  blank   id  amount
+0    test  31.2  11.4    ok    597         107     6.9
+1    more   7.8  44.1    hi    612          94     3.1
+2    last  90.2  26.8    yo    493         272     4.3
+`
+	if diff := cmp.Diff(expectText, got); diff != "" {
+		t.Errorf("mismatch (-want +got):%s\n", diff)
+	}
+
+	// Retrieve the column names and types
+	names, types := df.ColumnNamesTypes()
+	if diff := cmp.Diff(columns, names); diff != "" {
+		t.Errorf("column names mismatch (-want +got):%s\n", diff)
+	}
+	expectTypes := []string{"object", "float64", "float64", "object", "int64", "object", "int64", "float64"}
+	if diff := cmp.Diff(expectTypes, types); diff != "" {
+		t.Errorf("column types mismatch (-want +got):%s\n", diff)
+	}
+}
