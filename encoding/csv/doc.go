@@ -1,7 +1,7 @@
 /*Package csv reads comma-separated values files
 
   outline: csv
-    csv reads comma-separated values files
+    csv parses and writes comma-separated values files
     path: encoding/csv
     functions:
       read_all(source, comma=",", comment="", lazy_quotes=False, trim_leading_space=False, fields_per_record=0, skip=0) [][]string
