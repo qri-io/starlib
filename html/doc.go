@@ -52,6 +52,11 @@
             params:
               selector string
                 a query selector string to filter the current selection, returning a new selection
+          isSelector(selector) bool
+            checks the current matched set of elements against a selector and returns true if at least one of these elements matches
+            params:
+              selector string
+                a query selector string to filter the current selection, returning a new selection
           parent(selector) selection
             gets the parent of each element in the Selection
             params:

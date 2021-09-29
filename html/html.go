@@ -67,6 +67,7 @@ func (s *Selection) Struct() *starlarkstruct.Struct {
 		"filter":            starlark.NewBuiltin("filter", s.Filter),
 		"get":               starlark.NewBuiltin("get", s.Get),
 		"has":               starlark.NewBuiltin("has", s.Has),
+		"is_selector":        starlark.NewBuiltin("is_selector", s.Is),
 		"parent":            starlark.NewBuiltin("parent", s.Parent),
 		"parents_until":     starlark.NewBuiltin("parents_until", s.ParentsUntil),
 		"siblings":          starlark.NewBuiltin("siblings", s.Siblings),
@@ -218,6 +219,16 @@ func (s *Selection) Eq(thread *starlark.Thread, _ *starlark.Builtin, args starla
 
 	i, _ := x.Int64()
 	return NewSelectionStruct(s.sel.Eq(int(i))), nil
+}
+
+// Is checks the current matched set of elements against a selector and returns true if at least one of these elements matches.
+func (s *Selection) Is(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var x starlark.String
+	if err := starlark.UnpackPositionalArgs("is", args, kwargs, 1, &x); err != nil {
+		return nil, err
+	}
+
+	return starlark.Bool(s.sel.Is(string(x))), nil
 }
 
 // Len returns the length of the nodes in the selection
