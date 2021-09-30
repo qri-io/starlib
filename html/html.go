@@ -67,7 +67,7 @@ func (s *Selection) Struct() *starlarkstruct.Struct {
 		"filter":            starlark.NewBuiltin("filter", s.Filter),
 		"get":               starlark.NewBuiltin("get", s.Get),
 		"has":               starlark.NewBuiltin("has", s.Has),
-		"is_selector":        starlark.NewBuiltin("is_selector", s.Is),
+		"is_selector":       starlark.NewBuiltin("is_selector", s.Is),
 		"parent":            starlark.NewBuiltin("parent", s.Parent),
 		"parents_until":     starlark.NewBuiltin("parents_until", s.ParentsUntil),
 		"siblings":          starlark.NewBuiltin("siblings", s.Siblings),

@@ -110,6 +110,11 @@ func TestDataframeGroupBy(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_groupby.star", "testdata/dataframe_groupby.expect.txt")
 }
 
+func TestDataframeStringify(t *testing.T) {
+	expectScriptOutput(t, "testdata/dataframe_stringify.star",
+		"testdata/dataframe_stringify.expect.txt")
+}
+
 func TestDataframeNotImplemented(t *testing.T) {
 	_, err := runScript(t, "testdata/dataframe_not_implemented.star")
 	if err == nil {

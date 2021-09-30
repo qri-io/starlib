@@ -37,10 +37,11 @@ var Module = &starlarkstruct.Module{
 // a column-oriented table of data, and provides spreadsheet and sql like
 // functionality.
 type DataFrame struct {
-	frozen  bool
-	columns *Index
-	index   *Index
-	body    []Series
+	frozen     bool
+	columns    *Index
+	index      *Index
+	body       []Series
+	stringConf stringConfig
 }
 
 // compile-time interface assertions
@@ -721,86 +722,6 @@ func addTwoDataframes(left, right *DataFrame, columns *Index) (starlark.Value, e
 		columns: columns,
 		body:    body,
 	}, nil
-}
-
-func (df *DataFrame) stringify() string {
-	// Get width of the left-hand label
-	labelWidth := 0
-	if df.index == nil {
-		bodyHeight := df.NumRows()
-		k := len(fmt.Sprintf("%d", bodyHeight))
-		if k > labelWidth {
-			labelWidth = k
-		}
-	} else {
-		for _, str := range df.index.texts {
-			k := len(str)
-			if k > labelWidth {
-				labelWidth = k
-			}
-		}
-	}
-
-	// Create array of max widths, starting at 0
-	widths := make([]int, df.NumCols())
-	colTexts := []string{}
-	if df.columns != nil {
-		colTexts = df.columns.texts
-	}
-	for i, name := range colTexts {
-		w := len(name)
-		if w > widths[i] {
-			widths[i] = w
-		}
-	}
-	for i := 0; i < df.NumRows(); i++ {
-		for j, col := range df.body {
-			elem := col.StrAt(i)
-			w := len(elem)
-			if w > widths[j] {
-				widths[j] = w
-			}
-		}
-	}
-
-	// Render columns
-	header := make([]string, 0, len(colTexts))
-	if len(colTexts) > 0 {
-		// Render the column names
-		for i, name := range colTexts {
-			tmpl := fmt.Sprintf("%%%dv", widths[i])
-			header = append(header, fmt.Sprintf(tmpl, name))
-		}
-	} else {
-		// Render the column indicies
-		for i := range df.body {
-			tmpl := fmt.Sprintf("%%%dv", widths[i])
-			header = append(header, fmt.Sprintf(tmpl, i))
-		}
-	}
-	padding := strings.Repeat(" ", labelWidth)
-	answer := fmt.Sprintf("%s    %s\n", padding, strings.Join(header, "  "))
-
-	// Render each row
-	for i := 0; i < df.NumRows(); i++ {
-		render := []string{""}
-		tmpl := fmt.Sprintf("%%%dv  ", labelWidth)
-		// Render the index number or label to start the line
-		if df.index == nil {
-			render[0] = fmt.Sprintf(tmpl, i)
-		} else {
-			render[0] = fmt.Sprintf(tmpl, df.index.texts[i])
-		}
-		// Render each element of the row
-		for j, col := range df.body {
-			elem := col.StrAt(i)
-			tmpl := fmt.Sprintf("%%%dv", widths[j])
-			render = append(render, fmt.Sprintf(tmpl, elem))
-		}
-		answer += strings.Join(render, "  ") + "\n"
-	}
-
-	return answer
 }
 
 // ColumnNamesTypes returns the column names and types if they exist
