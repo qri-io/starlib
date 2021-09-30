@@ -50,7 +50,9 @@ func fnHash(hash func() hash.Hash) func(*starlark.Thread, *starlark.Builtin, sta
 		}
 
 		h := hash()
-		h.Write([]byte(string(s)))
+		if _, err := h.Write([]byte(string(s))); err != nil {
+			return starlark.None, err
+		}
 		return starlark.String(fmt.Sprintf("%x", h.Sum(nil))), nil
 	}
 }
