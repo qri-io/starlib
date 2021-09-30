@@ -47,7 +47,7 @@ func TestDocExamples(t *testing.T) {
 				expectBuf := &bytes.Buffer{}
 				for _, line := range lines {
 					if !foundOutput {
-						if strings.Index(line, "# Output: ") >= 0 {
+						if strings.Contains(line, "# Output: ") {
 							foundOutput = true
 							outSuffix := strings.TrimPrefix(line, "# Output: ")
 							if len(outSuffix) > 0 {
