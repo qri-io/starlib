@@ -61,8 +61,7 @@ func (r *rowIter) Marshal(pos int) string {
 }
 
 func (r *rowIter) GetRow() *rowTuple {
-	var items []interface{}
-	items = make([]interface{}, len(r.df.body))
+	items := make([]interface{}, len(r.df.body))
 	for k := 0; k < len(r.df.body); k++ {
 		items[k] = r.df.body[k].At(r.idx)
 	}

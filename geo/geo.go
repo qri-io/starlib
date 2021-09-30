@@ -82,8 +82,9 @@ func within(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, k
 		for _, pt := range geom.OrbLineString() {
 			if !containsFunc(pt) {
 				return starlark.Bool(false), nil
+			} else {
+				return starlark.Bool(true), nil
 			}
-			return starlark.Bool(true), nil
 		}
 	case Point:
 		within := containsFunc(orb.Point(geom))

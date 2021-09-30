@@ -466,7 +466,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 	columnIndex := findKeyPos(name, df.columns.texts)
 
 	// Either prepend the new column, or keep the names the same
-	newNames := make([]string, 0, len(df.columns.texts)+1)
+	var newNames []string
 	if columnIndex == -1 {
 		newNames = append(df.columns.texts, name)
 	} else {
@@ -748,7 +748,7 @@ func (df *DataFrame) stringify() string {
 		colTexts = df.columns.texts
 	}
 	for i, name := range colTexts {
-		w := len(fmt.Sprintf("%s", name))
+		w := len(name)
 		if w > widths[i] {
 			widths[i] = w
 		}
@@ -1141,9 +1141,7 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 
 	objs := convertStringsToObjects(self.index.texts)
 	newBody = append(newBody, Series{which: typeObj, valObjs: objs})
-	for _, col := range self.body {
-		newBody = append(newBody, col)
-	}
+	newBody = append(newBody, self.body...)
 
 	return &DataFrame{
 		columns: NewIndex(newColumns, ""),

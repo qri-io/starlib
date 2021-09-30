@@ -81,7 +81,9 @@ func (f *File) Struct() *starlarkstruct.Struct {
 func (f *File) GetSheets(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	sheets := &starlark.Dict{}
 	for idx, name := range f.xlsx.GetSheetMap() {
-		sheets.SetKey(starlark.MakeInt(idx), starlark.String(name))
+		if err := sheets.SetKey(starlark.MakeInt(idx), starlark.String(name)); err != nil {
+			return starlark.None, err
+		}
 	}
 	return sheets, nil
 }

@@ -47,7 +47,7 @@ outline: json
 */
 package json
 
-import "go.starlark.net/starlarkjson"
+import "go.starlark.net/lib/json"
 
 // ModuleName declares the intended load import string
 // eg: load("encoding/json.star", "json")
@@ -55,4 +55,4 @@ const ModuleName = "encoding/json.star"
 
 // Module exposes the starlarkjson module. Implementation located at
 // https://github.com/google/starlark-go/tree/master/starlarkjson
-var Module = starlarkjson.Module
+var Module = json.Module

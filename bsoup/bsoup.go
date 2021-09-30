@@ -255,7 +255,9 @@ func bsoupFindAll(fnname string, self starlark.Value, args starlark.Tuple, kwarg
 	nodeList := starlark.NewList([]starlark.Value{})
 	for _, elem := range elemList {
 		built := NewSoupNode(&elem)
-		nodeList.Append(built)
+		if err := nodeList.Append(built); err != nil {
+			return starlark.None, err
+		}
 	}
 
 	return nodeList, nil
@@ -267,7 +269,9 @@ func bsoupAttrs(fnname string, self starlark.Value, args starlark.Tuple, kwargs 
 	attrs := (*soup.Root)(node).Attrs()
 	result := starlark.NewDict(0)
 	for k, v := range attrs {
-		result.SetKey(starlark.String(k), starlark.String(v))
+		if err := result.SetKey(starlark.String(k), starlark.String(v)); err != nil {
+			return starlark.None, err
+		}
 	}
 	return result, nil
 }
@@ -279,7 +283,9 @@ func bsoupContents(fnname string, self starlark.Value, args starlark.Tuple, kwar
 	nodeList := starlark.NewList([]starlark.Value{})
 	for _, elem := range children {
 		built := NewSoupNode(&elem)
-		nodeList.Append(built)
+		if err := nodeList.Append(built); err != nil {
+			return starlark.None, err
+		}
 	}
 	return nodeList, nil
 }

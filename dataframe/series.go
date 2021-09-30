@@ -111,7 +111,7 @@ func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, e
 		}
 		return val, true, nil
 	}
-	// TODO(dustmop): Also suport series.get(list)
+	// TODO(dustmop): Also support series.get(list)
 	if keyList, ok := keyVal.(*Series); ok {
 		if keyList.dtype != "bool" {
 			return starlark.None, false, fmt.Errorf("Series.Get[series] only supported for dtype bool")
@@ -212,7 +212,7 @@ func (s *Series) stringify() string {
 	// Final line shows the (optional) name and dtype
 	epilogue := fmt.Sprintf("dtype: %s", s.dtype)
 	if s.dtype == "" {
-		epilogue = fmt.Sprintf("dtype: int64")
+		epilogue = "dtype: int64"
 	}
 	if s.name != "" {
 		epilogue = fmt.Sprintf("Name: %s, %s", s.name, epilogue)
@@ -366,10 +366,7 @@ func (s *Series) StrAt(i int) string {
 func (s *Series) At(i int) interface{} {
 	if s.which == typeInt {
 		if s.dtype == "bool" {
-			if s.valInts[i] == 0 {
-				return false
-			}
-			return true
+			return s.valInts[i] != 0
 		}
 		return s.valInts[i]
 	} else if s.which == typeFloat {

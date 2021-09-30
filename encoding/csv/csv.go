@@ -94,7 +94,9 @@ func ReadAll(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, 
 
 	if s, ok := skip.Int64(); ok {
 		for i := 0; i < int(s); i++ {
-			csvr.Read()
+			if _, err := csvr.Read(); err != nil {
+				return starlark.None, err
+			}
 		}
 	}
 
