@@ -70,6 +70,10 @@ func TestDataframeAppend(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_append.star", "testdata/dataframe_append.expect.txt")
 }
 
+func TestDataframeDrop(t *testing.T) {
+	expectScriptOutput(t, "testdata/dataframe_drop.star", "testdata/dataframe_drop.expect.txt")
+}
+
 func TestDataframeDropDuplicates(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_drop_duplicates.star",
 		"testdata/dataframe_drop_duplicates.expect.txt")
@@ -104,6 +108,11 @@ func TestDataframeColumnsNone(t *testing.T) {
 
 func TestDataframeGroupBy(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_groupby.star", "testdata/dataframe_groupby.expect.txt")
+}
+
+func TestDataframeStringify(t *testing.T) {
+	expectScriptOutput(t, "testdata/dataframe_stringify.star",
+		"testdata/dataframe_stringify.expect.txt")
 }
 
 func TestDataframeNotImplemented(t *testing.T) {

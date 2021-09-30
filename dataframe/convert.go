@@ -46,6 +46,24 @@ func toStrSliceOrNil(v starlark.Value) []string {
 	}
 }
 
+// convert starlark value to a list of ints, or nil if not possible
+func toIntSliceOrNil(v starlark.Value) []int {
+	switch x := v.(type) {
+	case *starlark.List:
+		result := make([]int, 0, x.Len())
+		for i := 0; i < x.Len(); i++ {
+			elem, err := starlark.AsInt32(x.Index(i))
+			if err != nil {
+				return nil
+			}
+			result = append(result, elem)
+		}
+		return result
+	default:
+		return nil
+	}
+}
+
 // convert starlark value to a list of any values, or nil if not a list
 func toInterfaceSliceOrNil(v starlark.Value) []interface{} {
 	switch x := v.(type) {

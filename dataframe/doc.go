@@ -54,6 +54,17 @@
                 the function to apply to each slice
               axis int
                 which to travel, either 0 for columns, or 1 for rows
+          drop(labels, axis, index, columns)
+            drop columns or rows from the DataFrame
+            params:
+              labels list(string)
+                what to drop from the DataFrame, axis is required to specify what the labels mean. axis=0 if the labels are for the index, axis=1 if the labels are for the columns
+              axis int
+                which axis to drop from. axis=0 for index, axis=1 for columns
+              index list(string)
+                values to drop from the index
+              columns Index
+                values to drop from the columns
           drop_duplicates(subset)
             drop duplicate rows of the DataFrame
             params:

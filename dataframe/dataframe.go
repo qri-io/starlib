@@ -37,10 +37,11 @@ var Module = &starlarkstruct.Module{
 // a column-oriented table of data, and provides spreadsheet and sql like
 // functionality.
 type DataFrame struct {
-	frozen  bool
-	columns *Index
-	index   *Index
-	body    []Series
+	frozen     bool
+	columns    *Index
+	index      *Index
+	body       []Series
+	stringConf stringConfig
 }
 
 // compile-time interface assertions
@@ -723,86 +724,6 @@ func addTwoDataframes(left, right *DataFrame, columns *Index) (starlark.Value, e
 	}, nil
 }
 
-func (df *DataFrame) stringify() string {
-	// Get width of the left-hand label
-	labelWidth := 0
-	if df.index == nil {
-		bodyHeight := df.NumRows()
-		k := len(fmt.Sprintf("%d", bodyHeight))
-		if k > labelWidth {
-			labelWidth = k
-		}
-	} else {
-		for _, str := range df.index.texts {
-			k := len(str)
-			if k > labelWidth {
-				labelWidth = k
-			}
-		}
-	}
-
-	// Create array of max widths, starting at 0
-	widths := make([]int, df.NumCols())
-	colTexts := []string{}
-	if df.columns != nil {
-		colTexts = df.columns.texts
-	}
-	for i, name := range colTexts {
-		w := len(name)
-		if w > widths[i] {
-			widths[i] = w
-		}
-	}
-	for i := 0; i < df.NumRows(); i++ {
-		for j, col := range df.body {
-			elem := col.StrAt(i)
-			w := len(elem)
-			if w > widths[j] {
-				widths[j] = w
-			}
-		}
-	}
-
-	// Render columns
-	header := make([]string, 0, len(colTexts))
-	if len(colTexts) > 0 {
-		// Render the column names
-		for i, name := range colTexts {
-			tmpl := fmt.Sprintf("%%%dv", widths[i])
-			header = append(header, fmt.Sprintf(tmpl, name))
-		}
-	} else {
-		// Render the column indicies
-		for i := range df.body {
-			tmpl := fmt.Sprintf("%%%dv", widths[i])
-			header = append(header, fmt.Sprintf(tmpl, i))
-		}
-	}
-	padding := strings.Repeat(" ", labelWidth)
-	answer := fmt.Sprintf("%s    %s\n", padding, strings.Join(header, "  "))
-
-	// Render each row
-	for i := 0; i < df.NumRows(); i++ {
-		render := []string{""}
-		tmpl := fmt.Sprintf("%%%dv  ", labelWidth)
-		// Render the index number or label to start the line
-		if df.index == nil {
-			render[0] = fmt.Sprintf(tmpl, i)
-		} else {
-			render[0] = fmt.Sprintf(tmpl, df.index.texts[i])
-		}
-		// Render each element of the row
-		for j, col := range df.body {
-			elem := col.StrAt(i)
-			tmpl := fmt.Sprintf("%%%dv", widths[j])
-			render = append(render, fmt.Sprintf(tmpl, elem))
-		}
-		answer += strings.Join(render, "  ") + "\n"
-	}
-
-	return answer
-}
-
 // ColumnNamesTypes returns the column names and types if they exist
 func (df *DataFrame) ColumnNamesTypes() ([]string, []string) {
 	if df.columns == nil {
@@ -964,6 +885,100 @@ func dataframeGroupBy(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 	}
 
 	return &GroupByResult{label: groupBy, columns: self.columns, grouping: result}, nil
+}
+
+// drop method returns a copy of a DataFrame with rows or columns dropped
+func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		labelsVal  starlark.Value
+		axisVal    starlark.Value
+		indexVal   starlark.Value
+		columnsVal starlark.Value
+	)
+	self := b.Receiver().(*DataFrame)
+
+	if err := starlark.UnpackArgs("drop", args, kwargs,
+		"labels?", &labelsVal,
+		"axis?", &axisVal,
+		"index?", &indexVal,
+		"columns?", &columnsVal,
+	); err != nil {
+		return nil, err
+	}
+
+	labels := toStrSliceOrNil(labelsVal)
+	axis, ok := toIntMaybe(axisVal)
+	if !ok {
+		axis = -1
+	}
+	columns := toStrSliceOrNil(columnsVal)
+	index := toIntSliceOrNil(indexVal)
+
+	// Validate axis value, must be 1, or -1 is when it is not given
+	if axis == 1 {
+		columns = labels
+	} else if axis != -1 {
+		return nil, fmt.Errorf("axis must equal 1 for dropping columns")
+	}
+
+	// Validate index and column parameters
+	if index == nil && columns == nil {
+		return nil, fmt.Errorf("drop requires either an index or columns")
+	}
+	if index != nil && columns != nil {
+		return nil, fmt.Errorf("drop with both index and column is not supported")
+	}
+	if index != nil && len(index) != 1 {
+		return nil, fmt.Errorf("dropping from index only supports dropping 1 row")
+	}
+	if columns != nil && len(columns) != 1 {
+		return nil, fmt.Errorf("dropping from columns only supports dropping 1 column")
+	}
+
+	if columns != nil {
+		// Drop columns
+		colIndex := findKeyPos(columns[0], self.columns.texts)
+		newColumns := removeElemFromStringList(self.columns.texts, colIndex)
+
+		builder := newTableBuilder(self.NumCols()-1, self.NumRows())
+		for rows := newRowIter(self); !rows.Done(); rows.Next() {
+			newRow := removeElemFromInterfaceList(rows.GetRow().data, colIndex)
+			builder.pushRow(newRow)
+		}
+		// Finish building the body, return any errors
+		body, err := builder.body()
+		if err != nil {
+			return nil, err
+		}
+		// Return copy of the dataframe
+		return &DataFrame{
+			columns: NewIndex(newColumns, ""),
+			body:    body,
+		}, nil
+	}
+
+	// Drop rows using index
+	builder := newTableBuilder(self.NumCols(), self.NumRows()-1)
+	line := 0
+	for rows := newRowIter(self); !rows.Done(); rows.Next() {
+		if line == index[0] {
+			line++
+			continue
+		}
+		builder.pushRow(rows.GetRow().data)
+		line++
+	}
+	// Finish building the body, return any errors
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
+	// TODO(dustomp): Support indexes with names, remove from them
+	// Return copy of the dataframe
+	return &DataFrame{
+		columns: self.columns,
+		body:    body,
+	}, nil
 }
 
 // drop_duplicates method returns a copy of a DataFrame without duplicates
@@ -1216,6 +1231,17 @@ func removeElemFromStringList(ls []string, i int) []string {
 		return ls
 	}
 	a := make([]string, len(ls))
+	copy(a, ls)
+	copy(a[i:], a[i+1:])
+	a[len(a)-1] = ""
+	return a[:len(a)-1]
+}
+
+func removeElemFromInterfaceList(ls []interface{}, i int) []interface{} {
+	if i == -1 {
+		return ls
+	}
+	a := make([]interface{}, len(ls))
 	copy(a, ls)
 	copy(a[i:], a[i+1:])
 	a[len(a)-1] = ""

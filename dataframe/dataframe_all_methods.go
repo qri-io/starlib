@@ -69,7 +69,7 @@ var dataframeMethods = map[string]*starlark.Builtin{
 	"div":               starlark.NewBuiltin("div", methNoImpl("div")),
 	"divide":            starlark.NewBuiltin("divide", methNoImpl("divide")),
 	"dot":               starlark.NewBuiltin("dot", methNoImpl("dot")),
-	"drop":              starlark.NewBuiltin("drop", methNoImpl("drop")),
+	"drop":              starlark.NewBuiltin("drop", dataframeDrop),
 	"drop_duplicates":   starlark.NewBuiltin("drop_duplicates", dataframeDropDuplicates),
 	"droplevel":         starlark.NewBuiltin("droplevel", methNoImpl("droplevel")),
 	"dropna":            starlark.NewBuiltin("dropna", methNoImpl("dropna")),
