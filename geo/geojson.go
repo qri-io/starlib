@@ -30,7 +30,7 @@ func parseGeoJSON(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 	}
 
 	if fc, err = geojson.UnmarshalFeatureCollection(dataBytes); err != nil {
-		return
+		return starlark.None, err
 	}
 
 	geoms := make([]starlark.Value, len(fc.Features))

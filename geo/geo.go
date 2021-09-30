@@ -156,6 +156,6 @@ func float64FromNumericValue(v starlark.Value) (float64, error) {
 	case starlark.Float:
 		return float64(n), nil
 	default:
-		return 0, fmt.Errorf("invalid type '%s' expected int or float", n.Type())
+		return 0, fmt.Errorf("invalid type %q expected int or float", n.Type())
 	}
 }
