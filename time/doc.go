@@ -21,14 +21,16 @@ outline: time
     from_timestamp(sec, nsec) Time
       Converts the given Unix time corresponding to the number of seconds
       and (optionally) nanoseconds since January 1, 1970 UTC into an object
-      of type Time. For more details, refer to https://pkg.go.dev/time#Unix.
+      of type Time.
     is_valid_timezone(loc) boolean
       Reports whether loc is a valid time zone name.
     now() time
       Returns the current local time
     parse_duration(d) Duration
-      Parses the given duration string. For more details, refer to
-      https://pkg.go.dev/time#ParseDuration.
+      Parses the given duration string. A duration string is a possibly signed
+      sequence of decimal numbers, each with optional fraction and a unit
+      suffix, such as "300ms", "-1.5h" or "2h45m". Valid time units are "ns",
+      "us" (or "µs"), "ms", "s", "m", "h".
     parseTime(x, format, location) Time
       Parses the given time string using a specific time format and location.
       The expected arguments are a time string (mandatory), a time format
@@ -59,6 +61,10 @@ outline: time
         duration // duration = int
         duration * int = duration
     Time
+      Time represents an instant in time with nanosecond precision. Each Time
+      has associated with it a Location, consulted when computing the
+      presentation form of the time, such as in the Format, Hour, and Year
+      methods.
       fields:
         year int
         month int
@@ -74,7 +80,20 @@ outline: time
           get time representing the same instant but in a different location
         format() string
           textual representation of time formatted according to the provided
-          layout string
+          layout string: 01/02 03:04:05PM '06 -0700 (January 2, 15:04:05, 2006,
+          in time zone seven hours west of GMT)
+          examples:
+            ISO timestamp
+              construct an ISO tiemstamp using the template string
+              code:
+                load("time.star", "time")
+                # create a time object: January 1st 2021 at midnight
+                timestamp = time.time(year=2021)
+                # use layout string to construct an RFC3339 timestamp string,
+                # which is what JSON serializers often use
+                formatted = timestamp.format("2006-01-02T15:04:05Z07:00")
+                print(timestamp)
+                # Output: 2020-11-30 00:00:00 +0000 UTC
       operators:
         time + duration = time
         time - duration = time

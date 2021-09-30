@@ -16,6 +16,7 @@ replace (
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/PuerkitoBio/goquery v1.5.1
+	github.com/b5/outline v0.0.0-20210930001007-03f1b39e3ab2 // indirect
 	github.com/dustmop/soup v1.1.2-0.20190516214245-38228baa104e
 	github.com/google/go-cmp v0.5.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
