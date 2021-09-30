@@ -24,7 +24,7 @@ docs:
 	fi
 	@mkdir -p ../website/content/docs/reference/starlark-packages
 	for sourcefile in $$(find . | grep doc.go) ; do \
-		targetfile="`echo $${sourcefile} | sed 's/\/doc.go/.md/' | sed 's/encoding\///' `"; \
+		targetfile="`echo $${sourcefile} | sed 's/\/doc.go/.md/'`"; \
 		outline template --template asset/doc_template.txt $${sourcefile} > ../website/content/docs/reference/starlark-packages/$${targetfile} ; \
 	done
 
