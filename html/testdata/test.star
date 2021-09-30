@@ -46,4 +46,4 @@ assert.eq(p.parents_until("body").attr("class"), "le_div")
 assert.eq(p.siblings().text(), "Heading One")
 assert.eq(p.get(), ("p",))
 assert.eq(p.get(0), "p")
-
+assert.eq(p.is_selector("p"), True)
