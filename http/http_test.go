@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -40,7 +39,9 @@ func TestNewModule(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Date", "Mon, 01 Jun 2000 00:00:00 GMT")
-		w.Write([]byte(`{"hello":"world"}`))
+		if _, err := w.Write([]byte(`{"hello":"world"}`)); err != nil {
+			t.Fatal(err)
+		}
 	}))
 	starlark.Universe["test_server_url"] = starlark.String(ts.URL)
 
@@ -51,20 +52,6 @@ func TestNewModule(t *testing.T) {
 	_, err := starlark.ExecFile(thread, "testdata/test.star", nil, nil)
 	if err != nil {
 		t.Error(err)
-	}
-}
-
-// load implements the 'load' operation as used in the evaluator tests.
-func newLoader() func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
-	return func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
-		switch module {
-		case ModuleName:
-			return LoadModule()
-		case "assert.star":
-			return starlarktest.LoadAssertModule()
-		}
-
-		return nil, fmt.Errorf("invalid module")
 	}
 }
 
@@ -94,7 +81,9 @@ func TestSetBody(t *testing.T) {
 		if c.formData != nil {
 			formData = starlark.NewDict(len(c.formData))
 			for k, v := range c.formData {
-				formData.SetKey(starlark.String(k), starlark.String(v))
+				if err := formData.SetKey(starlark.String(k), starlark.String(v)); err != nil {
+					t.Fatal(err)
+				}
 			}
 		}
 

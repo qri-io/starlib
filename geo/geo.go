@@ -83,8 +83,8 @@ func within(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, k
 			if !containsFunc(pt) {
 				return starlark.Bool(false), nil
 			}
-			return starlark.Bool(true), nil
 		}
+		return starlark.Bool(true), nil
 	case Point:
 		within := containsFunc(orb.Point(geom))
 		return starlark.Bool(within), nil

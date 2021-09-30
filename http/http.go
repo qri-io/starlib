@@ -336,7 +336,9 @@ func (r *Response) Struct() *starlarkstruct.Struct {
 func (r *Response) HeadersDict() *starlark.Dict {
 	d := new(starlark.Dict)
 	for key, vals := range r.Header {
-		d.SetKey(starlark.String(key), starlark.String(strings.Join(vals, ",")))
+		if err := d.SetKey(starlark.String(key), starlark.String(strings.Join(vals, ","))); err != nil {
+			panic(err)
+		}
 	}
 	return d
 }

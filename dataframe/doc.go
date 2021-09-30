@@ -86,7 +86,7 @@
             resets the index to be an empty index, turning the previous index into its own column
         fields:
           at AtIndexer
-            returns an AtIndexer, which can be used to retrive an arbitrary cell from the DataFrame
+            returns an AtIndexer, which can be used to retrieve an arbitrary cell from the DataFrame
           columns Index
             returns the columns of the DataFrame as an Index
           index Index

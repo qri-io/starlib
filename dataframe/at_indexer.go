@@ -34,7 +34,7 @@ func (ai *AtIndexer) Hash() (uint32, error) {
 
 // String returns the index as a string
 func (ai *AtIndexer) String() string {
-	return fmt.Sprintf("AtIndexer()")
+	return "AtIndexer()"
 }
 
 // Truth converts the index into a bool
@@ -73,8 +73,7 @@ func (ai *AtIndexer) SetKey(key, val starlark.Value) error {
 	series := ai.owner.body[keyTwo]
 	// Convert to a go native type
 	item := toNativeValue(val)
-	series.SetAt(keyOne, item)
-	return nil
+	return series.SetAt(keyOne, item)
 }
 
 func keyToIntPair(key starlark.Value) (int, int, bool) {

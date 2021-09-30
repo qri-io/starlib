@@ -5,6 +5,9 @@ default: test
 lint:
 	golint ./...
 
+meta-lint: require-golangci-lint
+	golangci-lint --enable misspell run
+
 test:
 	go test ./... -v --coverprofile=coverage.txt --covermode=atomic
 
@@ -30,3 +33,9 @@ list-deps:
 
 run-circleci-tests-locally:
 	circleci local execute .
+
+require-golangci-lint:
+ifeq (,$(shell which golangci-lint))
+	@echo "installing golangci-lint"
+	$(shell brew install golangci-lint)
+endif

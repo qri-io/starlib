@@ -7,7 +7,7 @@
       SoupNode
         methods:
           find(name, attrs, recursive, string, **kwargs)
-            retrieve the first occurance of an element that matches arguments passed to find.
+            retrieve the first occurrence of an element that matches arguments passed to find.
             works similarly to [node.find()](https://www.crummy.com/software/BeautifulSoup/bs4/doc/#find)
           find_all(name, attrs, recursive, string, limit, **kwargs)
             retrieves all descendants that match arguments passed to find_all.

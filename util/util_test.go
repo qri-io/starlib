@@ -2,9 +2,10 @@ package util
 
 import (
 	"fmt"
-	"go.starlark.net/syntax"
 	"testing"
 	"time"
+
+	"go.starlark.net/syntax"
 
 	"github.com/stretchr/testify/assert"
 	startime "go.starlark.net/lib/time"
@@ -47,15 +48,23 @@ func TestAsString(t *testing.T) {
 
 func TestMarshal(t *testing.T) {
 	expectedStringDict := starlark.NewDict(1)
-	expectedStringDict.SetKey(starlark.String("foo"), starlark.MakeInt(42))
+	if err := expectedStringDict.SetKey(starlark.String("foo"), starlark.MakeInt(42)); err != nil {
+		t.Fatal(err)
+	}
 
 	expectedIntDict := starlark.NewDict(1)
-	expectedIntDict.SetKey(starlark.MakeInt(42*2), starlark.MakeInt(42))
+	if err := expectedIntDict.SetKey(starlark.MakeInt(42*2), starlark.MakeInt(42)); err != nil {
+		t.Fatal(err)
+	}
 
 	ct, _ := (&customType{42}).MarshalStarlark()
 	expectedStrDictCustomType := starlark.NewDict(2)
-	expectedStrDictCustomType.SetKey(starlark.String("foo"), starlark.MakeInt(42))
-	expectedStrDictCustomType.SetKey(starlark.String("bar"), ct)
+	if err := expectedStrDictCustomType.SetKey(starlark.String("foo"), starlark.MakeInt(42)); err != nil {
+		t.Fatal(err)
+	}
+	if err := expectedStrDictCustomType.SetKey(starlark.String("bar"), ct); err != nil {
+		t.Fatal(err)
+	}
 
 	cases := []struct {
 		in   interface{}
@@ -109,15 +118,23 @@ func TestMarshal(t *testing.T) {
 
 func TestUnmarshal(t *testing.T) {
 	strDict := starlark.NewDict(1)
-	strDict.SetKey(starlark.String("foo"), starlark.MakeInt(42))
+	if err := strDict.SetKey(starlark.String("foo"), starlark.MakeInt(42)); err != nil {
+		t.Fatal(err)
+	}
 
 	intDict := starlark.NewDict(1)
-	intDict.SetKey(starlark.MakeInt(42*2), starlark.MakeInt(42))
+	if err := intDict.SetKey(starlark.MakeInt(42*2), starlark.MakeInt(42)); err != nil {
+		t.Fatal(err)
+	}
 
 	ct, _ := (&customType{42}).MarshalStarlark()
 	strDictCT := starlark.NewDict(2)
-	strDictCT.SetKey(starlark.String("foo"), starlark.MakeInt(42))
-	strDictCT.SetKey(starlark.String("bar"), ct)
+	if err := strDictCT.SetKey(starlark.String("foo"), starlark.MakeInt(42)); err != nil {
+		t.Fatal(err)
+	}
+	if err := strDictCT.SetKey(starlark.String("bar"), ct); err != nil {
+		t.Fatal(err)
+	}
 
 	cases := []struct {
 		in   starlark.Value
