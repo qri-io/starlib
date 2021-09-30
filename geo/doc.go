@@ -1,4 +1,4 @@
-/* Package geo defines geographic operations
+/*Package geo defines geographic operations
 
 outline: geo
   geo defines geographic operations in two-dimensional space
@@ -57,25 +57,37 @@ outline: geo
         data string
           string of GeoJSON data
       examples:
-        basic
-          parse example document from geojson home page
+        FeatureCollection
+          parse example
           code:
             load("geo.star", "geo")
             geo_json_string = """
-              {
+            {
+              "type": "FeatureCollection",
+              "features": [{
                 "type": "Feature",
+                "properties": {
+                  "name": "Coors Field"
+                },
                 "geometry": {
                   "type": "Point",
-                  "coordinates": [125.6, 10.1]
-                },
-                "properties": {
-                  "name": "Dinagat Islands"
+                  "coordinates": [-104.99404, 39.75621]
                 }
-              }
+            }, {
+                "type": "Feature",
+                "properties": {
+                  "name": "Busch Field"
+                },
+                "geometry": {
+                  "type": "Point",
+                  "coordinates": [-104.98404, 39.74621]
+                }
+              }]
+            }
             """
             (geoms, props) = geo.parseGeoJSON(geo_json_string)
             print(props)
-            # Output: foo
+            # Output: [{"name": "Coors Field"}, {"name": "Busch Field"}]
 
   types:
     Point
