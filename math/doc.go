@@ -8,8 +8,7 @@ For source code see
 https://github.com/google/starlark-go/tree/master/lib/math
 
 outline: math
-  math defines a Starlark module of mathematical functions. All functions accept
-  both int and float values as arguments.
+  math defines a Starlark module of mathematical functions. All functions accept both int and float values as arguments.
   path: math
   constants:
     e: The base of natural logarithms, approximately 2.71828.
@@ -26,12 +25,7 @@ outline: math
     atan(x)
       Return the arc tangent of x, in radians.
     atan2(y, x)
-      Return atan(y / x), in radians. The result is between -pi and pi.
-      The vector in the plane from the origin to point (x, y) makes this angle
-      with the positive X axis. The point of atan2() is that the signs of both
-      inputs are known to it, so it can compute the correct quadrant for the
-      angle. For example, atan(1) and atan2(1, 1) are both pi/4, but
-      atan2(-1, -1) is -3*pi/4.
+      Return atan(y / x), in radians. The result is between -pi and pi. The vector in the plane from the origin to point (x, y) makes this angle with the positive X axis. The atan2() function can compute the correct quadrant for the angle since it knows the sign of both inputs. For example, atan(1) and atan2(1, 1) are both pi/4, but atan2(-1, -1) is -3*pi/4.
     atanh(x)
       Return the inverse hyperbolic tangent of x.
     ceil(x)
@@ -45,12 +39,19 @@ outline: math
     degrees(x)
       Convert angle x from radians to degrees.
     exp(x)
-      Returns e raised to the power x, where e = 2.718281… is the base of
-      natural logarithms.
+      Returns e raised to the power x, where e = 2.718281… is the base of natural logarithms.
     fabs(x)
       Return the absolute value of x.
     floor(x)
       Return the floor of x, the largest integer less than or equal to x.
+      examples:
+        basic
+          calculate the floor of 2.9
+          code:
+            load("math.star", "math")
+            x = math.floor(2.9)
+            print(x)
+            # Output: 2
     gamma(x)
       Returns the Gamma function of x.
     hypot(x, y)
@@ -60,10 +61,17 @@ outline: math
       Returns the logarithm of x in the given base, or natural logarithm by
       default.
     mod(x, y)
-      Returns the floating-point remainder of x/y. The magnitude of the result
-      is less than y and its sign agrees with that of x.
+      Returns the floating-point remainder of x/y. The magnitude of the result is less than y and its sign agrees with that of x.
     pow(x, y)
       Returns x**y, the base-x exponential of y.
+      examples:
+        basic
+          raise 4 to the power of 3
+          code:
+            load("math.star", "math")
+            x = math.pow(4,5)
+            print(x)
+            # Output: 1024.0
     radians(x)
       Convert angle x from degrees to radians.
     remainder(x, y)
