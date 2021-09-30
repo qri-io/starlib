@@ -1,0 +1,22 @@
+     name  sound  num
+0     cat   meow  123
+1     dog   bark  456
+2     eel    zap  789
+
+
+     name  num
+0     cat  123
+1     dog  456
+2     eel  789
+
+
+     name
+0     cat
+1     dog
+2     eel
+
+
+     name
+0     cat
+1     eel
+

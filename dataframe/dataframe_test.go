@@ -70,6 +70,10 @@ func TestDataframeAppend(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_append.star", "testdata/dataframe_append.expect.txt")
 }
 
+func TestDataframeDrop(t *testing.T) {
+	expectScriptOutput(t, "testdata/dataframe_drop.star", "testdata/dataframe_drop.expect.txt")
+}
+
 func TestDataframeDropDuplicates(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_drop_duplicates.star",
 		"testdata/dataframe_drop_duplicates.expect.txt")
