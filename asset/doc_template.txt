@@ -33,9 +33,10 @@
 
 {{- end }}
 
-<code style="display: block; white-space: pre-wrap">
+```
 {{ .Code }}
-</code>
+```
+
 {{ end -}}
 {{- end -}}
 
