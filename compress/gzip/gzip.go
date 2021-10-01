@@ -2,6 +2,7 @@ package gzip
 
 import (
 	"compress/gzip"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -34,12 +35,15 @@ func decompress(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tupl
 		rdr = strings.NewReader(string(v))
 	case starlark.String:
 		rdr = strings.NewReader(string(v))
+	default:
+		return starlark.None, fmt.Errorf("data must be string or bytes")
 	}
 
 	r, err := gzip.NewReader(rdr)
 	if err != nil {
 		return starlark.None, err
 	}
+	defer r.Close()
 
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
