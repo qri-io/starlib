@@ -22,7 +22,8 @@ var (
 )
 
 var seriesGroupByResultMethods = map[string]*starlark.Builtin{
-	"sum": starlark.NewBuiltin("sum", seriesGroupByResultSum),
+	"count": starlark.NewBuiltin("count", seriesGroupByResultCount),
+	"sum":   starlark.NewBuiltin("sum", seriesGroupByResultSum),
 }
 
 // Freeze has no effect on the immutable SeriesGroupByResult
@@ -84,6 +85,29 @@ func seriesGroupByResultSum(_ *starlark.Thread, b *starlark.Builtin, args starla
 
 		indexTexts = append(indexTexts, groupName)
 		vals = append(vals, sum)
+	}
+
+	// TODO(dustmop): sgbr.lhsLabel as the index.name, add a test
+	index := NewIndex(indexTexts, "")
+	return newSeriesFromInts(vals, index, self.rhsLabel), nil
+}
+
+// sum method returns a Series that is the sum of each grouped result
+func seriesGroupByResultCount(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	if err := starlark.UnpackArgs("count", args, kwargs); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*SeriesGroupByResult)
+
+	indexTexts := []string{}
+	vals := []int{}
+
+	sortedKeys := getSortedKeys(self.grouping)
+	for _, groupName := range sortedKeys {
+		series := self.grouping[groupName]
+		count := len(series)
+		indexTexts = append(indexTexts, groupName)
+		vals = append(vals, count)
 	}
 
 	// TODO(dustmop): sgbr.lhsLabel as the index.name, add a test

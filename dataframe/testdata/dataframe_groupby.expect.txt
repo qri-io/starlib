@@ -3,3 +3,7 @@ dog      6
 eel     11
 frog     6
 Name: count, dtype: int64
+
+cat    3
+dog    2
+Name: breed, dtype: int64
