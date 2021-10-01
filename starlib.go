@@ -15,7 +15,7 @@ import (
 	"github.com/qri-io/starlib/html"
 	"github.com/qri-io/starlib/http"
 	"github.com/qri-io/starlib/math"
-	"github.com/qri-io/starlib/re"
+	"github.com/qri-io/starlib/regexp"
 	"github.com/qri-io/starlib/time"
 	"github.com/qri-io/starlib/xlsx"
 	"github.com/qri-io/starlib/zipfile"
@@ -42,8 +42,8 @@ func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, e
 		return bsoup.LoadModule()
 	case zipfile.ModuleName:
 		return zipfile.LoadModule()
-	case re.ModuleName:
-		return re.LoadModule()
+	case regexp.ModuleName:
+		return starlark.StringDict{"regexp": regexp.Module}, nil
 	case base64.ModuleName:
 		return base64.LoadModule()
 	case csv.ModuleName:

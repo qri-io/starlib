@@ -1,4 +1,4 @@
-package re
+package regexp
 
 import (
 	"testing"
@@ -9,7 +9,9 @@ import (
 )
 
 func TestFile(t *testing.T) {
-	thread := &starlark.Thread{Load: testdata.NewLoader(LoadModule, ModuleName)}
+	thread := &starlark.Thread{Load: testdata.NewLoader(func() (starlark.StringDict, error) {
+		return starlark.StringDict{"regexp": Module}, nil
+	}, ModuleName)}
 	starlarktest.SetReporter(thread, t)
 
 	// Execute test file
