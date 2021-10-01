@@ -15,6 +15,16 @@
             an Index that describes the columns
           dtype string
             data type to force. If not provided, it will be inferred for each column
+        examples:
+          construct
+            constuct a DataFrame using a list of lists with column names
+            code:
+              load("dataframe.star", "dataframe")
+              # create a new DataFrame
+              df = dataframe.DataFrame([["cat", "meow"],
+                                        ["dog", "bark"],
+                                        ["eel", "zap"]],
+                                       columns=["name", "sound"])
       parse_csv(text) DataFrame
         constructs a DataFrame by parsing the text as csv data. Assumes the first row is a header row
         params:
@@ -70,11 +80,23 @@
             params:
               subset list(string)
                 which subset of each row to consider for uniqueness
-          group_by(by) GroupByResult
+          groupby(by) GroupByResult
             group a set of row according to some given column value
             params:
               by list(string)
                 a list of column names to use for grouping the rows together
+            examples:
+              groupby
+                group rows according to the values in the given column
+                code:
+                  load("dataframe.star", "dataframe")
+                  df = dataframe.DataFrame([["cat", "tabby"],
+                                            ["cat", "black"],
+                                            ["cat", "calico"],
+                                            ["dog", "doberman"],
+                                            ["dog", "pug"]],
+                                           columns=["species", "breed"])
+                  num_breeds = df.groupby(['species'])['breed'].count()
           head(n?) DataFrame
             return the first n row of the DataFrame
             params:
@@ -104,6 +126,72 @@
             returns the Index of the DataFrame, if it exists
           shape tuple(int,int)
             returns a tuple with the size of the DataFrame, as (number rows, number columns)
+
+      Index
+        an index, which is used to describe an axis of a DataFrame
+        fields:
+          name string
+            the name of the index
+          str StringMethods
+            string functions that will be applied to all strings in the Index
+
+      Series
+        a series of values of one type, which represents a column of a DataFrame
+        methods:
+          astype(type) Series
+            coerce the values in the Series to the given type
+            params:
+              type string
+                a string representing a type
+          equals(value) Series
+            return a Series of bools for whether each element is equal to the value
+            params:
+              value any
+                value to compare each element to
+          get(index) any
+            gets the cell at the given index
+            params:
+              index any
+                either an int or a name from the index
+          notequals(value) Series
+            return a Series of bools for whether each element is not equal to the parameter
+            params:
+              value any
+                value to compare each element to
+          notnull() Series
+            return a Series of bools for whether each element is not null
+          unique() Series
+            return a Series of just the unique elements
+
+      StringMethods
+        string functions that will be applied to all strings in the collection
+        methods:
+          contains(text)
+            whether each string contains the given text
+            params:
+              text string
+                the text to look for in each string
+          endswith(text)
+            whether each string ends with the given text
+            params:
+              text string
+                the text to look for at the end of each string
+          lower()
+            convert the strings to lower case
+          replace(needle, new)
+            replace the needle in each string with the new text
+            params:
+              needle string
+                the text to look for
+              new string
+                the text to replace it with
+          startswith(text)
+            whether each string starts with the given text
+            params:
+              text string
+                the text to look for at the start of each string
+          strip()
+            remove whitespace from the start and end of each string
 
 */
 package dataframe
