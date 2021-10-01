@@ -27,12 +27,20 @@ func glob(root string, fn func(string) bool) []string {
 	return matches
 }
 
+var skipExamplesFiles = map[string]struct{}{
+	"compress/gzip/doc.go": struct{}{},
+	"zipfile/doc.go":       struct{}{},
+}
+
 func TestDocExamples(t *testing.T) {
 	docFiles := glob(".", func(path string) bool {
-		return strings.Contains(path, "doc.go")
+		return strings.Contains(path, "/doc.go")
 	})
 
 	for _, path := range docFiles {
+		if _, ok := skipExamplesFiles[path]; ok {
+			continue
+		}
 		f, err := os.Open(path)
 		if err != nil {
 			t.Fatal(err)
