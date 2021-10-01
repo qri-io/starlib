@@ -36,6 +36,19 @@
             made and records may have a variable number of fields.
           skip int
             number of rows to skip, omitting from returned rows
+        examples:
+          basic
+            read a csv string into a list of string lists
+            code:
+              load("encoding/csv.star", "csv")
+              data_str = """type,name,number_of_legs
+              dog,spot,4
+              cat,spot,3
+              spider,samantha,8
+              """
+              data = csv.read_all(data_str)
+              print(data)
+              # Output: [["type", "name", "number_of_legs"], ["dog", "spot", "4"], ["cat", "spot", "3"], ["spider", "samantha", "8"]]
       write_all(source,comma=",") string
         write all rows from source to a csv-encoded string
         params:
@@ -45,6 +58,20 @@
             comma is the field delimiter, defaults to "," (a comma).
             comma must be a valid character and must not be \r, \n,
             or the Unicode replacement character (0xFFFD).
+        examples:
+          basic
+            write a list of string lists to a csv string
+            code:
+            read a csv string
+            code:
+              load("encoding/csv.star", "csv")
+              data = [
+                ["type", "name", "number_of_legs"],
+                ["dog", "spot", "4"],
+                ["cat", "spot", "3"],
+                ["spider", "samantha", "8"],
+              ]
+              csv_str = csv.write_all(data)
 
 
 */

@@ -3,6 +3,7 @@ package starlib
 import (
 	"bytes"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,11 +13,24 @@ import (
 	"go.starlark.net/starlark"
 )
 
-func TestDocExamples(t *testing.T) {
-	docFiles, err := filepath.Glob("./*/*doc.go")
+func glob(root string, fn func(string) bool) []string {
+	var matches []string
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if fn(path) {
+			matches = append(matches, path)
+		}
+		return nil
+	})
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
+	return matches
+}
+
+func TestDocExamples(t *testing.T) {
+	docFiles := glob(".", func(path string) bool {
+		return strings.Contains(path, "doc.go")
+	})
 
 	for _, path := range docFiles {
 		f, err := os.Open(path)
