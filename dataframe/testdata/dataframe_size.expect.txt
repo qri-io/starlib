@@ -4,7 +4,6 @@
 2     eel     zap
 3    frog  ribbit
 
-
 RangeIndex(start=0, stop=4, step=1)
 
 4
@@ -20,7 +19,6 @@ Garfield     cat    meow
 Clifford     dog    bark
    Abaia     eel     zap
   Kermit    frog  ribbit
-
 
 Index(['Garfield', 'Clifford', 'Abaia', 'Kermit'], dtype='object')
 

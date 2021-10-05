@@ -139,8 +139,7 @@ func TestDataframeFromRows(t *testing.T) {
 	}
 	got := df.String()
 	expect := `        0     1     2   3    4  5    6    7
-0    test  31.2  11.4  ok  597    107  6.9
-`
+0    test  31.2  11.4  ok  597    107  6.9`
 	if got != expect {
 		t.Errorf("mismatch: expect %q, got %q", expect, got)
 	}
@@ -171,8 +170,7 @@ func TestDataframeFromRows(t *testing.T) {
 	got = df.String()
 	expect = `        0     1   2   3
 0    test  31.2  17  45
-1    more   9.8  62   3
-`
+1    more   9.8  62   3`
 	if got != expect {
 		t.Errorf("mismatch: expect %q, got %q", expect, got)
 	}
@@ -190,8 +188,7 @@ func TestDataframeFromRows(t *testing.T) {
 	got = df.String()
 	expect = `        0     1   2   3
 0    test  31.2  17  45
-1      25    ok   4  hi
-`
+1      25    ok   4  hi`
 	if got != expect {
 		t.Errorf("mismatch: expect %q, got %q", expect, got)
 	}
@@ -207,8 +204,7 @@ func TestDataframeFromList(t *testing.T) {
 	expect := `       0
 0    1.2
 1    3.4
-2    5.6
-`
+2    5.6`
 	if got != expect {
 		t.Errorf("mismatch: expect %q, got %q", expect, got)
 	}
@@ -225,8 +221,7 @@ func TestDataframeFromSeries(t *testing.T) {
 	expect := `     0
 0    a
 1    b
-2    c
-`
+2    c`
 	if got != expect {
 		t.Errorf("mismatch: expect %q, got %q", expect, got)
 	}
@@ -255,8 +250,7 @@ func TestDataframeAccessor(t *testing.T) {
 	expectText := `        0     1     2   3    4  5    6    7
 0    test  31.2  11.4  ok  597    107  6.9
 1    more   7.8  44.1  hi  612     94  3.1
-2    last  90.2  26.8  yo  493    272  4.3
-`
+2    last  90.2  26.8  yo  493    272  4.3`
 	if diff := cmp.Diff(expectText, got); diff != "" {
 		t.Errorf("mismatch (-want +got):%s\n", diff)
 	}
@@ -283,8 +277,7 @@ func TestDataframeAccessor(t *testing.T) {
 	expectText = `        0     1     2   3    4  5    6    7
 0    test  31.2  11.4  ok  597    107  6.9
 1    more   7.8  44.1  hi  612     94  3.1
-2    last  90.2  26.8  ah  493    272  4.3
-`
+2    last  90.2  26.8  ah  493    272  4.3`
 	if diff := cmp.Diff(expectText, got); diff != "" {
 		t.Errorf("mismatch (-want +got):%s\n", diff)
 	}
@@ -340,8 +333,7 @@ func TestDataframeColumnNamesTypes(t *testing.T) {
 	expectText := `     word  num0  num1  text  num64  blank   id  amount
 0    test  31.2  11.4    ok    597         107     6.9
 1    more   7.8  44.1    hi    612          94     3.1
-2    last  90.2  26.8    yo    493         272     4.3
-`
+2    last  90.2  26.8    yo    493         272     4.3`
 	if diff := cmp.Diff(expectText, got); diff != "" {
 		t.Errorf("mismatch (-want +got):%s\n", diff)
 	}

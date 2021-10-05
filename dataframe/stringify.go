@@ -140,10 +140,9 @@ func (df *DataFrame) stringifyColumns(stopIndex, renewIndex, labelWidth int, cel
 }
 
 func (df *DataFrame) stringifyRows(stopRow, renewRow, stopCol, renewCol, labelWidth int, cellWidths []int) string {
-	answer := ""
+	collect := []string{}
 	// Render each row
 	for i := 0; i < df.NumRows(); i++ {
-
 		// For the seam, add "..." for each visible column
 		if i == stopRow {
 			render := []string{"... "}
@@ -156,7 +155,7 @@ func (df *DataFrame) stringifyRows(stopRow, renewRow, stopCol, renewCol, labelWi
 					continue
 				}
 			}
-			answer += strings.Join(render, "  ") + "\n"
+			collect = append(collect, strings.Join(render, "  "))
 			continue
 		}
 
@@ -184,9 +183,9 @@ func (df *DataFrame) stringifyRows(stopRow, renewRow, stopCol, renewCol, labelWi
 				continue
 			}
 		}
-		answer += strings.Join(render, "  ") + "\n"
+		collect = append(collect, strings.Join(render, "  "))
 	}
-	return answer
+	return strings.Join(collect, "\n")
 }
 
 func toWidth(n int) int {

@@ -3,7 +3,6 @@
 1     2     dog   bark
 2     3     eel    zap
 
-
 0    cat
 1    dog
 2    eel

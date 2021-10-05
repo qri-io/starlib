@@ -3,17 +3,14 @@
 1     2     dog   bark
 2     3     eel    zap
 
-
            a          b        c
 0      apple     banana   cherry
 1    apricot  blueberry  currant
-
 
       id      city      pop
 0    123  New York  8419000
 1    456   Chicago  2710000
 2    789  San Jose  1028000
-
 
 0    New York
 1     Chicago
@@ -25,7 +22,6 @@ dataframe.Series
    feline    1  cat  meow
    canine    2  dog  bark
 anguillid    3  eel   zap
-
 
      0  1      2      3  4
 0    a  b      c   True  2
