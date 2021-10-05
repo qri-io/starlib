@@ -26,3 +26,8 @@ anguillid    3  eel   zap
      0  1      2      3  4
 0    a  b      c   True  2
 1    d  e  False  False  3
+
+       0
+0    cat
+1    dog
+2    eel

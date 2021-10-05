@@ -38,6 +38,10 @@ def f():
   print(df)
   print('')
 
+  one_column = ["cat", "dog", "eel"]
+  df = dataframe.DataFrame(one_column)
+  print(df)
+  print('')
 
 f()
 

@@ -42,6 +42,10 @@ func TestDataframeBoolSelectDontUseEqualOperator(t *testing.T) {
 	}
 }
 
+func TestDataframeDicts(t *testing.T) {
+	expectScriptOutput(t, "testdata/dataframe_dicts.star", "testdata/dataframe_dicts.expect.txt")
+}
+
 func TestDataframeSize(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_size.star", "testdata/dataframe_size.expect.txt")
 }

@@ -1,0 +1,19 @@
+case 0: columns with dict will re-index the data
+           a          b    o       d    e
+0      apple     banana  NaN    date  NaN
+1    apricot  blueberry  NaN  durian  NaN
+Index(['a', 'b', 'o', 'd', 'e'], dtype='object')
+
+case 1: list of dicts will have correct column names
+     name  sound
+0     cat   meow
+1     dog   bark
+2     eel    zap
+Index(['name', 'sound'], dtype='object')
+
+case 2: columns are merged by name, null values for missing cells
+        month    year  day    weekday
+0        June  2001.0    4        NaN
+1         NaN  1996.0   10     Monday
+2    December     NaN   25  Wednesday
+Index(['month', 'year', 'day', 'weekday'], dtype='object')

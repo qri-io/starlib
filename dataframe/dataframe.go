@@ -151,13 +151,21 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index) (*DataFr
 		if err != nil {
 			return nil, err
 		}
-		columns = NewIndex(keys, "")
-		// TODO(dustmop): `index` will re-index
+
+		if columns != nil {
+			body = constructBodyFromReindexedColumns(body, keys, columns)
+		} else {
+			columns = NewIndex(keys, "")
+		}
 
 	case *starlark.List:
-		body, err = constructBodyFromStarlarkList(inData)
+		var colNames []string
+		body, colNames, err = constructBodyFromStarlarkList(inData)
 		if err != nil {
 			return nil, err
+		}
+		if colNames != nil {
+			columns = NewIndex(colNames, "")
 		}
 
 	default:
@@ -172,7 +180,7 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index) (*DataFr
 	}
 	if columns.Len() > 0 && columns.Len() != numCols {
 		// TODO(dustmop): Add test
-		return nil, fmt.Errorf("number of columns does not match body size")
+		return nil, fmt.Errorf("number of columns %d, does not match body size %d", columns.Len(), numCols)
 	}
 
 	return &DataFrame{
@@ -272,22 +280,31 @@ func constructBodyFromStarlarkDict(data *starlark.Dict) ([]Series, []string, err
 }
 
 // construct a body from a starlark.List
-func constructBodyFromStarlarkList(data *starlark.List) ([]Series, error) {
+func constructBodyFromStarlarkList(data *starlark.List) ([]Series, []string, error) {
 	numRows := data.Len()
 	numCols := -1
 	var builder *tableBuilder
 	// Iterate the input data row-size
 	for y := 0; y < data.Len(); y++ {
-		row := toInterfaceSliceOrNil(data.Index(y))
+		elem := data.Index(y)
+		nr := toNamedRowOrNil(elem)
+		if nr != nil {
+			if builder == nil {
+				builder = newTableBuilder(0, numRows)
+			}
+			builder.pushNamedRow(nr)
+			continue
+		}
+		row := toInterfaceSliceOrNil(elem)
 		if row == nil {
-			return nil, fmt.Errorf("invalid values for body: %v, TODO(dustmop): 1d list should construct columnar body", data)
+			return nil, nil, fmt.Errorf("invalid value for body: %v", elem)
 		}
 		// Validate that the size of each row is the same
 		// TODO(dustmop): Add test
 		if numCols == -1 {
 			numCols = len(row)
 		} else if numCols != len(row) {
-			return nil, fmt.Errorf("rows need to be the same length")
+			return nil, nil, fmt.Errorf("rows need to be the same length")
 		}
 		if builder == nil {
 			builder = newTableBuilder(numCols, numRows)
@@ -296,9 +313,9 @@ func constructBodyFromStarlarkList(data *starlark.List) ([]Series, error) {
 	}
 	newBody, err := builder.body()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return newBody, nil
+	return newBody, builder.colNames(), nil
 }
 
 func constructBodyHeaderFromCSV(text string, hasHeader bool) ([]Series, []string, error) {
@@ -339,6 +356,21 @@ func constructBodyHeaderFromCSV(text string, hasHeader bool) ([]Series, []string
 		return nil, nil, err
 	}
 	return body, header, nil
+}
+
+// dictionaries are re-indexed by column names to create the body
+func constructBodyFromReindexedColumns(orig []Series, names []string, columns *Index) []Series {
+	_, numRows := sizeOfBody(orig)
+	newBody := make([]Series, len(columns.texts))
+	for i, col := range columns.texts {
+		pos := findKeyPos(col, names)
+		if pos == -1 {
+			newBody[i] = newTypedSliceBuilderNaNFilled(numRows).toSeries(nil, "")
+		} else {
+			newBody[i] = orig[pos]
+		}
+	}
+	return newBody
 }
 
 // get the size of the body, width and height

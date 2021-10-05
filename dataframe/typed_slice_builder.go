@@ -43,6 +43,14 @@ func newTypedSliceBuilderFromSeries(series *Series) *typedSliceBuilder {
 	}
 }
 
+func newTypedSliceBuilderNaNFilled(numRows int) *typedSliceBuilder {
+	builder := newTypedSliceBuilder(numRows)
+	for i := 0; i < numRows; i++ {
+		builder.push(math.NaN())
+	}
+	return builder
+}
+
 func (t *typedSliceBuilder) setType(dtype string) {
 	if dtype == "" {
 		return
@@ -90,6 +98,10 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			if b {
 				val = 1
 			}
+		} else if val == nil {
+			t.currType = "float64"
+			t.whichVals = typeFloat
+			val = math.NaN()
 		} else {
 			t.buildError = fmt.Errorf("invalid object %v of type %s", val, reflect.TypeOf(val))
 			return
@@ -159,16 +171,21 @@ func (t *typedSliceBuilder) push(val interface{}) {
 		} else if val == nil {
 			if t.currType == "float64" {
 				val = math.NaN()
+			} else if t.currType == "object" {
+				// no need to convert
 			} else {
 				if t.whichVals == typeInt {
 					if t.currType == "bool" {
 						t.valObjs = convertBoolsToObjects(t.valInts)
+						t.whichVals = typeObj
+						t.currType = "object"
 					} else {
-						t.valObjs = convertIntsToObjects(t.valInts)
+						t.valFloats = convertIntsToFloats(t.valInts)
+						t.whichVals = typeFloat
+						t.currType = "float64"
+						val = math.NaN()
 					}
 				}
-				t.whichVals = typeObj
-				t.currType = "object"
 			}
 		} else {
 			t.buildError = fmt.Errorf("invalid object %v of type %s", val, reflect.TypeOf(val))
@@ -249,4 +266,13 @@ func (t *typedSliceBuilder) toSeries(index *Index, name string) Series {
 		index:     index,
 		name:      name,
 	}
+}
+
+func (t *typedSliceBuilder) Len() int {
+	if t.whichVals == typeInt {
+		return len(t.valInts)
+	} else if t.whichVals == typeFloat {
+		return len(t.valFloats)
+	}
+	return len(t.valObjs)
 }
