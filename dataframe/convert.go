@@ -87,9 +87,38 @@ func toInterfaceSliceOrNil(v starlark.Value) []interface{} {
 			result = append(result, elem)
 		}
 		return result
+	case starlark.Int:
+		num, _ := starlark.AsInt32(x)
+		return []interface{}{num}
+	case starlark.String:
+		str := string(x)
+		return []interface{}{str}
 	default:
 		return nil
 	}
+}
+
+// convert starlark dictionary to a row of named values
+func toNamedRowOrNil(v starlark.Value) *namedRow {
+	dict, ok := v.(*starlark.Dict)
+	if !ok {
+		return nil
+	}
+
+	// Turn the dictionary into two lists: names and values
+	names := make([]string, 0, dict.Len())
+	values := make([]interface{}, 0, dict.Len())
+	for _, item := range dict.Items() {
+		k := item.Index(0)
+		v := item.Index(1)
+		elem, ok := toScalarMaybe(v)
+		if !ok {
+			return nil
+		}
+		names = append(names, toStr(k))
+		values = append(values, elem)
+	}
+	return newNamedRow(names, values)
 }
 
 // convert starlark value to a go native int if it has the right type

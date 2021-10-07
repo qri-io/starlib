@@ -2,6 +2,7 @@ package dataframe
 
 import (
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"math"
 	"testing"
 )
@@ -311,38 +312,39 @@ func TestIntWithNone(t *testing.T) {
 	series := builder.toSeries(nil, "")
 
 	// Verify that the series has the right type and contents
-	if series.dtype != "object" {
-		t.Errorf("expected dtype == object, got %q", series.dtype)
+	if series.dtype != "float64" {
+		t.Errorf("expected dtype == float64, got %q", series.dtype)
 	}
-	if series.which != typeObj {
-		t.Errorf("expected which == object, got %v", series.which)
+	if series.which != typeFloat {
+		t.Errorf("expected which == float, got %v", series.which)
 	}
-	expect := []interface{}{123, nil, 789}
+	expect := []interface{}{123.0, math.NaN(), 789.0}
 	actual := series.values()
-	if diff := cmp.Diff(expect, actual); diff != "" {
+	if diff := cmp.Diff(expect, actual, cmpopts.EquateNaNs()); diff != "" {
 		t.Errorf("mismatch (-want +got):%s\n", diff)
 	}
 
 	// Verify that retrieving elements works
 	obj := series.At(0)
-	n, ok := obj.(int)
+	f, ok := obj.(float64)
 	if !ok {
-		t.Fatalf("series.At should return a int, got %v", obj)
+		t.Fatalf("series.At should return a float64, got %v of %T", obj, obj)
 	}
-	if n != 123 {
-		t.Errorf("series.At(0) expected 123, got %v", n)
+	if f != 123.0 {
+		t.Errorf("series.At(0) expected 123.0, got %v", f)
 	}
 	obj = series.At(1)
-	if obj != nil {
-		t.Errorf("series.At(1) expected nil, got %v", obj)
+	f = obj.(float64)
+	if !math.IsNaN(f) {
+		t.Errorf("series.At(1) expected NaN, got %v", obj)
 	}
 
 	// Verify the string representation
 	text := series.String()
-	expectText := `0     123
-1    None
-2     789
-dtype: object`
+	expectText := `0    123.0
+1      NaN
+2    789.0
+dtype: float64`
 	if diff := cmp.Diff(expectText, text); diff != "" {
 		t.Errorf("mismatch (-want +got):%s\n", diff)
 	}
@@ -370,18 +372,9 @@ func TestFloatWithNone(t *testing.T) {
 
 	// Because series contains NaN, need to manually compare each element
 	actual := series.values()
-	if len(actual) != 3 {
-		t.Fatalf("expected slice to have length 3, got %d", len(actual))
-	}
-	if actual[0] != 12.3 {
-		t.Errorf("expected slice[0] == 12.3, got %v", actual[0])
-	}
-	f := actual[1].(float64)
-	if !math.IsNaN(f) {
-		t.Errorf("expected slice[1] is NaN, got %v", actual[1])
-	}
-	if actual[2] != 78.9 {
-		t.Errorf("expected slice[2] == 78.9, got %v", actual[2])
+	expect := []interface{}{12.3, math.NaN(), 78.9}
+	if diff := cmp.Diff(expect, actual, cmpopts.EquateNaNs()); diff != "" {
+		t.Errorf("mismatch (-want +got):%s\n", diff)
 	}
 
 	// Verify that retrieving elements works

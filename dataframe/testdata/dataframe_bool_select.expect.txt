@@ -7,7 +7,6 @@
 5     3     eel     zap
 6     4    frog  ribbit
 
-
 0    False
 1     True
 2    False

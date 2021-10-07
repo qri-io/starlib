@@ -9,9 +9,11 @@ def f():
                            index=["falcon", "parrot", "lion", "monkey"],
                            columns=("class", "max_speed"))
   print(df)
+  print('')
 
   df = df.reset_index()
   print(df)
+  print('')
 
 
 f()

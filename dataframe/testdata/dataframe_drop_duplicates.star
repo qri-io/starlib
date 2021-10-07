@@ -11,12 +11,15 @@ def f():
                             [4,"frog","ribbit"]],
                            columns=["id","animal","sound"])
   print(df)
+  print('')
 
   no_dups = df.drop_duplicates()
   print(no_dups)
+  print('')
 
   no_dup_animals = df.drop_duplicates(subset=['animal'])
   print(no_dup_animals)
+  print('')
 
 
 f()

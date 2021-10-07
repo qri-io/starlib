@@ -2,7 +2,6 @@
 0    cat  meow  123
 1    dog  bark  456
 
-
        0     1    2
 0    cat  meow  123
 1    dog  bark  456
