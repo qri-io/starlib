@@ -352,3 +352,42 @@ func TestDataframeColumnNamesTypes(t *testing.T) {
 		t.Errorf("column types mismatch (-want +got):%s\n", diff)
 	}
 }
+
+func TestDataframeCopyAssignment(t *testing.T) {
+	rows := [][]interface{}{
+		[]interface{}{"test", 31.2, int64(597)},
+		[]interface{}{"more", 7.8, int64(612)},
+		[]interface{}{"last", 90.2, int64(493)},
+	}
+	columns := []string{"word", "num0", "num64"}
+	index := NewIndex([]string{"first", "second", "third"}, "labels")
+
+	df, err := NewDataFrame(rows, columns, index)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actual := df.String()
+	expect := `          word  num0  num64
+ first    test  31.2    597
+second    more   7.8    612
+ third    last  90.2    493`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("dataframe stringification mismatch (-want +got):%s\n", diff)
+	}
+
+	clone, err := NewDataFrame(df, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actualColumns, actualTypes := clone.ColumnNamesTypes()
+	if diff := cmp.Diff(columns, actualColumns); diff != "" {
+		t.Errorf("column names mismatch (-want +got):%s\n", diff)
+	}
+
+	expectTypes := []string{"object", "float64", "int64"}
+	if diff := cmp.Diff(expectTypes, actualTypes); diff != "" {
+		t.Errorf("column types mismatch (-want +got):%s\n", diff)
+	}
+}

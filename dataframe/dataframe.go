@@ -144,6 +144,12 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index) (*DataFr
 
 	case *DataFrame:
 		body = inData.body
+		if columns == nil {
+			columns = inData.columns
+		}
+		if index == nil {
+			index = inData.index
+		}
 
 	case *starlark.Dict:
 		var keys []string
