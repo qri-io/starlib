@@ -79,7 +79,9 @@ func (s *Series) Type() string {
 
 // Attr gets a value for a string attribute
 func (s *Series) Attr(name string) (starlark.Value, error) {
-	if name == "str" {
+	if name == "dtype" {
+		return starlark.String(s.dtype), nil
+	} else if name == "str" {
 		return &stringMethods{subject: s}, nil
 	}
 	return builtinAttr(s, name, seriesMethods)
@@ -87,7 +89,7 @@ func (s *Series) Attr(name string) (starlark.Value, error) {
 
 // AttrNames lists available attributes
 func (s *Series) AttrNames() []string {
-	attributeNames := []string{"str"}
+	attributeNames := []string{"dtype", "str"}
 	return append(attributeNames, builtinAttrNames(seriesMethods)...)
 }
 

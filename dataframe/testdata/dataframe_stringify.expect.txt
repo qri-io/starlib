@@ -1,14 +1,14 @@
-       latitude  longitude  depth   mag  ...  location_source  mag_source
-0    31.6893333  -114.5405   9.98  5.49  ...               ci         cis
+     latitude  longitude  depth  mag  ...  location_source  mag_source
+0        31.7     -114.5   10.0  5.5  ...               ci         cis
 
-     longitude  depth   mag  mag_type  nst  ...  location_source  mag_source
-0    -114.5405   9.98  5.49        mw   13  ...               ci         cis
+     longitude  depth  mag  mag_type  nst  ...  location_source  mag_source
+0       -114.5   10.0  5.5        mw   13  ...               ci         cis
 
-     depth   mag  mag_type  nst  gap  ...  location_source  mag_source
-0     9.98  5.49        mw   13  106  ...               ci         cis
+     depth  mag  mag_type  nst  gap  dmin  ...  location_source  mag_source
+0     10.0  5.5        mw   13  106   0.3  ...               ci         cis
 
-     depth   mag  mag_type  nst  gap    dmin   rms  ...    status  mag_source
-0     9.98  5.49        mw   13  106  0.3208  0.35  ...  reviewed         cis
+     depth  mag  mag_type  nst  gap  dmin  rms  ...    status  mag_source
+0     10.0  5.5        mw   13  106   0.3  0.3  ...  reviewed         cis
 
            id  char
  0     alpha1     A
