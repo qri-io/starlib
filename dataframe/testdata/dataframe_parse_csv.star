@@ -11,6 +11,11 @@ def f():
 3,eel,zap
 4,frog,ribbit""")
   print(df)
+  print("")
+
+  print(df["id"].dtype)
+  print(df["animal"].dtype)
+  print(df["sound"].dtype)
 
 
 f()

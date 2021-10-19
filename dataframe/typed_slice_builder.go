@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strconv"
 )
 
 type typedSliceBuilder struct {
@@ -239,7 +240,16 @@ func (t *typedSliceBuilder) pushKeyVal(key string, val interface{}) {
 
 func (t *typedSliceBuilder) parsePush(text string) {
 	// Parse scalar from the text, push it. Used for csv reader.
-	// TODO: Actually parse int and float from text, don't assume it must be string.
+	if num, err := strconv.ParseInt(text, 10, 64); err == nil {
+		t.push(num)
+		return
+	} else if f, err := strconv.ParseFloat(text, 64); err == nil {
+		t.push(f)
+		return
+	} else if b, err := strconv.ParseBool(text); err == nil {
+		t.push(b)
+		return
+	}
 	t.push(text)
 }
 

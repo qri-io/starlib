@@ -13,6 +13,7 @@ import (
 )
 
 func runScript(t *testing.T, scriptFilename string) (string, error) {
+	t.Helper()
 	output := "\n"
 	printCollect := func(thread *starlark.Thread, msg string) {
 		output = fmt.Sprintf("%s%s\n", output, msg)
@@ -27,6 +28,7 @@ func runScript(t *testing.T, scriptFilename string) (string, error) {
 }
 
 func expectScriptOutput(t *testing.T, scriptFilename, expectFilename string) {
+	t.Helper()
 	output, err := runScript(t, scriptFilename)
 	if err != nil {
 		t.Fatal(err)
@@ -41,6 +43,7 @@ func expectScriptOutput(t *testing.T, scriptFilename, expectFilename string) {
 }
 
 func mustReadFile(t *testing.T, filename string) string {
+	t.Helper()
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Fatal(err)

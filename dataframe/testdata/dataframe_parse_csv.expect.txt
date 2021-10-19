@@ -6,3 +6,7 @@
 4    20     dog   barks
 5     3     eel     zap
 6     4    frog  ribbit
+
+int64
+object
+object
