@@ -497,3 +497,37 @@ dtype: object`
 		t.Errorf("mismatch (-want +got):%s\n", diff)
 	}
 }
+
+// Test a string following a bool is coerces to objects
+func TestBuildBoolThenString(t *testing.T) {
+	builder := newTypedSliceBuilder(0)
+	builder.push(true)
+	builder.push("")
+	err := builder.error()
+	if err != nil {
+		t.Fatal(err)
+	}
+	series := builder.toSeries(nil, "")
+
+	// Verify that the series is objects now
+	if series.dtype != "object" {
+		t.Errorf("expected dtype == object, got %q", series.dtype)
+	}
+}
+
+// Test a string following a bool is coerces to objects
+func TestBuildBoolThenInt(t *testing.T) {
+	builder := newTypedSliceBuilder(0)
+	builder.push(true)
+	builder.push(123)
+	err := builder.error()
+	if err != nil {
+		t.Fatal(err)
+	}
+	series := builder.toSeries(nil, "")
+
+	// Verify that the series is objects now
+	if series.dtype != "object" {
+		t.Errorf("expected dtype == object, got %q", series.dtype)
+	}
+}

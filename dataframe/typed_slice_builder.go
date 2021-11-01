@@ -115,8 +115,8 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			} else if t.currType == "object" {
 				// no need to convert
 			} else if t.currType != "int64" {
-				t.buildError = fmt.Errorf("coercion failed, int: %v to %q", num, t.currType)
-				return
+				// Unknown conversion, just use objects
+				t.coerceToObjects()
 			}
 		} else if num, ok := val.(int64); ok {
 			if t.currType == "float64" {
@@ -124,10 +124,10 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			} else if t.currType == "object" {
 				// no need to convert
 			} else if t.currType != "int64" {
-				t.buildError = fmt.Errorf("coercion failed, int64: %v to %q", num, t.currType)
-				return
+				// Unknown conversion, just use objects
+				t.coerceToObjects()
 			}
-		} else if f, ok := val.(float64); ok {
+		} else if _, ok := val.(float64); ok {
 			// TODO(dustmop): If t.dType != "", is this an error?
 			if t.currType == "int64" && t.dType == "" {
 				// The list was ints, found a float, coerce the previous list to floats
@@ -137,10 +137,10 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			} else if t.currType == "object" {
 				// no need to convert
 			} else if t.currType != "float64" {
-				t.buildError = fmt.Errorf("coercion failed, float64: %v to %q", f, t.currType)
-				return
+				// Unknown conversion, just use objects
+				t.coerceToObjects()
 			}
-		} else if text, ok := val.(string); ok {
+		} else if _, ok := val.(string); ok {
 			if t.currType == "int64" && t.dType == "" {
 				// The list was ints, found a string, coerce the previous list to objects
 				t.currType = "object"
@@ -151,11 +151,16 @@ func (t *typedSliceBuilder) push(val interface{}) {
 				t.currType = "object"
 				t.whichVals = typeObj
 				t.valObjs = convertFloatsToObjects(t.valFloats)
+			} else if t.currType == "bool" {
+				// The list was bools, found a string, coerce the previous list to objects
+				t.currType = "object"
+				t.whichVals = typeObj
+				t.valObjs = convertBoolsToObjects(t.valInts)
 			} else if t.currType == "datetime64[ns]" {
 				// no need to convert
 			} else if t.currType != "object" {
-				t.buildError = fmt.Errorf("coercion failed, string: %v to %q", text, t.currType)
-				return
+				// Unknown conversion, just use objects
+				t.coerceToObjects()
 			}
 		} else if b, ok := val.(bool); ok {
 			if t.currType == "bool" {
@@ -166,8 +171,8 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			} else if t.currType == "object" {
 				// no need to convert
 			} else {
-				t.buildError = fmt.Errorf("coercion failed, bool: %v to %q", b, t.currType)
-				return
+				// Unknown conversion, just use objects
+				t.coerceToObjects()
 			}
 		} else if val == nil {
 			if t.currType == "float64" {
@@ -259,6 +264,20 @@ func (t *typedSliceBuilder) error() error {
 
 func (t *typedSliceBuilder) keys() []string {
 	return t.keyList
+}
+
+func (t *typedSliceBuilder) coerceToObjects() {
+	if t.whichVals == typeInt {
+		if t.currType == "bool" {
+			t.valObjs = convertBoolsToObjects(t.valInts)
+		} else {
+			t.valObjs = convertIntsToObjects(t.valInts)
+		}
+	} else if t.whichVals == typeFloat {
+		t.valObjs = convertFloatsToObjects(t.valFloats)
+	}
+	t.currType = "object"
+	t.whichVals = typeObj
 }
 
 // toSeries returns the series that has been built
