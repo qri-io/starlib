@@ -57,8 +57,7 @@ func LoadModule() (starlark.StringDict, error) {
 // RequestGuard controls access to http by checking before making requests
 // if Allowed returns an error the request will be denied
 type RequestGuard interface {
-	Allowed(req *http.Request) error
-	// RequestCompleted(res *http.Response)
+	Allowed(thread *starlark.Thread, req *http.Request) (*http.Request, error)
 }
 
 // Module joins http tools to a dataset, allowing dataset
@@ -116,7 +115,8 @@ func (m *Module) reqMethod(method string) func(thread *starlark.Thread, _ *starl
 			return nil, err
 		}
 		if m.rg != nil {
-			if err := m.rg.Allowed(req); err != nil {
+			req, err = m.rg.Allowed(thread, req)
+			if err != nil {
 				return nil, err
 			}
 		}
