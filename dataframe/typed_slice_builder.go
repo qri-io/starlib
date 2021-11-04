@@ -41,6 +41,7 @@ func newTypedSliceBuilderFromSeries(series *Series) *typedSliceBuilder {
 		valFloats: series.valFloats,
 		valObjs:   series.valObjs,
 		dType:     series.dtype,
+		currType:  series.dtype,
 	}
 }
 
