@@ -176,7 +176,7 @@ var dataframeMethods = map[string]*starlark.Builtin{
 	"skew":              starlark.NewBuiltin("skew", methNoImpl("skew")),
 	"slice_shift":       starlark.NewBuiltin("slice_shift", methNoImpl("slice_shift")),
 	"sort_index":        starlark.NewBuiltin("sort_index", methNoImpl("sort_index")),
-	"sort_values":       starlark.NewBuiltin("sort_values", methNoImpl("sort_values")),
+	"sort_values":       starlark.NewBuiltin("sort_values", dataframeSortValues),
 	"sparse":            starlark.NewBuiltin("sparse", methNoImpl("sparse")),
 	"squeeze":           starlark.NewBuiltin("squeeze", methNoImpl("squeeze")),
 	"stack":             starlark.NewBuiltin("stack", methNoImpl("stack")),

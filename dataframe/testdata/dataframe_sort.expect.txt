@@ -1,0 +1,34 @@
+rows with no index
+     id  animal   sound
+0     1     cat    meow
+1     2     dog    bark
+2     3     eel     zap
+3     4    frog  ribbit
+
+case 0: sort ascending
+     id  animal   sound
+1     2     dog    bark
+0     1     cat    meow
+3     4    frog  ribbit
+2     3     eel     zap
+
+case 1: sort descending
+     id  animal   sound
+2     3     eel     zap
+3     4    frog  ribbit
+0     1     cat    meow
+1     2     dog    bark
+
+rows with index
+         id  animal   sound
+ nyan     1     cat    meow
+  inu     2     dog    bark
+unagi     3     eel     zap
+kaeru     4    frog  ribbit
+
+case 2: sort with index
+         id  animal   sound
+  inu     2     dog    bark
+ nyan     1     cat    meow
+kaeru     4    frog  ribbit
+unagi     3     eel     zap

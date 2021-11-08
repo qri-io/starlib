@@ -117,6 +117,24 @@
                 suffixes to use for merged column names, defaulting to ["_x", "_y"]
           reset_index()
             resets the index to be an empty index, turning the previous index into its own column
+          sort_values(by, ascending?) DataFrame
+            sort the values in the DataFrame
+            params:
+              by list(string)
+                the columns to use to sort the values
+              ascending bool
+                whether to use ascending order, default is True
+            examples:
+              sort_values
+                sort the values
+                code:
+                  load("dataframe.star", "dataframe")
+                  df = dataframe.DataFrame(columns=['id','animal','sound'],
+                                           data=[[1,'cat','meow'],
+                                                 [2,'dog','bark'],
+                                                 [3,'eel','zap'],
+                                                 [4,'frog','ribbit']])
+                  sorted = df.sort_values(by=['sound'])
         fields:
           at AtIndexer
             returns an AtIndexer, which can be used to retrieve an arbitrary cell from the DataFrame
