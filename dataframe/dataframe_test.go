@@ -1,6 +1,8 @@
 package dataframe
 
 import (
+	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -126,6 +128,28 @@ func TestDataframeGroupBy(t *testing.T) {
 func TestDataframeStringify(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_stringify.star",
 		"testdata/dataframe_stringify.expect.txt")
+}
+
+func TestDataframeStringifyLarge(t *testing.T) {
+	csvText, err := ioutil.ReadFile("testdata/2021-09_earthquake_data.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	df, err := NewDataFrameFromCSV(string(csvText))
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual := strings.TrimSpace(df.String())
+	expectBytes, err := ioutil.ReadFile("testdata/earthquake_data.expect.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expect := strings.TrimSpace(string(expectBytes))
+
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("mismatch (-want +got):%s\n", diff)
+	}
 }
 
 func TestDataframeNotImplemented(t *testing.T) {

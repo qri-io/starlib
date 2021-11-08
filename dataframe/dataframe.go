@@ -202,6 +202,17 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index) (*DataFr
 	}, nil
 }
 
+func NewDataFrameFromCSV(text string) (*DataFrame, error) {
+	body, header, err := constructBodyHeaderFromCSV(text, true)
+	if err != nil {
+		return nil, err
+	}
+	return &DataFrame{
+		columns: NewIndex(header, ""),
+		body:    body,
+	}, nil
+}
+
 // construct a body from a slice, either cooercing it into rows, or treating it as a column
 func constructBodyFromNativeSlice(ls []interface{}) ([]Series, error) {
 	if rows := toTwoDimensionalRows(ls); rows != nil {

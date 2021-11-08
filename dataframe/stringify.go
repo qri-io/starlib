@@ -82,6 +82,9 @@ func (df *DataFrame) determineCellWidths(stopRow, renewRow int) (int, []int) {
 			}
 		}
 	}
+	if renewRow >= 0 && labelWidth < 3 {
+		labelWidth = 3
+	}
 
 	// Create array of max widths, starting at 0
 	cellWidths := make([]int, df.NumCols())
@@ -145,7 +148,7 @@ func (df *DataFrame) stringifyRows(stopRow, renewRow, stopCol, renewCol, labelWi
 	for i := 0; i < df.NumRows(); i++ {
 		// For the seam, add "..." for each visible column
 		if i == stopRow {
-			render := []string{"... "}
+			render := []string{padString("...", labelWidth) + "  "}
 			for j := range df.body {
 				if j < stopCol || j >= renewCol {
 					render = append(render, padString("...", cellWidths[j]))
