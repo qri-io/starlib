@@ -639,7 +639,7 @@ func (df *DataFrame) accessDataFrameBySeries(series *Series) (starlark.Value, er
 	builder := newTableBuilder(df.NumCols(), df.NumRows())
 	indexVals := make([]string, 0, df.NumRows())
 	line := 0
-	for rows := newRowIter(df); !rows.Done(); rows.Next() {
+	for rowIter := newRowIter(df); !rowIter.Done(); rowIter.Next() {
 		if line >= series.Len() {
 			break
 		}
@@ -649,7 +649,7 @@ func (df *DataFrame) accessDataFrameBySeries(series *Series) (starlark.Value, er
 			return starlark.None, fmt.Errorf("DataFrame.Get(Series) must be a Series of bools, got %d: %v of %T", line, elem, elem)
 		}
 		if b {
-			builder.pushRow(rows.GetRow().data)
+			builder.pushRow(rowIter.GetRow().data)
 			indexVals = append(indexVals, strconv.Itoa(line))
 		}
 		line++
@@ -744,11 +744,11 @@ func addTwoDataframes(left, right *DataFrame, columns *Index) (starlark.Value, e
 
 	// Build the result by concating the rows
 	builder := newTableBuilder(numCols, numRows)
-	for rows := newRowIter(left); !rows.Done(); rows.Next() {
-		builder.pushRow(rows.GetRow().data)
+	for rowIter := newRowIter(left); !rowIter.Done(); rowIter.Next() {
+		builder.pushRow(rowIter.GetRow().data)
 	}
-	for rows := newRowIter(right); !rows.Done(); rows.Next() {
-		builder.pushRow(rows.GetRow().data)
+	for rowIter := newRowIter(right); !rowIter.Done(); rowIter.Next() {
+		builder.pushRow(rowIter.GetRow().data)
 	}
 
 	// Finish building the body, return any errors
@@ -809,8 +809,8 @@ func dataframeAttrShape(self *DataFrame) (starlark.Value, error) {
 func dataframeApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
 		funcVal, axisVal starlark.Value
+		self             = b.Receiver().(*DataFrame)
 	)
-	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("apply", args, kwargs,
 		"function", &funcVal,
@@ -831,8 +831,8 @@ func dataframeApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.
 	}
 
 	builder := newTypedSliceBuilder(self.NumRows())
-	for rows := newRowIter(self); !rows.Done(); rows.Next() {
-		r := rows.GetRow()
+	for rowIter := newRowIter(self); !rowIter.Done(); rowIter.Next() {
+		r := rowIter.GetRow()
 		arguments := r.toTuple()
 		res, err := starlark.Call(thread, funcObj, arguments, nil)
 		if err != nil {
@@ -855,13 +855,13 @@ func dataframeApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.
 // head method returns a copy of the DataFrame but only with the first n rows
 func dataframeHead(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var nVal starlark.Value
+	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("head", args, kwargs,
 		"n?", &nVal,
 	); err != nil {
 		return nil, err
 	}
-	self := b.Receiver().(*DataFrame)
 
 	numRows, ok := toIntMaybe(nVal)
 	if !ok {
@@ -870,8 +870,8 @@ func dataframeHead(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	}
 
 	builder := newTableBuilder(self.NumCols(), 0)
-	for rows := newRowIter(self); !rows.Done() && numRows > 0; rows.Next() {
-		r := rows.GetRow()
+	for rowIter := newRowIter(self); !rowIter.Done() && numRows > 0; rowIter.Next() {
+		r := rowIter.GetRow()
 		builder.pushRow(r.data)
 		numRows--
 	}
@@ -890,13 +890,13 @@ func dataframeHead(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 // groupby method returns a grouped set of rows collected by some given column value
 func dataframeGroupBy(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var by starlark.Value
+	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("groupby", args, kwargs,
 		"by", &by,
 	); err != nil {
 		return nil, err
 	}
-	self := b.Receiver().(*DataFrame)
 
 	byList, ok := by.(*starlark.List)
 	if !ok {
@@ -916,9 +916,9 @@ func dataframeGroupBy(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 		return starlark.None, nil
 	}
 
-	for rows := newRowIter(self); !rows.Done(); rows.Next() {
-		r := rows.GetRow()
-		groupValue := rows.GetStr(keyPos)
+	for rowIter := newRowIter(self); !rowIter.Done(); rowIter.Next() {
+		r := rowIter.GetRow()
+		groupValue := rowIter.GetStr(keyPos)
 		result[groupValue] = append(result[groupValue], r)
 	}
 
@@ -932,8 +932,8 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		axisVal    starlark.Value
 		indexVal   starlark.Value
 		columnsVal starlark.Value
+		self       = b.Receiver().(*DataFrame)
 	)
-	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("drop", args, kwargs,
 		"labels?", &labelsVal,
@@ -979,8 +979,8 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		newColumns := removeElemFromStringList(self.columns.texts, colIndex)
 
 		builder := newTableBuilder(self.NumCols()-1, self.NumRows())
-		for rows := newRowIter(self); !rows.Done(); rows.Next() {
-			newRow := removeElemFromInterfaceList(rows.GetRow().data, colIndex)
+		for rowIter := newRowIter(self); !rowIter.Done(); rowIter.Next() {
+			newRow := removeElemFromInterfaceList(rowIter.GetRow().data, colIndex)
 			builder.pushRow(newRow)
 		}
 		// Finish building the body, return any errors
@@ -998,12 +998,12 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	// Drop rows using index
 	builder := newTableBuilder(self.NumCols(), self.NumRows()-1)
 	line := 0
-	for rows := newRowIter(self); !rows.Done(); rows.Next() {
+	for rowIter := newRowIter(self); !rowIter.Done(); rowIter.Next() {
 		if line == index[0] {
 			line++
 			continue
 		}
-		builder.pushRow(rows.GetRow().data)
+		builder.pushRow(rowIter.GetRow().data)
 		line++
 	}
 	// Finish building the body, return any errors
@@ -1023,8 +1023,8 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
 		subset starlark.Value
+		self   = b.Receiver().(*DataFrame)
 	)
-	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("drop_duplicates", args, kwargs,
 		"subset?", &subset,
@@ -1044,13 +1044,13 @@ func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starl
 
 	seen := map[string]bool{}
 	builder := newTableBuilder(self.NumCols(), 0)
-	for rows := newRowIter(self); !rows.Done(); rows.Next() {
-		matchOn := rows.Marshal(subsetPos)
+	for rowIter := newRowIter(self); !rowIter.Done(); rowIter.Next() {
+		matchOn := rowIter.Marshal(subsetPos)
 		if seen[matchOn] {
 			continue
 		}
 		seen[matchOn] = true
-		builder.pushRow(rows.GetRow().data)
+		builder.pushRow(rowIter.GetRow().data)
 	}
 
 	// Finish building the body, return any errors
@@ -1069,8 +1069,8 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	var (
 		right, leftOn, rightOn, how starlark.Value
 		suffixesVal                 starlark.Value
+		self                        = b.Receiver().(*DataFrame)
 	)
-	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("merge", args, kwargs,
 		"right", &right,
@@ -1114,14 +1114,14 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 		// call to `df1.merge`, the `idxs` array will be [[0, 3], [1], [2]], caused by
 		// the key "foo" appearing at positions 0 and 3: its rows end up together.
 		idxs := make([][]int, 0)
-		for rows := newRowIter(self); !rows.Done(); rows.Next() {
-			key := rows.GetStr(leftKey)
+		for rowIter := newRowIter(self); !rowIter.Done(); rowIter.Next() {
+			key := rowIter.GetStr(leftKey)
 			n, has := seen[key]
 			if has {
-				idxs[n] = append(idxs[n], rows.Index())
+				idxs[n] = append(idxs[n], rowIter.Index())
 			} else {
 				n = len(idxs)
-				idxs = append(idxs, []int{rows.Index()})
+				idxs = append(idxs, []int{rowIter.Index()})
 				seen[key] = n
 			}
 		}
@@ -1178,12 +1178,80 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	}, nil
 }
 
+func dataframeSortValues(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		byList, ascendingVal starlark.Value
+		self                 = b.Receiver().(*DataFrame)
+	)
+
+	if err := starlark.UnpackArgs("sort_values", args, kwargs,
+		"by", &byList,
+		"ascending?", &ascendingVal,
+	); err != nil {
+		return nil, err
+	}
+
+	// Get values of the column to sort by
+	byStrs := toStrSliceOrNil(byList)
+	if byStrs == nil {
+		return nil, fmt.Errorf("invalid `by` value")
+	}
+	sortPos := findKeyPos(byStrs[0], self.columns.texts)
+	values := self.body[sortPos].stringValues()
+
+	// Make an order list, indexes that refer to the sorted order
+	order := make([]int, self.NumRows())
+	for i := 0; i < self.NumRows(); i++ {
+		order[i] = i
+	}
+	// `ascending` parameter defaults to true if not explicitly set
+	if ascending, ok := ascendingVal.(starlark.Bool); ok && !bool(ascending) {
+		// descending order
+		sort.Slice(order, func(i, j int) bool {
+			return values[order[i]] > values[order[j]]
+		})
+	} else {
+		// ascending order
+		sort.Slice(order, func(i, j int) bool {
+			return values[order[i]] < values[order[j]]
+		})
+	}
+
+	// Create the index from the sorted values
+	orderStr := make([]string, self.NumRows())
+	for i := 0; i < self.NumRows(); i++ {
+		if self.index == nil {
+			orderStr[i] = strconv.Itoa(order[i])
+		} else {
+			orderStr[i] = self.index.texts[order[i]]
+		}
+	}
+
+	// Build the new body using this new order
+	builder := newTableBuilder(self.NumCols(), self.NumRows())
+	for rowIter := newRowIterWithOrder(self, order); !rowIter.Done(); rowIter.Next() {
+		builder.pushRow(rowIter.GetRow().data)
+	}
+	// Finish building the body, return any errors
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
+
+	return &DataFrame{
+		columns: self.columns,
+		index:   NewIndex(orderStr, ""),
+		body:    body,
+	}, nil
+}
+
 // reset_index method turns the DataFrame index into a new column
 func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	self := b.Receiver().(*DataFrame)
+
 	if err := starlark.UnpackArgs("reset_index", args, kwargs); err != nil {
 		return nil, err
 	}
-	self := b.Receiver().(*DataFrame)
 
 	if self.index == nil {
 		return self, nil
@@ -1204,14 +1272,18 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 
 // append adds a new row to the body
 func dataframeAppend(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var otherVal starlark.Value
-	self := b.Receiver().(*DataFrame)
+	var (
+		otherVal starlark.Value
+		self     = b.Receiver().(*DataFrame)
+	)
 
 	if err := starlark.UnpackArgs("append", args, kwargs,
 		"other", &otherVal,
 	); err != nil {
 		return nil, err
 	}
+
+	// TODO(dustmop): append another DataFrame should work
 
 	dataCols := -1
 	var data [][]interface{}

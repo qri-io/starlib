@@ -96,6 +96,10 @@ func TestDataframeMerge(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_merge.star", "testdata/dataframe_merge.expect.txt")
 }
 
+func TestDataframeSort(t *testing.T) {
+	expectScriptOutput(t, "testdata/dataframe_sort.star", "testdata/dataframe_sort.expect.txt")
+}
+
 func TestDataframeParseCSV(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_parse_csv.star",
 		"testdata/dataframe_parse_csv.expect.txt")
