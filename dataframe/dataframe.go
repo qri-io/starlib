@@ -809,8 +809,8 @@ func dataframeAttrShape(self *DataFrame) (starlark.Value, error) {
 func dataframeApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
 		funcVal, axisVal starlark.Value
+		self             = b.Receiver().(*DataFrame)
 	)
-	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("apply", args, kwargs,
 		"function", &funcVal,
@@ -855,13 +855,13 @@ func dataframeApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.
 // head method returns a copy of the DataFrame but only with the first n rows
 func dataframeHead(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var nVal starlark.Value
+	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("head", args, kwargs,
 		"n?", &nVal,
 	); err != nil {
 		return nil, err
 	}
-	self := b.Receiver().(*DataFrame)
 
 	numRows, ok := toIntMaybe(nVal)
 	if !ok {
@@ -890,13 +890,13 @@ func dataframeHead(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 // groupby method returns a grouped set of rows collected by some given column value
 func dataframeGroupBy(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var by starlark.Value
+	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("groupby", args, kwargs,
 		"by", &by,
 	); err != nil {
 		return nil, err
 	}
-	self := b.Receiver().(*DataFrame)
 
 	byList, ok := by.(*starlark.List)
 	if !ok {
@@ -932,8 +932,8 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		axisVal    starlark.Value
 		indexVal   starlark.Value
 		columnsVal starlark.Value
+		self       = b.Receiver().(*DataFrame)
 	)
-	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("drop", args, kwargs,
 		"labels?", &labelsVal,
@@ -1023,8 +1023,8 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
 		subset starlark.Value
+		self   = b.Receiver().(*DataFrame)
 	)
-	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("drop_duplicates", args, kwargs,
 		"subset?", &subset,
@@ -1069,8 +1069,8 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	var (
 		right, leftOn, rightOn, how starlark.Value
 		suffixesVal                 starlark.Value
+		self                        = b.Receiver().(*DataFrame)
 	)
-	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("merge", args, kwargs,
 		"right", &right,
@@ -1181,8 +1181,8 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 func dataframeSortValues(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
 		byList, ascendingVal starlark.Value
+		self                 = b.Receiver().(*DataFrame)
 	)
-	self := b.Receiver().(*DataFrame)
 
 	if err := starlark.UnpackArgs("sort_values", args, kwargs,
 		"by", &byList,
@@ -1240,17 +1240,18 @@ func dataframeSortValues(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 
 	return &DataFrame{
 		columns: self.columns,
-		index: NewIndex(orderStr, ""),
-		body: body,
+		index:   NewIndex(orderStr, ""),
+		body:    body,
 	}, nil
 }
 
 // reset_index method turns the DataFrame index into a new column
 func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	self := b.Receiver().(*DataFrame)
+
 	if err := starlark.UnpackArgs("reset_index", args, kwargs); err != nil {
 		return nil, err
 	}
-	self := b.Receiver().(*DataFrame)
 
 	if self.index == nil {
 		return self, nil
@@ -1271,8 +1272,10 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 
 // append adds a new row to the body
 func dataframeAppend(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var otherVal starlark.Value
-	self := b.Receiver().(*DataFrame)
+	var (
+		otherVal starlark.Value
+		self     = b.Receiver().(*DataFrame)
+	)
 
 	if err := starlark.UnpackArgs("append", args, kwargs,
 		"other", &otherVal,
