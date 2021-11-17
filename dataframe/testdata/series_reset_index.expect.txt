@@ -1,0 +1,17 @@
+     id  animal  sound
+0     1     cat   meow
+1     2     cat   purr
+2     3     dog   bark
+3     4     dog   woof
+4     5     eel    zap
+
+animal
+cat    2
+dog    2
+eel    1
+Name: id, dtype: int64
+
+     animal  id
+0       cat   2
+1       dog   2
+2       eel   1

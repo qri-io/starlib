@@ -40,15 +40,6 @@ var (
 	_ starlark.HasUnary  = (*Series)(nil)
 )
 
-var seriesMethods = map[string]*starlark.Builtin{
-	"astype":    starlark.NewBuiltin("astype", seriesAsType),
-	"equals":    starlark.NewBuiltin("equals", seriesEquals),
-	"get":       starlark.NewBuiltin("get", seriesGet),
-	"notequals": starlark.NewBuiltin("notequals", seriesNotEquals),
-	"notnull":   starlark.NewBuiltin("notnull", seriesNotNull),
-	"unique":    starlark.NewBuiltin("unique", seriesUnique),
-}
-
 // Freeze prevents the series from being mutated
 func (s *Series) Freeze() {
 	s.frozen = true
@@ -81,15 +72,23 @@ func (s *Series) Type() string {
 func (s *Series) Attr(name string) (starlark.Value, error) {
 	if name == "dtype" {
 		return starlark.String(s.dtype), nil
+	} else if name == "index" {
+		return s.index, nil
 	} else if name == "str" {
 		return &stringMethods{subject: s}, nil
+	}
+	// Find non-method attribute
+	attrImpl, found := seriesAttributes[name]
+	if found {
+		return attrImpl(s)
 	}
 	return builtinAttr(s, name, seriesMethods)
 }
 
 // AttrNames lists available attributes
 func (s *Series) AttrNames() []string {
-	attributeNames := []string{"dtype", "str"}
+	// TODO: Use seriesAttributes
+	attributeNames := []string{"dtype", "index", "str"}
 	return append(attributeNames, builtinAttrNames(seriesMethods)...)
 }
 
@@ -545,6 +544,31 @@ func seriesUnique(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 	}
 
 	return starlark.NewList(items), nil
+}
+
+// reset_index turns the index into a column
+func seriesResetIndex(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*Series)
+
+	df, err := NewDataFrame(self, []string{"id"}, self.index)
+	if err != nil {
+		return starlark.None, err
+	}
+
+	method, err := df.Attr("reset_index")
+	if err != nil {
+		return starlark.None, err
+	}
+
+	res, err := starlark.Call(thread, method, args, kwargs)
+	if err != nil {
+		return starlark.None, err
+	}
+
+	return res, nil
 }
 
 func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {

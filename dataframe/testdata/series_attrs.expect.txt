@@ -1,1 +1,0 @@
-["astype", "dtype", "equals", "get", "notequals", "notnull", "str", "unique"]

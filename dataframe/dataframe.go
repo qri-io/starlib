@@ -135,12 +135,18 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index) (*DataFr
 
 	case Series:
 		body = []Series{inData}
+		if index == nil {
+			index = inData.index
+		}
 
 	case *Series:
 		if inData == nil {
 			return nil, fmt.Errorf("cannot convert nil series pointer into a dataframe body")
 		}
 		body = []Series{*inData}
+		if index == nil {
+			index = inData.index
+		}
 
 	case *DataFrame:
 		body = inData.body
@@ -566,6 +572,11 @@ func (df *DataFrame) Get(keyVal starlark.Value) (value starlark.Value, found boo
 			return val, false, err
 		}
 		return val, true, nil
+	}
+
+	if num, ok := toIntMaybe(keyVal); ok {
+		// TODO: Validate size of rows, add a test, compare to python impl
+		return &df.body[num], true, nil
 	}
 
 	if _, ok := keyVal.(starlark.Bool); ok {
@@ -1256,8 +1267,15 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 	if self.index == nil {
 		return self, nil
 	}
+	if self.columns == nil {
+		return self, nil
+	}
 
-	newColumns := append([]string{"index"}, self.columns.texts...)
+	indexName := self.index.name
+	if indexName == "" {
+		indexName = "index"
+	}
+	newColumns := append([]string{indexName}, self.columns.texts...)
 	newBody := make([]Series, 0, self.NumCols())
 
 	objs := convertStringsToObjects(self.index.texts)

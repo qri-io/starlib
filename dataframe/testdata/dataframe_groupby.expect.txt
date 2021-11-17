@@ -1,9 +1,13 @@
+IDs
 cat     13
 dog      6
 eel     11
 frog     6
 Name: count, dtype: int64
+Index(['cat', 'dog', 'eel', 'frog'], dtype='object', name='IDs')
 
+species
 cat    3
 dog    2
 Name: breed, dtype: int64
+Index(['cat', 'dog'], dtype='object', name='species')

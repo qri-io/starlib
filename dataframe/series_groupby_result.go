@@ -87,8 +87,7 @@ func seriesGroupByResultSum(_ *starlark.Thread, b *starlark.Builtin, args starla
 		vals = append(vals, sum)
 	}
 
-	// TODO(dustmop): sgbr.lhsLabel as the index.name, add a test
-	index := NewIndex(indexTexts, "")
+	index := NewIndex(indexTexts, self.lhsLabel)
 	return newSeriesFromInts(vals, index, self.rhsLabel), nil
 }
 
@@ -110,8 +109,7 @@ func seriesGroupByResultCount(_ *starlark.Thread, b *starlark.Builtin, args star
 		vals = append(vals, count)
 	}
 
-	// TODO(dustmop): sgbr.lhsLabel as the index.name, add a test
-	index := NewIndex(indexTexts, "")
+	index := NewIndex(indexTexts, self.lhsLabel)
 	return newSeriesFromInts(vals, index, self.rhsLabel), nil
 }
 
