@@ -521,12 +521,13 @@ func seriesNotNull(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 }
 
 // to_frame converts a Series to a DataFrame
-func seriesToFrame(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func seriesToFrame(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
 		return nil, err
 	}
 	self := b.Receiver().(*Series)
-	return NewDataFrame(self, nil, self.index)
+	outconf, _ := thread.Local("OutputConfig").(*OutputConfig)
+	return NewDataFrame(self, nil, self.index, outconf)
 }
 
 // unique method returns a list of the unique elements from the series
@@ -561,8 +562,9 @@ func seriesResetIndex(thread *starlark.Thread, b *starlark.Builtin, args starlar
 		return nil, err
 	}
 	self := b.Receiver().(*Series)
+	outconf, _ := thread.Local("OutputConfig").(*OutputConfig)
 
-	df, err := NewDataFrame(self, []string{"id"}, self.index)
+	df, err := NewDataFrame(self, []string{"id"}, self.index, outconf)
 	if err != nil {
 		return starlark.None, err
 	}

@@ -37,11 +37,11 @@ var Module = &starlarkstruct.Module{
 // a column-oriented table of data, and provides spreadsheet and sql like
 // functionality.
 type DataFrame struct {
-	frozen     bool
-	columns    *Index
-	index      *Index
-	body       []Series
-	stringConf stringConfig
+	frozen  bool
+	columns *Index
+	index   *Index
+	body    []Series
+	outconf *OutputConfig
 }
 
 // compile-time interface assertions
@@ -75,9 +75,12 @@ func parseCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple,
 	if err != nil {
 		return nil, err
 	}
+	outconf, _ := thread.Local("OutputConfig").(*OutputConfig)
+
 	return &DataFrame{
 		columns: NewIndex(header, ""),
 		body:    body,
+		outconf: outconf,
 	}, nil
 }
 
@@ -99,14 +102,15 @@ func newDataFrameBuiltin(thread *starlark.Thread, _ *starlark.Builtin, args star
 
 	columns := toStrSliceOrNil(columnsVal)
 	index, _ := toIndexMaybe(indexVal)
+	outconf, _ := thread.Local("OutputConfig").(*OutputConfig)
 
-	return NewDataFrame(dataVal, columns, index)
+	return NewDataFrame(dataVal, columns, index, outconf)
 }
 
 // NewDataFrame constructs a DataFrame from data, and optionally column names and an index
 // data can be any datatype supported by this DataFrame implementation, either
 // go native types or starlark types
-func NewDataFrame(data interface{}, columnNames []string, index *Index) (*DataFrame, error) {
+func NewDataFrame(data interface{}, columnNames []string, index *Index, outconf *OutputConfig) (*DataFrame, error) {
 	var (
 		body    []Series
 		columns *Index
@@ -199,6 +203,20 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index) (*DataFr
 		columns: columns,
 		index:   index,
 		body:    body,
+		outconf: outconf,
+	}, nil
+}
+
+// NewDataFrameFromCSV constructs a new DataFrame from a string of csv data
+func NewDataFrameFromCSV(text string, outconf *OutputConfig) (*DataFrame, error) {
+	body, header, err := constructBodyHeaderFromCSV(text, true)
+	if err != nil {
+		return nil, err
+	}
+	return &DataFrame{
+		columns: NewIndex(header, ""),
+		body:    body,
+		outconf: outconf,
 	}, nil
 }
 
@@ -674,6 +692,7 @@ func (df *DataFrame) accessDataFrameBySeries(series *Series) (starlark.Value, er
 		columns: df.columns,
 		index:   NewIndex(indexVals, ""),
 		body:    body,
+		outconf: df.outconf,
 	}, nil
 }
 
@@ -735,7 +754,7 @@ func (df *DataFrame) Binary(op syntax.Token, y starlark.Value, side starlark.Sid
 	other, ok := y.(*DataFrame)
 	if !ok {
 		var err error
-		other, err = NewDataFrame(y, nil, nil)
+		other, err = NewDataFrame(y, nil, nil, df.outconf)
 		if err != nil {
 			return starlark.None, err
 		}
@@ -770,6 +789,7 @@ func addTwoDataframes(left, right *DataFrame, columns *Index) (starlark.Value, e
 	return &DataFrame{
 		columns: columns,
 		body:    body,
+		outconf: left.outconf,
 	}, nil
 }
 
@@ -895,6 +915,7 @@ func dataframeHead(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	return &DataFrame{
 		columns: self.columns,
 		body:    body,
+		outconf: self.outconf,
 	}, nil
 }
 
@@ -1003,6 +1024,7 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		return &DataFrame{
 			columns: NewIndex(newColumns, ""),
 			body:    body,
+			outconf: self.outconf,
 		}, nil
 	}
 
@@ -1027,6 +1049,7 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	return &DataFrame{
 		columns: self.columns,
 		body:    body,
+		outconf: self.outconf,
 	}, nil
 }
 
@@ -1072,6 +1095,7 @@ func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starl
 	return &DataFrame{
 		columns: self.columns,
 		body:    body,
+		outconf: self.outconf,
 	}, nil
 }
 
@@ -1186,6 +1210,7 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	return &DataFrame{
 		columns: NewIndex(newColumns, ""),
 		body:    body,
+		outconf: self.outconf,
 	}, nil
 }
 
@@ -1253,6 +1278,7 @@ func dataframeSortValues(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 		columns: self.columns,
 		index:   NewIndex(orderStr, ""),
 		body:    body,
+		outconf: self.outconf,
 	}, nil
 }
 
@@ -1285,6 +1311,7 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 	return &DataFrame{
 		columns: NewIndex(newColumns, ""),
 		body:    newBody,
+		outconf: self.outconf,
 	}, nil
 }
 
@@ -1348,6 +1375,7 @@ func dataframeAppend(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 		columns: self.columns,
 		index:   self.index,
 		body:    newBody,
+		outconf: self.outconf,
 	}, nil
 }
 

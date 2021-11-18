@@ -10,25 +10,23 @@
      depth  mag  mag_type  nst  gap  dmin  rms  ...    status  mag_source
 0     10.0  5.5        mw   13  106   0.3  0.3  ...  reviewed         cis
 
-           id  char
- 0     alpha1     A
- 1     alpha2     B
- 2     alpha3     C
- 3     alpha4     D
- 4     alpha5     E
- 5     alpha6     F
- 6     alpha7     G
- 7     alpha8     H
- 8     alpha9     I
- 9    alpha10     J
-10    alpha11     K
-11    alpha12     L
-12    alpha13     M
-13    alpha14     N
-14    alpha15     O
-15    alpha16     P
-16    alpha17     Q
-...       ...   ...
-23    alpha24     X
-24    alpha25     Y
-25    alpha26     Z
+            id  char
+  0     alpha1     A
+  1     alpha2     B
+  2     alpha3     C
+  3     alpha4     D
+  4     alpha5     E
+  5     alpha6     F
+  6     alpha7     G
+  7     alpha8     H
+  8     alpha9     I
+  9    alpha10     J
+ 10    alpha11     K
+ 11    alpha12     L
+ 12    alpha13     M
+ 13    alpha14     N
+ 14    alpha15     O
+...        ...   ...
+ 23    alpha24     X
+ 24    alpha25     Y
+ 25    alpha26     Z

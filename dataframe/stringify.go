@@ -5,36 +5,60 @@ import (
 	"strings"
 )
 
-type stringConfig struct {
-	terminalWidth  int
-	terminalHeight int
+// OutputConfig specifies the size of the output area that a stringified
+// DataFrame will be shown on
+type OutputConfig struct {
+	Width  int
+	Height int
+	// how many rows to show at the bottom when some rows are skipped
+	RowsAtBottom int
+	// how much blank space to provide in the output area, in rows
+	BlankRows int
+	// when skipping horizontally, how much remaining space to require
+	HorizontalAllowance int
+	// when skipping vertically, how much remaining space to require
+	VerticalAllowance int
 }
 
 func (df *DataFrame) stringify() string {
-	// TODO(dustmop): Detect terminal size, instead of using hard-coded values
-	df.stringConf.terminalWidth = 80
-	df.stringConf.terminalHeight = 24
+	outconf := df.outconf
+	// If no OutputConfig is assigned, construct one with default values
+	if outconf == nil {
+		outconf = &OutputConfig{}
+	}
+	if outconf.Width == 0 {
+		outconf.Width = 80
+	}
+	if outconf.Height == 0 {
+		outconf.Height = 24
+	}
 
-	stopRow, renewRow := df.determineRowsToShow(df.stringConf)
+	// Set magic numbers that lead to a nice, default display
+	outconf.RowsAtBottom = 3
+	outconf.BlankRows = 4
+	outconf.HorizontalAllowance = 12
+	// 2 is for the header row plus the skipping row (dots)
+	outconf.VerticalAllowance = outconf.RowsAtBottom + outconf.BlankRows + 2
+
+	stopRow, renewRow := df.determineRowsToShow(outconf)
 	labelWidth, cellWidths := df.determineCellWidths(stopRow, renewRow)
-	stopCol, renewCol := df.determineColsToShow(df.stringConf, cellWidths)
+	stopCol, renewCol := df.determineColsToShow(outconf, cellWidths)
 
 	text0 := df.stringifyColumns(stopCol, renewCol, labelWidth, cellWidths)
 	text1 := df.stringifyRows(stopRow, renewRow, stopCol, renewCol, labelWidth, cellWidths)
 	return text0 + text1
 }
 
-func (df *DataFrame) determineRowsToShow(conf stringConfig) (int, int) {
-	// TODO(dustmop): Move magic constants into config
-	stopLine := conf.terminalHeight - 7
-	renewLine := df.NumRows() - 3
+func (df *DataFrame) determineRowsToShow(outconf *OutputConfig) (int, int) {
+	stopLine := outconf.Height - outconf.VerticalAllowance
+	renewLine := df.NumRows() - outconf.RowsAtBottom
 	if stopLine >= renewLine {
 		return -1, -1
 	}
 	return stopLine, renewLine
 }
 
-func (df *DataFrame) determineColsToShow(conf stringConfig, cellWidths []int) (int, int) {
+func (df *DataFrame) determineColsToShow(outconf *OutputConfig, cellWidths []int) (int, int) {
 	if len(cellWidths) < 2 {
 		return -1, -1
 	}
@@ -43,8 +67,7 @@ func (df *DataFrame) determineColsToShow(conf stringConfig, cellWidths []int) (i
 	endWidths += cellWidths[len(cellWidths)-2]
 	endWidths += cellWidths[len(cellWidths)-1]
 
-	// TODO(dustmop): Move magic constants into config
-	limitWidth := conf.terminalWidth - endWidths - 11
+	limitWidth := outconf.Width - endWidths - outconf.HorizontalAllowance
 
 	runningSum := 4
 	stopIndex := -1
@@ -81,6 +104,9 @@ func (df *DataFrame) determineCellWidths(stopRow, renewRow int) (int, []int) {
 				labelWidth = k
 			}
 		}
+	}
+	if stopRow >= 0 && labelWidth < 3 {
+		labelWidth = 3
 	}
 
 	// Create array of max widths, starting at 0
@@ -145,7 +171,7 @@ func (df *DataFrame) stringifyRows(stopRow, renewRow, stopCol, renewCol, labelWi
 	for i := 0; i < df.NumRows(); i++ {
 		// For the seam, add "..." for each visible column
 		if i == stopRow {
-			render := []string{"... "}
+			render := []string{padString("...", labelWidth) + "  "}
 			for j := range df.body {
 				if j < stopCol || j >= renewCol {
 					render = append(render, padString("...", cellWidths[j]))
@@ -160,7 +186,7 @@ func (df *DataFrame) stringifyRows(stopRow, renewRow, stopCol, renewCol, labelWi
 		}
 
 		// If this is a row being omitted, skip it
-		if i > stopRow && i < renewRow {
+		if stopRow > 0 && i > stopRow && i < renewRow {
 			continue
 		}
 

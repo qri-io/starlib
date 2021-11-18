@@ -1,6 +1,8 @@
 package dataframe
 
 import (
+	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -128,6 +130,54 @@ func TestDataframeStringify(t *testing.T) {
 		"testdata/dataframe_stringify.expect.txt")
 }
 
+func TestDataframeStringifyLarge(t *testing.T) {
+	csvText, err := ioutil.ReadFile("testdata/2021-09_earthquake_data.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	df, err := NewDataFrameFromCSV(string(csvText), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual := strings.TrimSpace(df.String())
+	expectBytes, err := ioutil.ReadFile("testdata/earthquake_data.expect.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expect := strings.TrimSpace(string(expectBytes))
+
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("mismatch (-want +got):%s\n", diff)
+	}
+
+	// smaller output area
+	df.outconf = &OutputConfig{Width: 70, Height: 16}
+	actual = strings.TrimSpace(df.String())
+	expectBytes, err = ioutil.ReadFile("testdata/earthquake_data_smaller.expect.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expect = strings.TrimSpace(string(expectBytes))
+
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("mismatch (-want +got):%s\n", diff)
+	}
+
+	// larger output area
+	df.outconf = &OutputConfig{Width: 90, Height: 30}
+	actual = strings.TrimSpace(df.String())
+	expectBytes, err = ioutil.ReadFile("testdata/earthquake_data_larger.expect.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expect = strings.TrimSpace(string(expectBytes))
+
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("mismatch (-want +got):%s\n", diff)
+	}
+}
+
 func TestDataframeNotImplemented(t *testing.T) {
 	_, err := runScript(t, "testdata/dataframe_not_implemented.star")
 	if err == nil {
@@ -146,7 +196,7 @@ func TestDataframeFromRows(t *testing.T) {
 	rows := [][]interface{}{}
 	record := []interface{}{"test", 31.2, 11.4, "ok", int64(597), "", 107, 6.91}
 	rows = append(rows, record)
-	df, err := NewDataFrame(rows, nil, nil)
+	df, err := NewDataFrame(rows, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +211,7 @@ func TestDataframeFromRows(t *testing.T) {
 	rows = [][]interface{}{}
 	record = []interface{}{"test", 31.2, &invalidData{}}
 	rows = append(rows, record)
-	_, err = NewDataFrame(rows, nil, nil)
+	_, err = NewDataFrame(rows, nil, nil, nil)
 	if err == nil {
 		t.Fatal("expected to get an error, did not get one")
 	}
@@ -176,7 +226,7 @@ func TestDataframeFromRows(t *testing.T) {
 	rows = append(rows, record)
 	record = []interface{}{"more", 9.8, 62, int64(3)}
 	rows = append(rows, record)
-	df, err = NewDataFrame(rows, nil, nil)
+	df, err = NewDataFrame(rows, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +244,7 @@ func TestDataframeFromRows(t *testing.T) {
 	rows = append(rows, record)
 	record = []interface{}{25, "ok", int64(4), "hi"}
 	rows = append(rows, record)
-	df, err = NewDataFrame(rows, nil, nil)
+	df, err = NewDataFrame(rows, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +259,7 @@ func TestDataframeFromRows(t *testing.T) {
 
 func TestDataframeFromList(t *testing.T) {
 	ls := []interface{}{1.2, 3.4, 5.6}
-	df, err := NewDataFrame(ls, nil, nil)
+	df, err := NewDataFrame(ls, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +275,7 @@ func TestDataframeFromList(t *testing.T) {
 
 func TestDataframeFromSeries(t *testing.T) {
 	s := newSeriesFromObjects([]interface{}{"a", "b", "c"}, nil, "")
-	df, err := NewDataFrame(s, nil, nil)
+	df, err := NewDataFrame(s, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +303,7 @@ func TestDataframeAccessor(t *testing.T) {
 		[]interface{}{"more", 7.8, 44.1, "hi", int64(612), "", 94, 3.1},
 		[]interface{}{"last", 90.2, 26.8, "yo", int64(493), "", 272, 4.3},
 	}
-	df, err := NewDataFrame(rows, nil, nil)
+	df, err := NewDataFrame(rows, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,7 +386,7 @@ func TestDataframeColumnNamesTypes(t *testing.T) {
 		[]interface{}{"last", 90.2, 26.8, "yo", int64(493), "", 272, 4.3},
 	}
 	columns := []string{"word", "num0", "num1", "text", "num64", "blank", "id", "amount"}
-	df, err := NewDataFrame(rows, columns, nil)
+	df, err := NewDataFrame(rows, columns, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,7 +421,7 @@ func TestDataframeCopyAssignment(t *testing.T) {
 	columns := []string{"word", "num0", "num64"}
 	index := NewIndex([]string{"first", "second", "third"}, "labels")
 
-	df, err := NewDataFrame(rows, columns, index)
+	df, err := NewDataFrame(rows, columns, index, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -385,7 +435,7 @@ second    more   7.8    612
 		t.Errorf("dataframe stringification mismatch (-want +got):%s\n", diff)
 	}
 
-	clone, err := NewDataFrame(df, nil, nil)
+	clone, err := NewDataFrame(df, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
