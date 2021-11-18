@@ -11,5 +11,12 @@ def f():
   print(df)
   print('')
 
+  other = dataframe.DataFrame([["frog", "ribbit", 321],
+                               ["giraffe", "hum", 654],
+                               ["hippo", "grunt", 987]])
+  df = df.append(other)
+  print(df)
+  print('')
+
 
 f()

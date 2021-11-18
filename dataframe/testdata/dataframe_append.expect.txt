@@ -6,3 +6,11 @@
 0    cat  meow  123
 1    dog  bark  456
 2    eel   zap  789
+
+           0       1    2
+0        cat    meow  123
+1        dog    bark  456
+2        eel     zap  789
+3       frog  ribbit  321
+4    giraffe     hum  654
+5      hippo   grunt  987
