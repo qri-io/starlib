@@ -193,7 +193,7 @@ var seriesMethods = map[string]*starlark.Builtin{
 	"to_csv":            starlark.NewBuiltin("to_csv", methNoImpl("to_csv")),
 	"to_dict":           starlark.NewBuiltin("to_dict", methNoImpl("to_dict")),
 	"to_excel":          starlark.NewBuiltin("to_excel", methNoImpl("to_excel")),
-	"to_frame":          starlark.NewBuiltin("to_frame", methNoImpl("to_frame")),
+	"to_frame":          starlark.NewBuiltin("to_frame", seriesToFrame),
 	"to_hdf":            starlark.NewBuiltin("to_hdf", methNoImpl("to_hdf")),
 	"to_json":           starlark.NewBuiltin("to_json", methNoImpl("to_json")),
 	"to_latex":          starlark.NewBuiltin("to_latex", methNoImpl("to_latex")),

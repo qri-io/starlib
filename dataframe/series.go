@@ -520,6 +520,15 @@ func seriesNotNull(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	return series, nil
 }
 
+// to_frame converts a Series to a DataFrame
+func seriesToFrame(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*Series)
+	return NewDataFrame(self, nil, self.index)
+}
+
 // unique method returns a list of the unique elements from the series
 func seriesUnique(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 0); err != nil {
