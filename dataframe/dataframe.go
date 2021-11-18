@@ -1283,26 +1283,35 @@ func dataframeAppend(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 		return nil, err
 	}
 
-	// TODO(dustmop): append another DataFrame should work
-
 	dataCols := -1
+	dataRows := -1
 	var data [][]interface{}
-	ls, ok := otherVal.(*starlark.List)
-	if !ok {
-		return nil, fmt.Errorf("append requires a list to append")
-	}
-	for i := 0; i < ls.Len(); i++ {
-		elem := ls.Index(i)
-		arr := toInterfaceSliceOrNil(elem)
-		if arr == nil {
-			return nil, fmt.Errorf("append requires a list of lists")
+
+	switch item := otherVal.(type) {
+	case *DataFrame:
+		if self.NumCols() != item.NumCols() {
+			return nil, fmt.Errorf("append requires a DataFrame with the same number of columns")
 		}
-		if dataCols == -1 {
-			dataCols = len(arr)
+		data = item.toSliceBody()
+		dataRows = item.NumRows()
+		dataCols = item.NumCols()
+
+	case *starlark.List:
+		for i := 0; i < item.Len(); i++ {
+			elem := item.Index(i)
+			arr := toInterfaceSliceOrNil(elem)
+			if arr == nil {
+				return nil, fmt.Errorf("append requires a list of lists")
+			}
+			if dataCols == -1 {
+				dataCols = len(arr)
+			} else if dataCols != len(arr) {
+				return nil, fmt.Errorf("append requires list to have the same length of each row")
+			}
+			data = append(data, arr)
 		}
-		data = append(data, arr)
+		dataRows = len(data)
 	}
-	dataRows := len(data)
 
 	newBody := make([]Series, len(self.body))
 	for x := 0; x < dataCols; x++ {
@@ -1322,6 +1331,22 @@ func dataframeAppend(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 		index:   self.index,
 		body:    newBody,
 	}, nil
+}
+
+func (df *DataFrame) toSliceBody() [][]interface{} {
+	numRows := df.NumRows()
+	numCols := df.NumCols()
+	body := make([][]interface{}, numRows)
+	for y := 0; y < numRows; y++ {
+		body[y] = make([]interface{}, numCols)
+	}
+	for x := 0; x < numCols; x++ {
+		values := df.body[x].values()
+		for y := 0; y < numRows; y++ {
+			body[y][x] = values[y]
+		}
+	}
+	return body
 }
 
 func addSuffixToStringList(names []string, suffix string, keyPos int) []string {
