@@ -6,6 +6,7 @@ def f():
                             "count": [1, 2, 3, 4, 5, 6, 7, 8]})
   unit_sums = df.groupby(['IDs'])['count'].sum()
   print(unit_sums)
+  print(unit_sums.index)
   print('')
 
   df = dataframe.DataFrame([["cat", "tabby"],
@@ -17,6 +18,7 @@ def f():
 
   num_breeds = df.groupby(['species'])['breed'].count()
   print(num_breeds)
+  print(num_breeds.index)
 
 
 f()

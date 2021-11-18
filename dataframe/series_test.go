@@ -8,10 +8,6 @@ func TestSeriesBasic(t *testing.T) {
 	expectScriptOutput(t, "testdata/series_basic.star", "testdata/series_basic.expect.txt")
 }
 
-func TestSeriesAttrs(t *testing.T) {
-	expectScriptOutput(t, "testdata/series_attrs.star", "testdata/series_attrs.expect.txt")
-}
-
 func TestSeriesGet(t *testing.T) {
 	expectScriptOutput(t, "testdata/series_get.star", "testdata/series_get.expect.txt")
 }
@@ -35,6 +31,11 @@ func TestSeriesAsType(t *testing.T) {
 
 func TestSeriesNotNull(t *testing.T) {
 	expectScriptOutput(t, "testdata/series_notnull.star", "testdata/series_notnull.expect.txt")
+}
+
+func TestSeriesResetIndex(t *testing.T) {
+	expectScriptOutput(t, "testdata/series_reset_index.star",
+		"testdata/series_reset_index.expect.txt")
 }
 
 func TestSeriesUnique(t *testing.T) {
