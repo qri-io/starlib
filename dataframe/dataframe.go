@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -77,11 +76,7 @@ func parseCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple,
 	}
 	outconf, _ := thread.Local("OutputConfig").(*OutputConfig)
 
-	return &DataFrame{
-		columns: NewIndex(header, ""),
-		body:    body,
-		outconf: outconf,
-	}, nil
+	return newDataFrameConstructor(body, NewIndex(header, ""), nil, outconf)
 }
 
 // newDataFrameBuiltin constructs a dataframe, meant to be called from starlark
@@ -185,24 +180,39 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index, outconf 
 		}
 
 	default:
-		return nil, fmt.Errorf("Not implemented, constructing DataFrame using %s", reflect.TypeOf(data))
+		return nil, fmt.Errorf("not implemented, constructing DataFrame using %T", data)
 	}
 
-	// Check that the index and columns, if present, match the body size
+	return newDataFrameConstructor(body, columns, index, outconf)
+}
+
+func newDataFrameConstructor(body []Series, columns, index *Index, outconf *OutputConfig) (*DataFrame, error) {
+	// Ensure that the body is tabular, that each column has the same height
+	if err := ensureBodyIsTabular(body); err != nil {
+		return nil, fmt.Errorf("body of DataFrame is not tabular: %w", err)
+	}
+
+	// Ensure that OutputConfigu is non-nil
+	if outconf != nil {
+		return nil, fmt.Errorf("an OutputConfig is required to construct DataFrame")
+	}
+
+	// Check that the index, if present, matches the body size
 	numCols, numRows := sizeOfBody(body)
-	if index.Len() > 0 && index.Len() != numRows {
+	if index != nil && index.Len() > 0 && index.Len() != numRows {
 		// TODO(dustmop): Add test
 		return nil, fmt.Errorf("size of index does not match body size")
 	}
-	if columns.Len() > 0 && columns.Len() != numCols {
+
+	// Check that the columns, if present, matches the body size
+	if columns != nil && columns.Len() > 0 && columns.Len() != numCols {
 		// TODO(dustmop): Add test
 		return nil, fmt.Errorf("number of columns %d, does not match body size %d", columns.Len(), numCols)
 	}
-
 	return &DataFrame{
+		body:    body,
 		columns: columns,
 		index:   index,
-		body:    body,
 		outconf: outconf,
 	}, nil
 }
@@ -213,11 +223,7 @@ func NewDataFrameFromCSV(text string, outconf *OutputConfig) (*DataFrame, error)
 	if err != nil {
 		return nil, err
 	}
-	return &DataFrame{
-		columns: NewIndex(header, ""),
-		body:    body,
-		outconf: outconf,
-	}, nil
+	return newDataFrameConstructor(body, NewIndex(header, ""), nil, outconf)
 }
 
 // construct a body from a slice, either cooercing it into rows, or treating it as a column
@@ -409,6 +415,19 @@ func sizeOfBody(body []Series) (int, int) {
 		return 0, 0
 	}
 	return len(body), body[0].Len()
+}
+
+func ensureBodyIsTabular(body []Series) error {
+	expectRows := -1
+	for x := 0; x < len(body); x++ {
+		col := body[x]
+		if expectRows == -1 {
+			expectRows = col.Len()
+		} else if expectRows != col.Len() {
+			return fmt.Errorf("column %d has length %d, expected %d", x, col.Len(), expectRows)
+		}
+	}
+	return nil
 }
 
 // NumCols returns the number of columns
@@ -688,12 +707,7 @@ func (df *DataFrame) accessDataFrameBySeries(series *Series) (starlark.Value, er
 	if err != nil {
 		return nil, err
 	}
-	return &DataFrame{
-		columns: df.columns,
-		index:   NewIndex(indexVals, ""),
-		body:    body,
-		outconf: df.outconf,
-	}, nil
+	return newDataFrameConstructor(body, df.columns, NewIndex(indexVals, ""), df.outconf)
 }
 
 // accessing a dataframe using a list of bools (example: df[[True, False, True]])
@@ -786,11 +800,7 @@ func addTwoDataframes(left, right *DataFrame, columns *Index) (starlark.Value, e
 	if err != nil {
 		return nil, err
 	}
-	return &DataFrame{
-		columns: columns,
-		body:    body,
-		outconf: left.outconf,
-	}, nil
+	return newDataFrameConstructor(body, columns, nil, left.outconf)
 }
 
 // ColumnNamesTypes returns the column names and types if they exist
@@ -912,11 +922,7 @@ func dataframeHead(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	if err != nil {
 		return nil, err
 	}
-	return &DataFrame{
-		columns: self.columns,
-		body:    body,
-		outconf: self.outconf,
-	}, nil
+	return newDataFrameConstructor(body, self.columns, nil, self.outconf)
 }
 
 // groupby method returns a grouped set of rows collected by some given column value
@@ -1021,11 +1027,7 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 			return nil, err
 		}
 		// Return copy of the dataframe
-		return &DataFrame{
-			columns: NewIndex(newColumns, ""),
-			body:    body,
-			outconf: self.outconf,
-		}, nil
+		return newDataFrameConstructor(body, NewIndex(newColumns, ""), nil, self.outconf)
 	}
 
 	// Drop rows using index
@@ -1046,11 +1048,7 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	}
 	// TODO(dustomp): Support indexes with names, remove from them
 	// Return copy of the dataframe
-	return &DataFrame{
-		columns: self.columns,
-		body:    body,
-		outconf: self.outconf,
-	}, nil
+	return newDataFrameConstructor(body, self.columns, nil, self.outconf)
 }
 
 // drop_duplicates method returns a copy of a DataFrame without duplicates
@@ -1092,11 +1090,7 @@ func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starl
 	if err != nil {
 		return nil, err
 	}
-	return &DataFrame{
-		columns: self.columns,
-		body:    body,
-		outconf: self.outconf,
-	}, nil
+	return newDataFrameConstructor(body, self.columns, nil, self.outconf)
 }
 
 // merge method merges the rows of two DataFrames
@@ -1207,11 +1201,7 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	if err != nil {
 		return nil, err
 	}
-	return &DataFrame{
-		columns: NewIndex(newColumns, ""),
-		body:    body,
-		outconf: self.outconf,
-	}, nil
+	return newDataFrameConstructor(body, NewIndex(newColumns, ""), nil, self.outconf)
 }
 
 func dataframeSortValues(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -1273,13 +1263,7 @@ func dataframeSortValues(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 	if err != nil {
 		return nil, err
 	}
-
-	return &DataFrame{
-		columns: self.columns,
-		index:   NewIndex(orderStr, ""),
-		body:    body,
-		outconf: self.outconf,
-	}, nil
+	return newDataFrameConstructor(body, self.columns, NewIndex(orderStr, ""), self.outconf)
 }
 
 // reset_index method turns the DataFrame index into a new column
@@ -1308,11 +1292,7 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 	newBody = append(newBody, Series{which: typeObj, valObjs: objs})
 	newBody = append(newBody, self.body...)
 
-	return &DataFrame{
-		columns: NewIndex(newColumns, ""),
-		body:    newBody,
-		outconf: self.outconf,
-	}, nil
+	return newDataFrameConstructor(newBody, NewIndex(newColumns, ""), nil, self.outconf)
 }
 
 // append adds a new row to the body
@@ -1334,9 +1314,6 @@ func dataframeAppend(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 
 	switch item := otherVal.(type) {
 	case *DataFrame:
-		if self.NumCols() != item.NumCols() {
-			return nil, fmt.Errorf("append requires a DataFrame with the same number of columns")
-		}
 		data = item.toSliceBody()
 		dataRows = item.NumRows()
 		dataCols = item.NumCols()
@@ -1358,6 +1335,18 @@ func dataframeAppend(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 		dataRows = len(data)
 	}
 
+	if self.NumCols() == 0 {
+		self.body = make([]Series, dataCols)
+	} else if dataCols > self.NumCols() {
+		numMore := dataCols - self.NumCols()
+		addition := make([]Series, numMore)
+		for x := 0; x < numMore; x++ {
+			series := newSeriesFromRepeatScalar(nil, self.NumRows())
+			addition[x] = *series
+		}
+		self.body = append(self.body, addition...)
+	}
+
 	newBody := make([]Series, len(self.body))
 	for x := 0; x < dataCols; x++ {
 		col := self.body[x]
@@ -1370,13 +1359,19 @@ func dataframeAppend(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 		}
 		newBody[x] = builder.toSeries(nil, "")
 	}
+	for x := dataCols; x < self.NumCols(); x++ {
+		col := self.body[x]
+		builder := newTypedSliceBuilderFromSeries(&col)
+		for y := 0; y < dataRows; y++ {
+			builder.pushNil()
+		}
+		if err := builder.error(); err != nil {
+			return nil, err
+		}
+		newBody[x] = builder.toSeries(nil, "")
+	}
 
-	return &DataFrame{
-		columns: self.columns,
-		index:   self.index,
-		body:    newBody,
-		outconf: self.outconf,
-	}, nil
+	return newDataFrameConstructor(newBody, self.columns, self.index, self.outconf)
 }
 
 func (df *DataFrame) toSliceBody() [][]interface{} {

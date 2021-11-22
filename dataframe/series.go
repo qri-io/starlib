@@ -685,6 +685,9 @@ func newSeriesFromList(list starlark.List) (*Series, error) {
 }
 
 func newSeriesFromRepeatScalar(val interface{}, size int) *Series {
+	if val == nil {
+		return newSeriesFromObjects(make([]interface{}, size), nil, "")
+	}
 	switch x := val.(type) {
 	case int:
 		vals := make([]int, size)
