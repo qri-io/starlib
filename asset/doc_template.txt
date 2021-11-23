@@ -83,7 +83,7 @@ weight: 2
 **Methods**
 
 {{- range .Methods -}}
-{{ template "mdFn" . }}
+{{ template "mdFnChild" . }}
 {{ end -}}
 {{- if gt (len .Operators) 0 }}
 
@@ -98,4 +98,52 @@ weight: 2
 {{ end }}
 {{- end -}}
 {{- end -}}
+{{ end }}
+
+{{- define "mdFnChild" }}
+
+#### {{ .FuncName }}
+
+```
+{{ .Signature }}
+```
+
+{{- if ne .Description "" }}
+
+{{ .Description }}
+
+{{- end -}}
+
+{{- if gt (len .Params) 0 }}
+
+##### parameters:
+
+| name | type | description |
+|------|------|-------------|
+{{ range .Params -}}
+| `{{ .Name }}` | `{{ .Type }}` | {{ .Description }} |
+{{ end -}}
+{{- end -}}
+
+{{- if gt (len .Examples) 0}}
+##### examples:
+{{ range .Examples -}}
+**{{ .Name }}**
+{{- if ne .Description "" }}
+
+{{ .Description }}
+
+{{- end }}
+
+```
+{{ .Code }}
+```
+
+{{ end -}}
+{{- end -}}
+
+{{- end -}}
+{{- range . -}}
+
+
 {{ end }}
