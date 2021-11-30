@@ -1,0 +1,37 @@
+ 0: DIFFERENT ../testdata/dataframe_append.star
+ 1: ok ../testdata/dataframe_apply.star
+ 2: DIFFERENT ../testdata/dataframe_at.star
+ 3: ok ../testdata/dataframe_basic.star
+ 4: ERROR ../testdata/dataframe_bool_select.star
+ 5: no expect file ../testdata/dataframe_bool_select_failure.star
+ 6: ok ../testdata/dataframe_columns.star
+ 7: ok ../testdata/dataframe_columns_none.star
+ 8: DIFFERENT ../testdata/dataframe_concat.star
+ 9: ok ../testdata/dataframe_dicts.star
+10: DIFFERENT ../testdata/dataframe_drop.star
+11: DIFFERENT ../testdata/dataframe_drop_duplicates.star
+12: ok ../testdata/dataframe_getkey.star
+13: ok ../testdata/dataframe_groupby.star
+14: ERROR ../testdata/dataframe_head.star
+15: ok ../testdata/dataframe_merge.star
+16: no expect file ../testdata/dataframe_not_implemented.star
+17: ERROR ../testdata/dataframe_parse_csv.star
+18: ok ../testdata/dataframe_reset_index.star
+19: ERROR ../testdata/dataframe_select_bad_length.star
+20: ERROR ../testdata/dataframe_series_str_select.star
+21: ok ../testdata/dataframe_setkey.star
+22: ok ../testdata/dataframe_size.star
+23: ok ../testdata/dataframe_sort.star
+24: ERROR ../testdata/dataframe_stringify.star
+25: DIFFERENT ../testdata/dataframe_type_keep.star
+26: ERROR ../testdata/index.star
+27: ok ../testdata/series_astype.star
+28: ok ../testdata/series_basic.star
+29: ERROR ../testdata/series_bool_select.star
+30: ok ../testdata/series_get.star
+31: ok ../testdata/series_index_name.star
+32: ok ../testdata/series_notnull.star
+33: ok ../testdata/series_print.star
+34: ok ../testdata/series_reset_index.star
+35: ok ../testdata/series_to_frame.star
+36: DIFFERENT ../testdata/series_unique.star
