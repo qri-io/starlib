@@ -450,6 +450,16 @@ func builtinAttrNames(methods map[string]*starlark.Builtin) []string {
 	return names
 }
 
+// name returns of the name of the series
+func seriesAttrName(self *Series) (starlark.Value, error) {
+	return starlark.String(self.name), nil
+}
+
+// size returns the number of elements in the series
+func seriesAttrSize(self *Series) (starlark.Value, error) {
+	return starlark.MakeInt(self.Len()), nil
+}
+
 func seriesGet(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var key starlark.Value
 	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 1, &key); err != nil {
@@ -744,6 +754,14 @@ func newSeriesFromFloats(vals []float64, index *Index, name string) *Series {
 		index:     index,
 		name:      name,
 	}
+}
+
+func newSeriesFromStrings(texts []string, index *Index, name string) *Series {
+	results := make([]interface{}, len(texts))
+	for i, txt := range texts {
+		results[i] = txt
+	}
+	return newSeriesFromObjects(results, index, name)
 }
 
 func newSeriesFromObjects(vals []interface{}, index *Index, name string) *Series {

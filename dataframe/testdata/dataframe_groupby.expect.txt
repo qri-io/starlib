@@ -11,3 +11,12 @@ cat    3
 dog    2
 Name: breed, dtype: int64
 Index(['cat', 'dog'], dtype='object', name='species')
+
+species
+cat    tabby cat, black cat, calico cat
+dog               doberman dog, pug dog
+Name: breed, dtype: object
+
+dataframe.Series
+breed
+species

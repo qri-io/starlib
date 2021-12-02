@@ -78,6 +78,10 @@ func (i *Index) Type() string {
 func (i *Index) Attr(name string) (starlark.Value, error) {
 	switch name {
 	case "name":
+		if i == nil {
+			// TODO(dustmop): Add a test that covers this
+			return starlark.None, nil
+		}
 		return starlark.String(i.name), nil
 	case "str":
 		return &stringMethods{subject: i}, nil
