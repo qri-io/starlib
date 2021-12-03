@@ -774,6 +774,15 @@ func newSeriesFromObjects(vals []interface{}, index *Index, name string) *Series
 	}
 }
 
+func newSeriesConstructor(vals []interface{}, index *Index, name string) *Series {
+	builder := newTypedSliceBuilder(len(vals))
+	for _, v := range vals {
+		builder.push(v)
+	}
+	ans := builder.toSeries(index, name)
+	return &ans
+}
+
 func findKeyPos(needle string, subject []string) int {
 	for i, elem := range subject {
 		if elem == needle {

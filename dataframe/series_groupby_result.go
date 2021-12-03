@@ -3,7 +3,6 @@ package dataframe
 import (
 	"fmt"
 	"sort"
-	"strconv"
 
 	"go.starlark.net/starlark"
 )
@@ -12,8 +11,7 @@ import (
 type SeriesGroupByResult struct {
 	lhsLabel string
 	rhsLabel string
-	// TODO(dustmop): convert to map[string]Series
-	grouping map[string][]string
+	grouping map[string]*Series
 }
 
 // compile-time interface assertions
@@ -78,9 +76,9 @@ func seriesGroupByResultSum(_ *starlark.Thread, b *starlark.Builtin, args starla
 		series := self.grouping[groupName]
 
 		sum := 0
-		for _, elem := range series {
-			num, err := strconv.Atoi(elem)
-			if err == nil {
+		for i := 0; i < series.Len(); i++ {
+			elem := series.Index(i)
+			if num, err := starlark.AsInt32(elem); err == nil {
 				sum += num
 			}
 		}
@@ -106,7 +104,7 @@ func seriesGroupByResultCount(_ *starlark.Thread, b *starlark.Builtin, args star
 	sortedKeys := getSortedKeys(self.grouping)
 	for _, groupName := range sortedKeys {
 		series := self.grouping[groupName]
-		count := len(series)
+		count := series.Len()
 		indexTexts = append(indexTexts, groupName)
 		vals = append(vals, count)
 	}
@@ -139,10 +137,7 @@ func seriesGroupByResultApply(thread *starlark.Thread, b *starlark.Builtin, args
 	indexNames := make([]string, len(sortedKeys))
 
 	for i, groupName := range sortedKeys {
-		values := self.grouping[groupName]
-		// TODO(dustmop): Pass actual index here
-		index := NewIndex(nil, groupName)
-		series := newSeriesFromStrings(values, index, groupName)
+		series := self.grouping[groupName]
 		arguments := starlark.Tuple{series}
 		// Call function, passing the series to it
 		res, err := starlark.Call(thread, funcObj, arguments, nil)
@@ -164,7 +159,7 @@ func seriesGroupByResultApply(thread *starlark.Thread, b *starlark.Builtin, args
 	return &s, nil
 }
 
-func getSortedKeys(m map[string][]string) []string {
+func getSortedKeys(m map[string]*Series) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
