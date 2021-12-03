@@ -1374,6 +1374,63 @@ func dataframeAppend(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 	return newDataFrameConstructor(newBody, self.columns, self.index, self.outconf)
 }
 
+func dataframeShift(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		periodVal, axisVal starlark.Value
+		self               = b.Receiver().(*DataFrame)
+	)
+
+	if err := starlark.UnpackArgs("shift", args, kwargs,
+		"period", &periodVal,
+		"axis?", &axisVal,
+	); err != nil {
+		return nil, err
+	}
+
+	period, ok := toIntMaybe(periodVal)
+	if !ok {
+		return starlark.None, fmt.Errorf("period argument must be number")
+	}
+
+	axis := toStrOrEmpty(axisVal)
+	builder := newTableBuilder(self.NumCols(), self.NumRows())
+
+	if axis == "" || axis == "rows" {
+		blankRow := make([]interface{}, self.NumCols())
+		for i := 0; i < period; i++ {
+			builder.pushRow(blankRow)
+		}
+		numRemain := self.NumRows() - period
+		for rowIter := newRowIter(self); !rowIter.Done(); rowIter.Next() {
+			builder.pushRow(rowIter.GetRow().data)
+			numRemain--
+			if numRemain <= 0 {
+				break
+			}
+		}
+	} else if axis == "columns" {
+		for rowIter := newRowIter(self); !rowIter.Done(); rowIter.Next() {
+			data := rowIter.GetRow().data
+			row := make([]interface{}, self.NumCols())
+			for i := 0; i < self.NumCols(); i++ {
+				if i >= period {
+					row[i] = data[i-period]
+				}
+			}
+			builder.pushRow(row)
+		}
+	} else {
+		return starlark.None, fmt.Errorf("invalid axis value: %q", axis)
+	}
+
+	// Finish building the body, return any errors
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
+	return newDataFrameConstructor(body, self.columns, self.index, self.outconf)
+}
+
 func (df *DataFrame) toSliceBody() [][]interface{} {
 	numRows := df.NumRows()
 	numCols := df.NumCols()

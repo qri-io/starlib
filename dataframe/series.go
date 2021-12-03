@@ -460,6 +460,42 @@ func seriesAttrSize(self *Series) (starlark.Value, error) {
 	return starlark.MakeInt(self.Len()), nil
 }
 
+func adaptToSeriesFromDataframe(methodName string) starlarkMethod {
+	return func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		self := b.Receiver().(*Series)
+		outconf, _ := thread.Local("OutputConfig").(*OutputConfig)
+
+		// Convert the series to a DataFrame
+		df, err := NewDataFrame(self, nil, self.index, outconf)
+		if err != nil {
+			return starlark.None, err
+		}
+
+		// Lookup the adapted method
+		method, err := df.Attr(methodName)
+		if err != nil {
+			return starlark.None, err
+		}
+
+		// Call it, and ensure the result is a DataFrame
+		res, err := starlark.Call(thread, method, args, kwargs)
+		if err != nil {
+			return starlark.None, err
+		}
+		df, ok := res.(*DataFrame)
+		if !ok {
+			return starlark.None, fmt.Errorf("expected DataFrame result, got %T", res)
+		}
+
+		// Retrieve the first column as a series, and return it
+		series, _, err := df.Get(starlark.MakeInt(0))
+		if err != nil {
+			return starlark.None, err
+		}
+		return series, nil
+	}
+}
+
 func seriesGet(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var key starlark.Value
 	if err := starlark.UnpackPositionalArgs(b.Name(), args, kwargs, 1, &key); err != nil {

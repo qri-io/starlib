@@ -172,7 +172,7 @@ var dataframeMethods = map[string]*starlark.Builtin{
 	"set_axis":          starlark.NewBuiltin("set_axis", methNoImpl("set_axis")),
 	"set_flags":         starlark.NewBuiltin("set_flags", methNoImpl("set_flags")),
 	"set_index":         starlark.NewBuiltin("set_index", methNoImpl("set_index")),
-	"shift":             starlark.NewBuiltin("shift", methNoImpl("shift")),
+	"shift":             starlark.NewBuiltin("shift", dataframeShift),
 	"skew":              starlark.NewBuiltin("skew", methNoImpl("skew")),
 	"slice_shift":       starlark.NewBuiltin("slice_shift", methNoImpl("slice_shift")),
 	"sort_index":        starlark.NewBuiltin("sort_index", methNoImpl("sort_index")),

@@ -175,7 +175,7 @@ var seriesMethods = map[string]*starlark.Builtin{
 	"sem":               starlark.NewBuiltin("sem", methNoImplSeries("sem")),
 	"set_axis":          starlark.NewBuiltin("set_axis", methNoImplSeries("set_axis")),
 	"set_flags":         starlark.NewBuiltin("set_flags", methNoImplSeries("set_flags")),
-	"shift":             starlark.NewBuiltin("shift", methNoImplSeries("shift")),
+	"shift":             starlark.NewBuiltin("shift", adaptToSeriesFromDataframe("shift")),
 	"skew":              starlark.NewBuiltin("skew", methNoImplSeries("skew")),
 	"slice_shift":       starlark.NewBuiltin("slice_shift", methNoImplSeries("slice_shift")),
 	"sort_index":        starlark.NewBuiltin("sort_index", methNoImplSeries("sort_index")),

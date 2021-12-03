@@ -1,0 +1,54 @@
+     species     breed   id
+0        cat     tabby  123
+1        cat     black  456
+2        cat    calico  789
+3        dog  doberman  321
+4        dog       pug  654
+
+case 0: shift 1
+     species     breed     id
+0        NaN       NaN    NaN
+1        cat     tabby  123.0
+2        cat     black  456.0
+3        cat    calico  789.0
+4        dog  doberman  321.0
+
+case 1: shift 4
+     species  breed     id
+0        NaN    NaN    NaN
+1        NaN    NaN    NaN
+2        NaN    NaN    NaN
+3        NaN    NaN    NaN
+4        cat  tabby  123.0
+
+case 2: shift 1 by columns
+     species  breed        id
+0        NaN    cat     tabby
+1        NaN    cat     black
+2        NaN    cat    calico
+3        NaN    dog  doberman
+4        NaN    dog       pug
+
+case 3: series
+0    cat
+1    cat
+2    cat
+3    dog
+4    dog
+Name: species, dtype: object
+
+case 4: series shift 1
+0    NaN
+1    cat
+2    cat
+3    cat
+4    dog
+dtype: object
+
+case 5: series shift 3
+0    NaN
+1    NaN
+2    NaN
+3    cat
+4    cat
+dtype: object
