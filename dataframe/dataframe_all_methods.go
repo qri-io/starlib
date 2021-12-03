@@ -233,12 +233,6 @@ func attrNoImplDataframe(attrName string) dataframeAttrImpl {
 	}
 }
 
-func attrNoImplSeries(attrName string) seriesAttrImpl {
-	return func(*Series) (starlark.Value, error) {
-		return nil, fmt.Errorf("series.%s is not implemented. If you need this functionality to exist, file an issue at 'https://github.com/qri-io/starlib/issues' with the title 'series.%s needs implementation'. Please first search if an issue exists already", attrName, attrName)
-	}
-}
-
 func methNoImpl(methodName string) starlarkMethod {
 	return func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		return nil, fmt.Errorf("dataframe.%s is not implemented. If you need this functionality to exist, file an issue at 'https://github.com/qri-io/starlib/issues' with the title 'dataframe.%s needs implementation'. Please first search if an issue exists already", methodName, methodName)
