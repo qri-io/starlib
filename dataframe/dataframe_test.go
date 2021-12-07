@@ -125,6 +125,10 @@ func TestDataframeGroupBy(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_groupby.star", "testdata/dataframe_groupby.expect.txt")
 }
 
+func TestDataframeShift(t *testing.T) {
+	expectScriptOutput(t, "testdata/dataframe_shift.star", "testdata/dataframe_shift.expect.txt")
+}
+
 func TestDataframeStringify(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_stringify.star",
 		"testdata/dataframe_stringify.expect.txt")

@@ -172,7 +172,7 @@ var dataframeMethods = map[string]*starlark.Builtin{
 	"set_axis":          starlark.NewBuiltin("set_axis", methNoImpl("set_axis")),
 	"set_flags":         starlark.NewBuiltin("set_flags", methNoImpl("set_flags")),
 	"set_index":         starlark.NewBuiltin("set_index", methNoImpl("set_index")),
-	"shift":             starlark.NewBuiltin("shift", methNoImpl("shift")),
+	"shift":             starlark.NewBuiltin("shift", dataframeShift),
 	"skew":              starlark.NewBuiltin("skew", methNoImpl("skew")),
 	"slice_shift":       starlark.NewBuiltin("slice_shift", methNoImpl("slice_shift")),
 	"sort_index":        starlark.NewBuiltin("sort_index", methNoImpl("sort_index")),
@@ -230,12 +230,6 @@ type starlarkMethod func(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 func attrNoImplDataframe(attrName string) dataframeAttrImpl {
 	return func(*DataFrame) (starlark.Value, error) {
 		return nil, fmt.Errorf("dataframe.%s is not implemented. If you need this functionality to exist, file an issue at 'https://github.com/qri-io/starlib/issues' with the title 'dataframe.%s needs implementation'. Please first search if an issue exists already", attrName, attrName)
-	}
-}
-
-func attrNoImplSeries(attrName string) seriesAttrImpl {
-	return func(*Series) (starlark.Value, error) {
-		return nil, fmt.Errorf("series.%s is not implemented. If you need this functionality to exist, file an issue at 'https://github.com/qri-io/starlib/issues' with the title 'series.%s needs implementation'. Please first search if an issue exists already", attrName, attrName)
 	}
 }
 
