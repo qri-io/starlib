@@ -792,14 +792,6 @@ func newSeriesFromFloats(vals []float64, index *Index, name string) *Series {
 	}
 }
 
-func newSeriesFromStrings(texts []string, index *Index, name string) *Series {
-	results := make([]interface{}, len(texts))
-	for i, txt := range texts {
-		results[i] = txt
-	}
-	return newSeriesFromObjects(results, index, name)
-}
-
 func newSeriesFromObjects(vals []interface{}, index *Index, name string) *Series {
 	return &Series{
 		dtype:   "object",
