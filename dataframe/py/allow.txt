@@ -1,0 +1,20 @@
+3
+===
+< dataframe.Series
+---
+> <class 'pandas.core.series.Series'>
+
+30
+===
+< int
+---
+> <class 'numpy.int64'>
+===
+< string
+---
+> <class 'str'>
+===
+< float
+---
+> <class 'numpy.float64'>
+

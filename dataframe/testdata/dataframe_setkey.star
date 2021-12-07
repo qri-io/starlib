@@ -1,4 +1,3 @@
-load("assert.star", "assert")
 load("dataframe.star", "dataframe")
 
 def f():
