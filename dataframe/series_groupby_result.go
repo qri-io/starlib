@@ -3,7 +3,6 @@ package dataframe
 import (
 	"fmt"
 	"sort"
-	"strconv"
 
 	"go.starlark.net/starlark"
 )
@@ -12,7 +11,7 @@ import (
 type SeriesGroupByResult struct {
 	lhsLabel string
 	rhsLabel string
-	grouping map[string][]string
+	grouping map[string]*Series
 }
 
 // compile-time interface assertions
@@ -24,6 +23,7 @@ var (
 var seriesGroupByResultMethods = map[string]*starlark.Builtin{
 	"count": starlark.NewBuiltin("count", seriesGroupByResultCount),
 	"sum":   starlark.NewBuiltin("sum", seriesGroupByResultSum),
+	"apply": starlark.NewBuiltin("apply", seriesGroupByResultApply),
 }
 
 // Freeze has no effect on the immutable SeriesGroupByResult
@@ -76,9 +76,9 @@ func seriesGroupByResultSum(_ *starlark.Thread, b *starlark.Builtin, args starla
 		series := self.grouping[groupName]
 
 		sum := 0
-		for _, elem := range series {
-			num, err := strconv.Atoi(elem)
-			if err == nil {
+		for i := 0; i < series.Len(); i++ {
+			elem := series.Index(i)
+			if num, err := starlark.AsInt32(elem); err == nil {
 				sum += num
 			}
 		}
@@ -104,7 +104,7 @@ func seriesGroupByResultCount(_ *starlark.Thread, b *starlark.Builtin, args star
 	sortedKeys := getSortedKeys(self.grouping)
 	for _, groupName := range sortedKeys {
 		series := self.grouping[groupName]
-		count := len(series)
+		count := series.Len()
 		indexTexts = append(indexTexts, groupName)
 		vals = append(vals, count)
 	}
@@ -113,7 +113,53 @@ func seriesGroupByResultCount(_ *starlark.Thread, b *starlark.Builtin, args star
 	return newSeriesFromInts(vals, index, self.rhsLabel), nil
 }
 
-func getSortedKeys(m map[string][]string) []string {
+// apply method returns a Series that is built by calling the given
+// function, and passing each grouped series as an argument to it
+func seriesGroupByResultApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		funcVal starlark.Value
+		self    = b.Receiver().(*SeriesGroupByResult)
+	)
+
+	if err := starlark.UnpackArgs("apply", args, kwargs,
+		"function", &funcVal,
+	); err != nil {
+		return nil, err
+	}
+
+	funcObj, ok := funcVal.(*starlark.Function)
+	if !ok {
+		return nil, fmt.Errorf("first argument must be a function")
+	}
+
+	sortedKeys := getSortedKeys(self.grouping)
+	builder := newTypedSliceBuilder(len(sortedKeys))
+	indexNames := make([]string, len(sortedKeys))
+
+	for i, groupName := range sortedKeys {
+		series := self.grouping[groupName]
+		arguments := starlark.Tuple{series}
+		// Call function, passing the series to it
+		res, err := starlark.Call(thread, funcObj, arguments, nil)
+		if err != nil {
+			return nil, err
+		}
+		obj, ok := toScalarMaybe(res)
+		if !ok {
+			return nil, fmt.Errorf("could not convert: %v", res)
+		}
+		// Accumulate the new series, and build the new index
+		builder.push(obj)
+		indexNames[i] = groupName
+	}
+	if err := builder.error(); err != nil {
+		return nil, err
+	}
+	s := builder.toSeries(NewIndex(indexNames, self.lhsLabel), self.rhsLabel)
+	return &s, nil
+}
+
+func getSortedKeys(m map[string]*Series) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

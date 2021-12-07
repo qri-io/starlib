@@ -67,14 +67,15 @@ func (gbr *GroupByResult) Get(key starlark.Value) (value starlark.Value, found b
 		return nil, false, fmt.Errorf("GroupbyResult.Get: key not found %q", name)
 	}
 
-	result := map[string][]string{}
+	result := make(map[string]*Series, len(gbr.grouping))
 	for group, frame := range gbr.grouping {
-		newRow := []string{}
+		newRow := []interface{}{}
 		for _, row := range frame {
-			val := row.StrAt(keyPos)
+			val := row.data[keyPos]
 			newRow = append(newRow, val)
 		}
-		result[group] = newRow
+		// TODO(dustmop): Set the index
+		result[group] = newSeriesConstructor(newRow, nil, group)
 	}
 
 	return &SeriesGroupByResult{lhsLabel: gbr.label, rhsLabel: name, grouping: result}, true, nil

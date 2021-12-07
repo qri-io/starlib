@@ -24,11 +24,11 @@ var seriesAttributes = map[string]seriesAttrImpl{
 	"is_monotonic_increasing": attrNoImplSeries("is_monotonic_increasing"),
 	"is_unique":               attrNoImplSeries("is_unique"),
 	"loc":                     attrNoImplSeries("loc"),
-	"name":                    attrNoImplSeries("name"),
+	"name":                    seriesAttrName,
 	"nbytes":                  attrNoImplSeries("nbytes"),
 	"ndim":                    attrNoImplSeries("ndim"),
 	"shape":                   attrNoImplSeries("shape"),
-	"size":                    attrNoImplSeries("size"),
+	"size":                    seriesAttrSize,
 	"values":                  attrNoImplSeries("values"),
 }
 
