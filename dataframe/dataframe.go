@@ -29,6 +29,7 @@ var Module = &starlarkstruct.Module{
 		"DataFrame": starlark.NewBuiltin("DataFrame", newDataFrameBuiltin),
 		"Index":     starlark.NewBuiltin("Index", newIndex),
 		"Series":    starlark.NewBuiltin("Series", newSeries),
+		"abs":       starlark.NewBuiltin("mathAbs", mathAbs),
 	},
 }
 

@@ -1,0 +1,34 @@
+a    123
+b    456
+c    789
+dtype: int64
+
+a    101
+b    505
+c    909
+dtype: int64
+
+a     224
+b     961
+c    1698
+dtype: int64
+
+a      22
+b     -49
+c    -120
+dtype: int64
+
+a       NaN
+b     557.0
+c    1294.0
+dtype: float64
+
+a     22
+b     49
+c    120
+dtype: int64
+
+a      NaN
+b    355.0
+c    284.0
+dtype: float64

@@ -25,6 +25,10 @@ func TestSeriesIndexWithName(t *testing.T) {
 	expectScriptOutput(t, "testdata/series_index_name.star", "testdata/series_index_name.expect.txt")
 }
 
+func TestSeriesMath(t *testing.T) {
+	expectScriptOutput(t, "testdata/series_math.star", "testdata/series_math.expect.txt")
+}
+
 func TestSeriesAsType(t *testing.T) {
 	expectScriptOutput(t, "testdata/series_astype.star", "testdata/series_astype.expect.txt")
 }

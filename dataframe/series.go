@@ -2,6 +2,7 @@ package dataframe
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -38,6 +39,7 @@ var (
 	_ starlark.Indexable = (*Series)(nil)
 	_ starlark.Sequence  = (*Series)(nil)
 	_ starlark.HasUnary  = (*Series)(nil)
+	_ starlark.HasBinary = (*Series)(nil)
 )
 
 // Freeze prevents the series from being mutated
@@ -376,6 +378,16 @@ func (s *Series) At(i int) interface{} {
 	return s.valObjs[i]
 }
 
+// FloatAt returns the cell at position 'i' as a float
+func (s *Series) FloatAt(i int) float64 {
+	if s.which == typeInt {
+		return float64(s.valInts[i])
+	} else if s.which == typeFloat {
+		return s.valFloats[i]
+	}
+	return math.NaN()
+}
+
 // SetAt assigns a go native type to the cell at position 'i'
 func (s *Series) SetAt(i int, any interface{}) error {
 	switch item := any.(type) {
@@ -431,6 +443,63 @@ func (s *Series) Unary(op syntax.Token) (value starlark.Value, err error) {
 	}
 
 	return newSeriesFromBools(result, s.index, s.name), nil
+}
+
+// Binary performs binary operations (like addition) on the Series
+func (s *Series) Binary(op syntax.Token, y starlark.Value, side starlark.Side) (starlark.Value, error) {
+	// Currently only handle addition, where this Series is the left-hand-side
+	if op != syntax.PLUS && op != syntax.MINUS {
+		return nil, nil
+	}
+	if side {
+		return nil, fmt.Errorf("TODO(dustmop): implement DataFrame as rhs of binary +")
+	}
+
+	// The right-hand-side is a Series
+	other, ok := y.(*Series)
+	if !ok {
+		return starlark.None, fmt.Errorf("can only add or subtract Series with another Series")
+	}
+
+	builder := newTypedSliceBuilder(s.Len())
+	if s.which == typeInt && other.which == typeInt && s.Len() == other.Len() {
+		// First case, both series of int's, same length
+		for i := 0; i < s.Len(); i++ {
+			if op == syntax.PLUS {
+				builder.push(s.valInts[i] + other.valInts[i])
+			} else if op == syntax.MINUS {
+				builder.push(s.valInts[i] - other.valInts[i])
+			}
+		}
+	} else if s.which == typeFloat && other.which == typeFloat && s.Len() == other.Len() {
+		// Second case, both series of float's, same length
+		for i := 0; i < s.Len(); i++ {
+			if op == syntax.PLUS {
+				builder.push(s.valFloats[i] + other.valFloats[i])
+			} else if op == syntax.MINUS {
+				builder.push(s.valFloats[i] - other.valFloats[i])
+			}
+		}
+	} else if (s.which == typeInt || s.which == typeFloat) && (other.which == typeInt || other.which == typeFloat) {
+		// Third case, both series are either int or float, length may vary
+		limit := max(s.Len(), other.Len())
+		for i := 0; i < limit; i++ {
+			if i >= s.Len() || i >= other.Len() {
+				builder.pushNil()
+				continue
+			}
+			if op == syntax.PLUS {
+				builder.push(s.FloatAt(i) + other.FloatAt(i))
+			} else if op == syntax.MINUS {
+				builder.push(s.FloatAt(i) - other.FloatAt(i))
+			}
+		}
+	} else {
+		return starlark.None, fmt.Errorf("can only add or subtract Series of ints or floats")
+	}
+
+	series := builder.toSeries(s.index, s.name)
+	return &series, nil
 }
 
 func builtinAttr(recv starlark.Value, name string, methods map[string]*starlark.Builtin) (starlark.Value, error) {
