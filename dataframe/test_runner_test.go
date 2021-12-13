@@ -22,6 +22,7 @@ func runScript(t *testing.T, scriptFilename string) (string, error) {
 	thread := &starlark.Thread{Load: testdata.NewModuleLoader(Module)}
 	thread.Print = printCollect
 	starlarktest.SetReporter(thread, t)
+	thread.SetLocal(keyOutputConfig, &OutputConfig{})
 
 	_, err := starlark.ExecFile(thread, scriptFilename, nil, nil)
 	return strings.Trim(output, "\n"), err

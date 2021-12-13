@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	outline "github.com/b5/outline/lib"
+	"github.com/qri-io/starlib/dataframe"
 	"go.starlark.net/starlark"
 )
 
@@ -56,6 +57,7 @@ func TestDocExamples(t *testing.T) {
 			t.Run(fmt.Sprintf("%s_%s", doc.Name, eg.Name), func(t *testing.T) {
 				printBuf := &bytes.Buffer{}
 				thread := &starlark.Thread{Load: Loader, Print: func(thread *starlark.Thread, msg string) { printBuf.WriteString(msg) }}
+				dataframe.SetOutputSize(thread, 0, 0)
 				g := starlark.StringDict{}
 				_, err := starlark.ExecFile(thread, eg.Name, eg.Code, g)
 				if err != nil {
