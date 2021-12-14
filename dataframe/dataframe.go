@@ -18,6 +18,8 @@ const (
 	Name = "dataframe"
 	// ModuleName is the filename of this module for the loader
 	ModuleName = "dataframe.star"
+	// the key used to store the OutputConfig on the thread
+	keyOutputConfig = "OutputConfig"
 )
 
 // Module exposes the dataframe module
@@ -75,7 +77,7 @@ func parseCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple,
 	if err != nil {
 		return nil, err
 	}
-	outconf, _ := thread.Local("OutputConfig").(*OutputConfig)
+	outconf, _ := thread.Local(keyOutputConfig).(*OutputConfig)
 
 	return newDataFrameConstructor(body, NewIndex(header, ""), nil, outconf)
 }
@@ -98,9 +100,21 @@ func newDataFrameBuiltin(thread *starlark.Thread, _ *starlark.Builtin, args star
 
 	columns := toStrSliceOrNil(columnsVal)
 	index, _ := toIndexMaybe(indexVal)
-	outconf, _ := thread.Local("OutputConfig").(*OutputConfig)
+	outconf, _ := thread.Local(keyOutputConfig).(*OutputConfig)
 
 	return NewDataFrame(dataVal, columns, index, outconf)
+}
+
+// SetOutputSize attaches an OutputConfig to the starlark thread. This allows
+// DataFrame constructors to access this config so that stringification fits
+// the size of the area that we're outputting to
+func SetOutputSize(thread *starlark.Thread, width, height int) *OutputConfig {
+	outconf := &OutputConfig{
+		Width:  width,
+		Height: height,
+	}
+	thread.SetLocal(keyOutputConfig, outconf)
+	return outconf
 }
 
 // NewDataFrame constructs a DataFrame from data, and optionally column names and an index
@@ -193,8 +207,8 @@ func newDataFrameConstructor(body []Series, columns, index *Index, outconf *Outp
 		return nil, fmt.Errorf("body of DataFrame is not tabular: %w", err)
 	}
 
-	// Ensure that OutputConfigu is non-nil
-	if outconf != nil {
+	// Ensure that OutputConfig is non-nil
+	if outconf == nil {
 		return nil, fmt.Errorf("an OutputConfig is required to construct DataFrame")
 	}
 
