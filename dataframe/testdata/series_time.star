@@ -25,5 +25,18 @@ def f():
   print(dts)
   print('')
 
+  values = dataframe.DataFrame([['2021-01-23', '11:47:22'],
+                                ['2021-06-04', '19:03:59']],
+                               columns=['day', 'clock'])
+  print(values)
+  print('')
+
+  when = values.apply(lambda row: time.parse_time('{}T{}Z'.format(row['day'], row['clock'])), axis=1)
+  print(when)
+  print('')
+
+  counts = when.astype('int')
+  print(counts)
+  print('')
 
 f()
