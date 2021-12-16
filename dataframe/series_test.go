@@ -21,6 +21,10 @@ func TestSeriesBoolSelect(t *testing.T) {
 		"testdata/series_bool_select.expect.txt")
 }
 
+func TestSeriesCmp(t *testing.T) {
+	expectScriptOutput(t, "testdata/series_cmp.star", "testdata/series_cmp.expect.txt")
+}
+
 func TestSeriesIndexWithName(t *testing.T) {
 	expectScriptOutput(t, "testdata/series_index_name.star", "testdata/series_index_name.expect.txt")
 }

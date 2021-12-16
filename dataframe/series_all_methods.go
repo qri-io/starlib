@@ -61,6 +61,7 @@ var seriesMethods = map[string]*starlark.Builtin{
 	"bool":              starlark.NewBuiltin("bool", methNoImplSeries("bool")),
 	"cat":               starlark.NewBuiltin("cat", methNoImplSeries("cat")),
 	"clip":              starlark.NewBuiltin("clip", methNoImplSeries("clip")),
+	"cmp":               starlark.NewBuiltin("compare", seriesCmp),
 	"combine":           starlark.NewBuiltin("combine", methNoImplSeries("combine")),
 	"combine_first":     starlark.NewBuiltin("combine_first", methNoImplSeries("combine_first")),
 	"compare":           starlark.NewBuiltin("compare", methNoImplSeries("compare")),

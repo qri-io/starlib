@@ -578,6 +578,38 @@ func (s *Series) Binary(op syntax.Token, y starlark.Value, side starlark.Side) (
 	return &series, nil
 }
 
+func seriesCmp(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		operStr  starlark.String
+		otherVal int
+	)
+	if err := starlark.UnpackArgs("cmp", args, kwargs,
+		"oper", &operStr,
+		"other", &otherVal,
+	); err != nil {
+		return nil, err
+	}
+	self := b.Receiver().(*Series)
+
+	if self.which != typeInt {
+		return starlark.None, fmt.Errorf("TODO(dustmlp): Series.cmp can only be used with a Series of int")
+	}
+
+	oper := string(operStr)
+	if oper != "<" {
+		return starlark.None, fmt.Errorf("TODO(dustmop): Series.cmp can only use '<'")
+	}
+	num := otherVal
+
+	builder := newTypedSliceBuilder(self.Len())
+	for i := 0; i < self.Len(); i++ {
+		builder.push(self.valInts[i] < num)
+	}
+	series := builder.toSeries(self.index, self.name)
+
+	return &series, nil
+}
+
 func builtinAttr(recv starlark.Value, name string, methods map[string]*starlark.Builtin) (starlark.Value, error) {
 	b := methods[name]
 	if b == nil {
