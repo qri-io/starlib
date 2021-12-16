@@ -42,6 +42,10 @@ func TestSeriesResetIndex(t *testing.T) {
 		"testdata/series_reset_index.expect.txt")
 }
 
+func TestSeriesTime(t *testing.T) {
+	expectScriptOutput(t, "testdata/series_time.star", "testdata/series_time.expect.txt")
+}
+
 func TestSeriesToFrame(t *testing.T) {
 	expectScriptOutput(t, "testdata/series_to_frame.star", "testdata/series_to_frame.expect.txt")
 }

@@ -1,0 +1,19 @@
+0    2021-03-21
+1    2021-05-04
+dtype: datetime64[ns]
+
+0     apple
+1    banana
+dtype: object
+
+           when   names
+0    2021-03-21   apple
+1    2021-05-04  banana
+
+0    1616284800000000000
+1    1620086400000000000
+dtype: int64
+
+0    2021-03-21
+1    2021-05-04
+dtype: datetime64[ns]

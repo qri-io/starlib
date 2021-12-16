@@ -5,6 +5,9 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	gotime "time"
+
+	"go.starlark.net/lib/time"
 )
 
 type typedSliceBuilder struct {
@@ -61,9 +64,11 @@ func (t *typedSliceBuilder) setType(dtype string) {
 	t.currType = dtype
 	if t.dType == "int64" || t.dType == "bool" {
 		t.whichVals = typeInt
+	} else if t.dType == "datetime64[ns]" {
+		t.whichVals = typeInt
 	} else if t.dType == "float64" {
 		t.whichVals = typeFloat
-	} else if t.dType == "object" || t.dType == "datetime64[ns]" {
+	} else if t.dType == "object" {
 		t.whichVals = typeObj
 	} else if t.dType == "string" {
 		// TODO(dustmop): Is string a real type for pandas?
@@ -100,6 +105,10 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			if b {
 				val = 1
 			}
+		} else if tim, ok := val.(time.Time); ok {
+			t.currType = "datetime64[ns]"
+			t.whichVals = typeInt
+			val = timeToInt(tim)
 		} else if val == nil {
 			t.currType = "float64"
 			t.whichVals = typeFloat
@@ -141,7 +150,7 @@ func (t *typedSliceBuilder) push(val interface{}) {
 				// Unknown conversion, just use objects
 				t.coerceToObjects()
 			}
-		} else if _, ok := val.(string); ok {
+		} else if text, ok := val.(string); ok {
 			if t.currType == "int64" && t.dType == "" {
 				// The list was ints, found a string, coerce the previous list to objects
 				t.currType = "object"
@@ -159,9 +168,22 @@ func (t *typedSliceBuilder) push(val interface{}) {
 				t.valObjs = convertBoolsToObjects(t.valInts)
 			} else if t.currType == "datetime64[ns]" {
 				// no need to convert
+				timestamp, err := gotime.Parse("2006-01-02 15:04:05", text)
+				if err != nil {
+					// TODO(dustmop): Add test
+					t.buildError = fmt.Errorf("could not parse timestamp from %s: %w", text, err)
+				}
+				val = timestamp.UnixNano()
 			} else if t.currType != "object" {
 				// Unknown conversion, just use objects
 				t.coerceToObjects()
+			}
+		} else if tim, ok := val.(time.Time); ok {
+			if t.currType == "datetime64[ns]" {
+				val = timeToInt(tim)
+			} else {
+				// TODO(dustmop): Fix this
+				t.buildError = fmt.Errorf("cannot append timestamp to list of type %s", t.currType)
 			}
 		} else if b, ok := val.(bool); ok {
 			if t.currType == "bool" {

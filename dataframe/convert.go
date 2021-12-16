@@ -3,7 +3,10 @@ package dataframe
 import (
 	"fmt"
 	"reflect"
+	"strings"
+	gotime "time"
 
+	"go.starlark.net/lib/time"
 	"go.starlark.net/starlark"
 )
 
@@ -154,6 +157,14 @@ func toBoolMaybe(v starlark.Value) (bool, bool) {
 	return false, false
 }
 
+// convert starlark value to a go native time object
+func toTimeMaybe(v starlark.Value) (time.Time, bool) {
+	if tim, ok := v.(time.Time); ok {
+		return tim, true
+	}
+	return time.Time{}, false
+}
+
 // convert starlark value to go native int, bool, float, or string
 func toScalarMaybe(v starlark.Value) (interface{}, bool) {
 	if num, ok := toIntMaybe(v); ok {
@@ -167,6 +178,9 @@ func toScalarMaybe(v starlark.Value) (interface{}, bool) {
 	}
 	if b, ok := toBoolMaybe(v); ok {
 		return b, true
+	}
+	if tim, ok := toTimeMaybe(v); ok {
+		return tim, true
 	}
 	return nil, false
 }
@@ -205,6 +219,18 @@ func toIndexMaybe(v starlark.Value) (*Index, bool) {
 		return index, true
 	}
 	return nil, false
+}
+
+func timeToInt(t time.Time) int {
+	gt := gotime.Time(t)
+	num := gt.Unix() * 1000000000
+	return int(num)
+}
+
+func intTimestampToString(n int) string {
+	t := gotime.Unix(int64(n/1000000000), 0)
+	ans := t.UTC().Format("2006-01-02 15:04:05")
+	return strings.TrimSuffix(ans, " 00:00:00")
 }
 
 func stringifyFloat(f float64) string {

@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
@@ -292,6 +291,12 @@ func (s *Series) stringValues() []string {
 			}
 			return result
 		}
+		if s.dtype == "datetime64[ns]" {
+			for i, elem := range s.valInts {
+				result[i] = intTimestampToString(elem)
+			}
+			return result
+		}
 		for i, elem := range s.valInts {
 			result[i] = strconv.Itoa(elem)
 		}
@@ -350,6 +355,9 @@ func (s *Series) StrAt(i int) string {
 				return "False"
 			}
 			return "True"
+		}
+		if s.dtype == "datetime64[ns]" {
+			return intTimestampToString(s.valInts[i])
 		}
 		return strconv.Itoa(s.valInts[i])
 	} else if s.which == typeFloat {
@@ -584,34 +592,34 @@ func seriesAsType(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 	self := b.Receiver().(*Series)
 
 	typeName, _ := toStrMaybe(typeVal)
-	if typeName != "int64" {
-		return nil, fmt.Errorf("invalid type, only \"int64\" allowed")
+	if typeName == "int" {
+		typeName = "int64"
 	}
 
-	newVals := make([]int, 0, self.Len())
-	for _, val := range self.values() {
-		text := fmt.Sprintf("%s", val)
+	var newVals []int
 
-		// Special case: convert datetime to nanoseconds
-		if self.dtype == "datetime64[ns]" && self.which == typeObj {
-			t, err := time.Parse("2006-01-02 15:04:05", text)
+	if self.which == typeInt {
+		if typeName != "int" && typeName != "int64" && typeName != "datetime64[ns]" {
+			return nil, fmt.Errorf("invalid type, only \"int64\" or \"datetime64[ns]\" allowed, got %s", typeName)
+		}
+		newVals = self.valInts
+	} else {
+		newVals = make([]int, 0, self.Len())
+		for _, val := range self.values() {
+			text := fmt.Sprintf("%s", val)
+
+			// Default case, parse the value as an integer
+			num, err := strconv.Atoi(text)
 			if err != nil {
-				return nil, err
+				num = -1
 			}
-			num := t.UnixNano()
-			newVals = append(newVals, int(num))
-			continue
+			newVals = append(newVals, num)
 		}
-
-		// Default case, parse the value as an integer
-		num, err := strconv.Atoi(text)
-		if err != nil {
-			num = -1
-		}
-		newVals = append(newVals, num)
 	}
 
-	return newSeriesFromInts(newVals, self.index, self.name), nil
+	series := newSeriesFromInts(newVals, self.index, self.name)
+	series.dtype = typeName
+	return series, nil
 }
 
 // notnull method returns a Series of booleans that are true for non-null values
@@ -748,7 +756,8 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 				builder.push(scalar)
 				continue
 			}
-			// TODO: return an error for this invalid element, add a test
+			// TODO(dustmop): Add test
+			return starlark.None, fmt.Errorf("value %v not recognized", elemVal)
 		}
 		if err := builder.error(); err != nil {
 			return starlark.None, err
@@ -771,7 +780,8 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 				builder.pushKeyVal(string(key), scalar)
 				continue
 			}
-			// TODO: return an error for this invalid element, add a test
+			// TODO(dustmop): Add test
+			return starlark.None, fmt.Errorf("value %v not recognized", val)
 		}
 		if err := builder.error(); err != nil {
 			return starlark.None, err

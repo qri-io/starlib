@@ -305,10 +305,22 @@ func constructBodyFromStarlarkDict(data *starlark.Dict) ([]Series, []string, err
 		inKey := inKeys[i]
 		keyList = append(keyList, toStr(inKey))
 		// Get each value, which should be a list of values
-		val, _, _ := data.Get(inKey)
+		val, _, err := data.Get(inKey)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		dtype := ""
 		items := toInterfaceSliceOrNil(val)
 		if items == nil {
-			return nil, nil, fmt.Errorf("invalid values for column")
+			// Maybe the val is a series
+			if series, ok := val.(*Series); ok {
+				items = series.values()
+				dtype = series.dtype
+			} else {
+				// TODO(dustmop): Add test
+				return nil, nil, fmt.Errorf("invalid values for column: %v", val)
+			}
 		}
 		// Validate that the size of each column is the same
 		// TODO(dustmop): Add test
@@ -319,6 +331,9 @@ func constructBodyFromStarlarkDict(data *starlark.Dict) ([]Series, []string, err
 		}
 		// The list of values should be of the same type
 		builder := newTypedSliceBuilder(len(items))
+		if dtype != "" {
+			builder.dType = dtype
+		}
 		for _, it := range items {
 			builder.push(it)
 		}
