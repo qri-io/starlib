@@ -32,3 +32,33 @@ a      NaN
 b    355.0
 c    284.0
 dtype: float64
+
+a    1123
+b    1456
+c    1789
+dtype: int64
+
+a    123.5
+b    456.5
+c    789.5
+dtype: float64
+
+0    a
+1    b
+2    c
+dtype: object
+
+0     pple
+1    anana
+2    herry
+dtype: object
+
+0     apple
+1    banana
+2    cherry
+dtype: object
+
+0     a pple
+1    b anana
+2    c herry
+dtype: object

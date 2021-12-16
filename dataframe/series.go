@@ -463,13 +463,72 @@ func (s *Series) Binary(op syntax.Token, y starlark.Value, side starlark.Side) (
 		return nil, fmt.Errorf("TODO(dustmop): implement DataFrame as rhs of binary +")
 	}
 
-	// The right-hand-side is a Series
-	other, ok := y.(*Series)
-	if !ok {
-		return starlark.None, fmt.Errorf("can only add or subtract Series with another Series")
+	operation := "add"
+	if op == syntax.MINUS {
+		operation = "subtract"
 	}
 
 	builder := newTypedSliceBuilder(s.Len())
+
+	// The right-hand-side might be an int
+	if _, ok := y.(starlark.Int); ok {
+		num, _ := starlark.AsInt32(y)
+		if s.which != typeInt {
+			return starlark.None, fmt.Errorf("can not %s Series of %s with %T", operation, s.dtype, y)
+		}
+		// TODO: s.which == typeFloat should also work
+		for i := 0; i < s.Len(); i++ {
+			if op == syntax.PLUS {
+				builder.push(s.valInts[i] + num)
+			} else if op == syntax.MINUS {
+				builder.push(s.valInts[i] - num)
+			}
+		}
+		series := builder.toSeries(s.index, s.name)
+		return &series, nil
+	}
+
+	// The right-hand-side might be a float
+	if other, ok := y.(starlark.Float); ok {
+		f := float64(other)
+		var values []float64
+		if s.which == typeInt {
+			values = convertIntsToFloats(s.valInts)
+		} else if s.which == typeFloat {
+			values = s.valFloats
+		} else {
+			return starlark.None, fmt.Errorf("can not %s Series of %s with %T", operation, s.dtype, y)
+		}
+		for i := 0; i < s.Len(); i++ {
+			if op == syntax.PLUS {
+				builder.push(values[i] + f)
+			} else if op == syntax.MINUS {
+				builder.push(values[i] - f)
+			}
+		}
+		series := builder.toSeries(s.index, s.name)
+		return &series, nil
+	}
+
+	// The right-hand-side might be a string
+	if other, ok := y.(starlark.String); ok {
+		str := string(other)
+		if s.which != typeObj || op != syntax.PLUS {
+			return starlark.None, fmt.Errorf("can not %s Series of %s with %T", operation, s.dtype, y)
+		}
+		for i := 0; i < s.Len(); i++ {
+			builder.push(fmt.Sprintf("%s%s", s.valObjs[i], str))
+		}
+		series := builder.toSeries(s.index, s.name)
+		return &series, nil
+	}
+
+	// Otherwise, right-hand-side must be a Series
+	other, ok := y.(*Series)
+	if !ok {
+		return starlark.None, fmt.Errorf("can not %s Series of %s with a %T", operation, s.dtype, y)
+	}
+
 	if s.which == typeInt && other.which == typeInt && s.Len() == other.Len() {
 		// First case, both series of int's, same length
 		for i := 0; i < s.Len(); i++ {
@@ -502,8 +561,17 @@ func (s *Series) Binary(op syntax.Token, y starlark.Value, side starlark.Side) (
 				builder.push(s.FloatAt(i) - other.FloatAt(i))
 			}
 		}
+	} else if s.which == typeObj && other.which == typeObj {
+		limit := max(s.Len(), other.Len())
+		for i := 0; i < limit; i++ {
+			if i >= s.Len() || i >= other.Len() {
+				builder.pushNil()
+				continue
+			}
+			builder.push(fmt.Sprintf("%s%s", s.At(i), other.At(i)))
+		}
 	} else {
-		return starlark.None, fmt.Errorf("can only add or subtract Series of ints or floats")
+		return starlark.None, fmt.Errorf("can not %s Series of %s with %s", operation, s.dtype, other.dtype)
 	}
 
 	series := builder.toSeries(s.index, s.name)

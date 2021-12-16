@@ -29,5 +29,29 @@ def f():
   print(answer)
   print('')
 
+  answer = left + 1000
+  print(answer)
+  print('')
+
+  answer = left + 0.5
+  print(answer)
+  print('')
+
+  left = dataframe.Series(['a', 'b', 'c'])
+  print(left)
+  print('')
+
+  rite = dataframe.Series(['pple', 'anana', 'herry'])
+  print(rite)
+  print('')
+
+  answer = left + rite
+  print(answer)
+  print('')
+
+  answer = left + ' ' + rite
+  print(answer)
+  print('')
+
 
 f()
