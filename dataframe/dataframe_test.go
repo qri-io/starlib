@@ -76,6 +76,10 @@ func TestDataframeAppend(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_append.star", "testdata/dataframe_append.expect.txt")
 }
 
+func TestDataframeAssign(t *testing.T) {
+	expectScriptOutput(t, "testdata/dataframe_assign.star", "testdata/dataframe_assign.expect.txt")
+}
+
 func TestDataframeTypeKeep(t *testing.T) {
 	expectScriptOutput(t, "testdata/dataframe_type_keep.star",
 		"testdata/dataframe_type_keep.expect.txt")

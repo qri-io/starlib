@@ -42,7 +42,7 @@ var dataframeMethods = map[string]*starlark.Builtin{
 	"applymap":          starlark.NewBuiltin("applymap", methNoImpl("applymap")),
 	"asfreq":            starlark.NewBuiltin("asfreq", methNoImpl("asfreq")),
 	"asof":              starlark.NewBuiltin("asof", methNoImpl("asof")),
-	"assign":            starlark.NewBuiltin("assign", methNoImpl("assign")),
+	"assign":            starlark.NewBuiltin("assign", dataframeAssign),
 	"astype":            starlark.NewBuiltin("astype", methNoImpl("astype")),
 	"at_time":           starlark.NewBuiltin("at_time", methNoImpl("at_time")),
 	"backfill":          starlark.NewBuiltin("backfill", methNoImpl("backfill")),

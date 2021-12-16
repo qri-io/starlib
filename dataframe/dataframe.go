@@ -923,6 +923,29 @@ func dataframeApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.
 	return &s, nil
 }
 
+func dataframeAssign(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var (
+		self = b.Receiver().(*DataFrame)
+	)
+	// Clone this DataFrame. SetKey is an easy method to add columns,
+	// and it modifies its subject, so by cloning it the original remains
+	// unmodified.
+	clone, err := newDataFrameConstructor(self.body, self.columns, self.index, self.outconf)
+	if err != nil {
+		return starlark.None, err
+	}
+
+	for _, tup := range kwargs {
+		columnName := tup[0]
+		columnValues := tup[1]
+		if err := clone.SetKey(columnName, columnValues); err != nil {
+			return starlark.None, err
+		}
+	}
+
+	return clone, nil
+}
+
 // head method returns a copy of the DataFrame but only with the first n rows
 func dataframeHead(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var nVal starlark.Value

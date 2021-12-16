@@ -1,0 +1,14 @@
+     id  animal  sound
+0     1     cat   meow
+1     2     dog   bark
+2     3     eel    zap
+
+     id  animal  sound  rating
+0     1     cat   meow     8.2
+1     2     dog   bark     7.6
+2     3     eel    zap     3.4
+
+     id  animal  sound
+0     1     cat   meow
+1     2     dog   bark
+2     3     eel    zap
