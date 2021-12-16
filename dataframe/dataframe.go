@@ -912,7 +912,7 @@ func dataframeApply(thread *starlark.Thread, b *starlark.Builtin, args starlark.
 		// TODO(dustmop): This won't handle complex types.
 		obj, ok := toScalarMaybe(res)
 		if !ok {
-			return nil, fmt.Errorf("could not convert: %v", res)
+			return nil, fmt.Errorf("apply's callback, could not convert from %T : %v", res, res)
 		}
 		builder.push(obj)
 	}
@@ -1013,7 +1013,7 @@ func dataframeGroupBy(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 		result[groupValue] = append(result[groupValue], r)
 	}
 
-	return &GroupByResult{label: groupBy, columns: self.columns, grouping: result}, nil
+	return &GroupByResult{label: groupBy, columns: self.columns, dfIndex: self.index, grouping: result}, nil
 }
 
 // drop method returns a copy of a DataFrame with rows or columns dropped
@@ -1129,6 +1129,7 @@ func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starl
 
 	seen := map[string]bool{}
 	builder := newTableBuilder(self.NumCols(), 0)
+	builder.setDtypes(self.body)
 	for rowIter := newRowIter(self); !rowIter.Done(); rowIter.Next() {
 		matchOn := rowIter.Marshal(subsetPos)
 		if seen[matchOn] {

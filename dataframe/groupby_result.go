@@ -11,6 +11,8 @@ type GroupByResult struct {
 	columns  *Index
 	label    string
 	grouping map[string][]*rowTuple
+	// index of the source DataFrame
+	dfIndex *Index
 }
 
 // compile-time interface assertions
@@ -78,5 +80,5 @@ func (gbr *GroupByResult) Get(key starlark.Value) (value starlark.Value, found b
 		result[group] = newSeriesConstructor(newRow, nil, group)
 	}
 
-	return &SeriesGroupByResult{lhsLabel: gbr.label, rhsLabel: name, grouping: result}, true, nil
+	return &SeriesGroupByResult{lhsLabel: gbr.label, rhsLabel: name, grouping: result, dfIndex: gbr.dfIndex}, true, nil
 }

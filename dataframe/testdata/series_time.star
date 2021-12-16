@@ -39,4 +39,8 @@ def f():
   print(counts)
   print('')
 
+  values['when'] = when
+  print(values)
+  print('')
+
 f()

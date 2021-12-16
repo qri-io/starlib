@@ -20,3 +20,11 @@
 2     3     eel     zap
 3     4    frog  ribbit
 
+     animal        when
+0       cat  2021-01-23
+1       cat  2021-05-19
+2       dog  2021-07-04
+
+     animal        when
+0       cat  2021-01-23
+1       dog  2021-07-04

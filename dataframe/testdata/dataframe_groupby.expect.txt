@@ -1,3 +1,14 @@
+      IDs  count
+0     cat      1
+1     dog      2
+2     eel      3
+3     dog      4
+4     cat      5
+5    frog      6
+6     cat      7
+7     eel      8
+
+case 0: group and sum a grouped column
 IDs
 cat     13
 dog      6
@@ -6,6 +17,7 @@ frog     6
 Name: count, dtype: int64
 Index(['cat', 'dog', 'eel', 'frog'], dtype='object', name='IDs')
 
+case 1: group and count a grouped column
 species
 cat    3
 dog    2
@@ -17,6 +29,21 @@ cat    tabby cat, black cat, calico cat
 dog               doberman dog, pug dog
 Name: breed, dtype: object
 
-dataframe.Series
-breed
-species
+case 2: apply a function that returns a scalar
+type = dataframe.Series
+name = breed
+index.name = species
+index = Index(['cat', 'dog'], dtype='object', name='species')
+
+A       tabby cat
+B       black cat
+C      calico cat
+D    doberman dog
+E         pug dog
+Name: breed, dtype: object
+
+case 3: apply a function that returns a series
+type = dataframe.Series
+name = breed
+index.name = 
+index = Index(['A', 'B', 'C', 'D', 'E'], dtype='object')

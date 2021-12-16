@@ -12,12 +12,20 @@ type SeriesGroupByResult struct {
 	lhsLabel string
 	rhsLabel string
 	grouping map[string]*Series
+	// index of the source DataFrame
+	dfIndex *Index
 }
 
 // compile-time interface assertions
 var (
 	_ starlark.Value    = (*SeriesGroupByResult)(nil)
 	_ starlark.HasAttrs = (*SeriesGroupByResult)(nil)
+)
+
+const (
+	indexTypeNone = 0
+	indexTypeFromOriginal = 1
+	indexTypeBuildNew = 2
 )
 
 var seriesGroupByResultMethods = map[string]*starlark.Builtin{
@@ -135,6 +143,11 @@ func seriesGroupByResultApply(thread *starlark.Thread, b *starlark.Builtin, args
 	sortedKeys := getSortedKeys(self.grouping)
 	builder := newTypedSliceBuilder(len(sortedKeys))
 	indexNames := make([]string, len(sortedKeys))
+	// NOTE: The index is either copied from the original DataFrame if the
+	// `apply` function is returning Series's, or it is constructed from the
+	// group names if the `apply` function is returning scalars.
+	// TODO(dustmop): What happens if `apply` returns a scalar AND a Series?
+	indexType := indexTypeNone
 
 	for i, groupName := range sortedKeys {
 		series := self.grouping[groupName]
@@ -144,18 +157,43 @@ func seriesGroupByResultApply(thread *starlark.Thread, b *starlark.Builtin, args
 		if err != nil {
 			return nil, err
 		}
+
+		// Maybe a series
+		if series, ok := res.(*Series); ok {
+			if indexType == indexTypeNone {
+				indexType = indexTypeFromOriginal
+			} else if indexType != indexTypeFromOriginal {
+				// TODO(dustmop): Test for this case
+				return starlark.None, fmt.Errorf("TODO(dustmop): apply callback can only return scalars or Series's, not both")
+			}
+			for i := 0; i < series.Len(); i++ {
+				builder.push(series.At(i))
+			}
+			continue
+		}
+
 		obj, ok := toScalarMaybe(res)
 		if !ok {
-			return nil, fmt.Errorf("could not convert: %v", res)
+			return nil, fmt.Errorf("apply's callback, could not convert from %T : %v", res, res)
 		}
 		// Accumulate the new series, and build the new index
 		builder.push(obj)
+		if indexType == indexTypeNone {
+			indexType = indexTypeBuildNew
+		} else if indexType != indexTypeBuildNew {
+			// TODO(dustmop): Test for this case
+			return starlark.None, fmt.Errorf("TODO(dustmop): apply callback can only return scalars or Series's, not both")
+		}
 		indexNames[i] = groupName
 	}
 	if err := builder.error(); err != nil {
 		return nil, err
 	}
-	s := builder.toSeries(NewIndex(indexNames, self.lhsLabel), self.rhsLabel)
+	index := self.dfIndex
+	if indexType == indexTypeBuildNew {
+		index = NewIndex(indexNames, self.lhsLabel)
+	}
+	s := builder.toSeries(index, self.rhsLabel)
 	return &s, nil
 }
 

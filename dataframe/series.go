@@ -662,6 +662,8 @@ func seriesAsType(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 	typeName, _ := toStrMaybe(typeVal)
 	if typeName == "int" {
 		typeName = "int64"
+	} else if typeName == "Int64" {
+		typeName = "int64"
 	}
 
 	var newVals []int

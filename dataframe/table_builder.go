@@ -21,6 +21,12 @@ func newTableBuilder(numCols, rowCapacity int) *tableBuilder {
 	return &tableBuilder{numCols: numCols, builders: builders}
 }
 
+func (b *tableBuilder) setDtypes(body []Series) {
+	for k, series := range body {
+		b.builders[k].dType = series.dtype
+	}
+}
+
 func (b *tableBuilder) pushNamedRow(row *namedRow) {
 	if err := row.Validate(); err != nil {
 		b.tableErr = err

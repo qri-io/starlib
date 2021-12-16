@@ -107,6 +107,7 @@ func (t *typedSliceBuilder) push(val interface{}) {
 			}
 		} else if tim, ok := val.(time.Time); ok {
 			t.currType = "datetime64[ns]"
+			t.dType = "datetime64[ns]"
 			t.whichVals = typeInt
 			val = timeToInt(tim)
 		} else if val == nil {
