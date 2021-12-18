@@ -14,6 +14,8 @@ type OutputConfig struct {
 	RowsAtBottom int
 	// how much blank space to provide in the output area, in rows
 	BlankRows int
+	// how many columns to show at the right when some columns are skipped
+	ColsAtRight int
 	// when skipping horizontally, how much remaining space to require
 	HorizontalAllowance int
 	// when skipping vertically, how much remaining space to require
@@ -37,6 +39,8 @@ func (df *DataFrame) stringify() string {
 	outconf.RowsAtBottom = 3
 	outconf.BlankRows = 4
 	outconf.HorizontalAllowance = 12
+	// TODO(dustmop): Determine this as max(some fraction of num columns, 2)
+	outconf.ColsAtRight = 2
 	// 2 is for the header row plus the skipping row (dots)
 	outconf.VerticalAllowance = outconf.RowsAtBottom + outconf.BlankRows + 2
 
@@ -64,8 +68,13 @@ func (df *DataFrame) determineColsToShow(outconf *OutputConfig, cellWidths []int
 	}
 
 	endWidths := 0
-	endWidths += cellWidths[len(cellWidths)-2]
-	endWidths += cellWidths[len(cellWidths)-1]
+	for i := 0; i < outconf.ColsAtRight; i++ {
+		k := len(cellWidths) - i - 1
+		if k < 0 {
+			break
+		}
+		endWidths += cellWidths[k]
+	}
 
 	limitWidth := outconf.Width - endWidths - outconf.HorizontalAllowance
 
@@ -80,7 +89,7 @@ func (df *DataFrame) determineColsToShow(outconf *OutputConfig, cellWidths []int
 		runningSum = sum
 	}
 
-	renewIndex := len(cellWidths) - 2
+	renewIndex := len(cellWidths) - outconf.ColsAtRight
 
 	if stopIndex == -1 {
 		return -1, -1
