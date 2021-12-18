@@ -15,3 +15,22 @@ dtype: datetime64[ns]
 0    1269300050000000000
 1    1333796863000000000
 dtype: int64
+
+0    123.1
+1    564.5
+2    978.9
+dtype: float64
+
+0      NaN
+1    123.1
+2    564.5
+dtype: float64
+
+0    None
+1     123
+2     564
+dtype: Int64
+
+1    123
+2    564
+dtype: object

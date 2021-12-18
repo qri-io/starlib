@@ -62,3 +62,8 @@ dtype: object
 1    b anana
 2    c herry
 dtype: object
+
+a      NaN
+b    333.0
+c    333.0
+dtype: float64

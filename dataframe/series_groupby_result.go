@@ -23,9 +23,9 @@ var (
 )
 
 const (
-	indexTypeNone = 0
+	indexTypeNone         = 0
 	indexTypeFromOriginal = 1
-	indexTypeBuildNew = 2
+	indexTypeBuildNew     = 2
 )
 
 var seriesGroupByResultMethods = map[string]*starlark.Builtin{

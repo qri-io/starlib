@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
@@ -297,6 +298,12 @@ func (s *Series) stringValues() []string {
 			}
 			return result
 		}
+		if s.dtype == "timedelta64[ns]" {
+			for i, elem := range s.valInts {
+				result[i] = intTimedeltaToString(elem)
+			}
+			return result
+		}
 		for i, elem := range s.valInts {
 			result[i] = strconv.Itoa(elem)
 		}
@@ -358,6 +365,9 @@ func (s *Series) StrAt(i int) string {
 		}
 		if s.dtype == "datetime64[ns]" {
 			return intTimestampToString(s.valInts[i])
+		}
+		if s.dtype == "timedelta64[ns]" {
+			return intTimedeltaToString(s.valInts[i])
 		}
 		return strconv.Itoa(s.valInts[i])
 	} else if s.which == typeFloat {
@@ -575,6 +585,9 @@ func (s *Series) Binary(op syntax.Token, y starlark.Value, side starlark.Side) (
 	}
 
 	series := builder.toSeries(s.index, s.name)
+	if s.dtype == "datetime64[ns]" {
+		series.dtype = "timedelta64[ns]"
+	}
 	return &series, nil
 }
 
@@ -694,29 +707,83 @@ func seriesAsType(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 	typeName, _ := toStrMaybe(typeVal)
 	if typeName == "int" {
 		typeName = "int64"
-	} else if typeName == "Int64" {
-		typeName = "int64"
 	}
 
 	var newVals []int
 
-	if self.which == typeInt {
-		if typeName != "int" && typeName != "int64" && typeName != "datetime64[ns]" {
+	if strings.HasPrefix(typeName, "timedelta64") {
+		unit := strings.TrimSuffix(strings.TrimPrefix(typeName, "timedelta64["), "]")
+		newFloats := make([]float64, 0, self.Len())
+		for _, elem := range self.values() {
+			d := time.Duration(numToInt(elem))
+			var val float64
+			if unit == "Y" {
+				val = float64(math.Floor(d.Hours() / 24 / 365))
+			} else if unit == "M" {
+				val = float64(math.Floor(d.Hours() / 24 / 30.4))
+			} else if unit == "D" {
+				val = float64(math.Floor(d.Hours() / 24))
+			} else if unit == "h" {
+				val = float64(math.Floor(d.Hours()))
+			} else if unit == "m" {
+				val = float64(math.Floor(d.Minutes()))
+			} else if unit == "s" {
+				val = float64(math.Floor(d.Seconds()))
+			} else {
+				return starlark.None, fmt.Errorf("Invalid datetime unit in metadata string [%s]", unit)
+			}
+			newFloats = append(newFloats, val)
+		}
+		series := newSeriesFromFloats(newFloats, self.index, self.name)
+		series.dtype = "float64"
+		return series, nil
+
+	} else if self.which == typeInt {
+		if typeName != "int64" && typeName != "datetime64[ns]" {
 			return nil, fmt.Errorf("invalid type, only \"int64\" or \"datetime64[ns]\" allowed, got %s", typeName)
 		}
 		newVals = self.valInts
-	} else {
-		newVals = make([]int, 0, self.Len())
-		for _, val := range self.values() {
-			text := fmt.Sprintf("%s", val)
 
-			// Default case, parse the value as an integer
-			num, err := strconv.Atoi(text)
-			if err != nil {
-				num = -1
+	} else if typeName == "int64" {
+		if self.which == typeInt {
+			newVals = self.valInts
+		} else if self.which == typeFloat {
+			newVals = make([]int, 0, self.Len())
+			for _, f := range self.valFloats {
+				if math.IsNaN(f) {
+					return starlark.None, fmt.Errorf("cannot convert non-finite values (NA or inf) to integer")
+				}
+				newVals = append(newVals, int(f))
 			}
-			newVals = append(newVals, num)
+		} else if self.which == typeObj {
+			newVals = make([]int, 0, self.Len())
+			for _, val := range self.valObjs {
+				text := fmt.Sprintf("%s", val)
+				// parse the value as an integer, or use 0
+				num, err := strconv.Atoi(text)
+				if err != nil {
+					num = 0
+				}
+				newVals = append(newVals, num)
+			}
 		}
+	} else if typeName == "Int64" {
+		if self.which == typeFloat {
+			newObjs := make([]interface{}, 0, self.Len())
+			for _, f := range self.valFloats {
+				if math.IsNaN(f) {
+					newObjs = append(newObjs, nil)
+				} else {
+					newObjs = append(newObjs, int(f))
+				}
+			}
+			series := newSeriesFromObjects(newObjs, self.index, self.name)
+			series.dtype = "Int64"
+			return series, nil
+		}
+		return starlark.None, fmt.Errorf("conversion type not implemented: %s to %s", self.dtype, typeName)
+	} else {
+		return starlark.None, fmt.Errorf("conversion type not implemented: %s to %s", self.dtype, typeName)
 	}
 
 	series := newSeriesFromInts(newVals, self.index, self.name)

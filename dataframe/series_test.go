@@ -37,6 +37,17 @@ func TestSeriesAsType(t *testing.T) {
 	expectScriptOutput(t, "testdata/series_astype.star", "testdata/series_astype.expect.txt")
 }
 
+func TestSeriesNaNToIntError(t *testing.T) {
+	_, err := runScript(t, "testdata/series_nan_to_int.star")
+	if err == nil {
+		t.Fatal("error expected, did not get one")
+	}
+	expectErr := `cannot convert non-finite values (NA or inf) to integer`
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch\nwant: %s\ngot: %s", expectErr, err)
+	}
+}
+
 func TestSeriesNotNull(t *testing.T) {
 	expectScriptOutput(t, "testdata/series_notnull.star", "testdata/series_notnull.expect.txt")
 }
@@ -48,6 +59,10 @@ func TestSeriesResetIndex(t *testing.T) {
 
 func TestSeriesTime(t *testing.T) {
 	expectScriptOutput(t, "testdata/series_time.star", "testdata/series_time.expect.txt")
+}
+
+func TestSeriesTimedelta(t *testing.T) {
+	expectScriptOutput(t, "testdata/series_timedelta.star", "testdata/series_timedelta.expect.txt")
 }
 
 func TestSeriesToFrame(t *testing.T) {

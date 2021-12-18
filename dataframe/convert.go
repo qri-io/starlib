@@ -2,6 +2,7 @@ package dataframe
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 	gotime "time"
@@ -221,6 +222,16 @@ func toIndexMaybe(v starlark.Value) (*Index, bool) {
 	return nil, false
 }
 
+func numToInt(elem interface{}) int {
+	if num, ok := elem.(int); ok {
+		return num
+	}
+	if f, ok := elem.(float64); ok {
+		return int(f)
+	}
+	return 0
+}
+
 func timeToInt(t time.Time) int {
 	gt := gotime.Time(t)
 	num := gt.Unix() * 1000000000
@@ -231,6 +242,15 @@ func intTimestampToString(n int) string {
 	t := gotime.Unix(int64(n/1000000000), 0)
 	ans := t.UTC().Format("2006-01-02 15:04:05")
 	return strings.TrimSuffix(ans, " 00:00:00")
+}
+
+func intTimedeltaToString(n int) string {
+	// Calculate number of days
+	dur := gotime.Duration(n)
+	days := int(math.Floor(dur.Hours() / 24))
+	// Make a Time to get hours:minutes:seconds of the day
+	t := gotime.Unix(int64(n/1000000000), 0)
+	return fmt.Sprintf("%d days %s", days, t.UTC().Format("15:04:05"))
 }
 
 func stringifyFloat(f float64) string {

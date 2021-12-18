@@ -53,5 +53,10 @@ def f():
   print(answer)
   print('')
 
+  vals = dataframe.Series([123,456,789], index=['a','b','c'])
+  diff = vals - vals.shift(1)
+  print(diff)
+  print('')
+
 
 f()

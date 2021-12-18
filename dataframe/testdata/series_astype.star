@@ -18,5 +18,21 @@ def f():
   print(out)
   print('')
 
+  series = dataframe.Series([123.1, 564.5, 978.9])
+  print(series)
+  print('')
+
+  series = series.shift(1)
+  print(series)
+  print('')
+
+  out = series.astype('Int64')
+  print(out)
+  print('')
+
+  out = out[out.notnull()]
+  print(out)
+  print('')
+
 
 f()
