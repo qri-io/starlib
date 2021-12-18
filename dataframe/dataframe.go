@@ -385,7 +385,7 @@ func constructBodyFromStarlarkList(data *starlark.List) ([]Series, []string, err
 }
 
 func constructBodyHeaderFromCSV(text string, hasHeader bool) ([]Series, []string, error) {
-	reader := csv.NewReader(ReplaceReader(strings.NewReader(text)))
+	reader := csv.NewReader(newCleanReader(strings.NewReader(text)))
 
 	header := []string{}
 	if hasHeader {
