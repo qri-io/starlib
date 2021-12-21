@@ -119,8 +119,7 @@ func (rt *rowTuple) toTuple() starlark.Tuple {
 		items = append(items, v)
 	}
 
-	index := NewIndex(rt.index.texts, "")
-	rowSeries := &Series{which: typeObj, valObjs: items, index: index}
+	rowSeries := &Series{which: typeObj, valObjs: items, index: rt.index}
 	arguments := starlark.Tuple{rowSeries}
 	return arguments
 }

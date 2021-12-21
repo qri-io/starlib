@@ -95,7 +95,7 @@ func seriesGroupByResultSum(_ *starlark.Thread, b *starlark.Builtin, args starla
 		vals = append(vals, sum)
 	}
 
-	index := NewIndex(indexTexts, self.lhsLabel)
+	index := NewTextIndex(indexTexts, self.lhsLabel)
 	return newSeriesFromInts(vals, index, self.rhsLabel), nil
 }
 
@@ -117,7 +117,7 @@ func seriesGroupByResultCount(_ *starlark.Thread, b *starlark.Builtin, args star
 		vals = append(vals, count)
 	}
 
-	index := NewIndex(indexTexts, self.lhsLabel)
+	index := NewTextIndex(indexTexts, self.lhsLabel)
 	return newSeriesFromInts(vals, index, self.rhsLabel), nil
 }
 
@@ -191,7 +191,7 @@ func seriesGroupByResultApply(thread *starlark.Thread, b *starlark.Builtin, args
 	}
 	index := self.dfIndex
 	if indexType == indexTypeBuildNew {
-		index = NewIndex(indexNames, self.lhsLabel)
+		index = NewTextIndex(indexNames, self.lhsLabel)
 	}
 	s := builder.toSeries(index, self.rhsLabel)
 	return &s, nil

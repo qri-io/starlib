@@ -107,7 +107,7 @@ func (df *DataFrame) determineCellWidths(stopRow, renewRow int) (int, []int) {
 			labelWidth = k
 		}
 	} else {
-		for _, str := range df.index.texts {
+		for _, str := range df.index.Columns() {
 			k := len(str)
 			if k > labelWidth {
 				labelWidth = k
@@ -122,7 +122,7 @@ func (df *DataFrame) determineCellWidths(stopRow, renewRow int) (int, []int) {
 	cellWidths := make([]int, df.NumCols())
 	colTexts := []string{}
 	if df.columns != nil {
-		colTexts = df.columns.texts
+		colTexts = df.columns.Columns()
 	}
 	for i, name := range colTexts {
 		w := len(name)
@@ -146,7 +146,7 @@ func (df *DataFrame) determineCellWidths(stopRow, renewRow int) (int, []int) {
 func (df *DataFrame) stringifyColumns(stopIndex, renewIndex, labelWidth int, cellWidths []int) string {
 	colTexts := []string{}
 	if df.columns != nil {
-		colTexts = df.columns.texts
+		colTexts = df.columns.Columns()
 	}
 
 	// Render columns
@@ -204,7 +204,7 @@ func (df *DataFrame) stringifyRows(stopRow, renewRow, stopCol, renewCol, labelWi
 		if df.index == nil {
 			render[0] = padString(i, labelWidth)
 		} else {
-			render[0] = padString(df.index.texts[i], labelWidth)
+			render[0] = padString(df.index.Columns()[i], labelWidth)
 		}
 		// 2 extra spaces after the lhs label
 		render[0] += "  "

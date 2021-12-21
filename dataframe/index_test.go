@@ -7,7 +7,7 @@ import (
 )
 
 func TestIndexStringify(t *testing.T) {
-	idx := NewIndex([]string{"cat", "dog", "eel"}, "animals")
+	idx := NewTextIndex([]string{"cat", "dog", "eel"}, "animals")
 	actual := idx.String()
 	expect := `Index(['cat', 'dog', 'eel'], dtype='object', name='animals')`
 	if diff := cmp.Diff(expect, actual); diff != "" {

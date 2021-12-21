@@ -79,7 +79,7 @@ func parseCsv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple,
 	}
 	outconf, _ := thread.Local(keyOutputConfig).(*OutputConfig)
 
-	return newDataFrameConstructor(body, NewIndex(header, ""), nil, outconf)
+	return newDataFrameConstructor(body, NewTextIndex(header, ""), nil, outconf)
 }
 
 // newDataFrameBuiltin constructs a dataframe, meant to be called from starlark
@@ -128,7 +128,7 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index, outconf 
 	)
 
 	if columnNames != nil {
-		columns = NewIndex(columnNames, "")
+		columns = NewTextIndex(columnNames, "")
 	}
 
 	switch inData := data.(type) {
@@ -181,7 +181,7 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index, outconf 
 		if columns != nil {
 			body = constructBodyFromReindexedColumns(body, keys, columns)
 		} else {
-			columns = NewIndex(keys, "")
+			columns = NewTextIndex(keys, "")
 		}
 
 	case *starlark.List:
@@ -191,7 +191,7 @@ func NewDataFrame(data interface{}, columnNames []string, index *Index, outconf 
 			return nil, err
 		}
 		if colNames != nil {
-			columns = NewIndex(colNames, "")
+			columns = NewTextIndex(colNames, "")
 		}
 
 	default:
@@ -238,7 +238,7 @@ func NewDataFrameFromCSV(text string, outconf *OutputConfig) (*DataFrame, error)
 	if err != nil {
 		return nil, err
 	}
-	return newDataFrameConstructor(body, NewIndex(header, ""), nil, outconf)
+	return newDataFrameConstructor(body, NewTextIndex(header, ""), nil, outconf)
 }
 
 // construct a body from a slice, either cooercing it into rows, or treating it as a column
@@ -427,8 +427,8 @@ func constructBodyHeaderFromCSV(text string, hasHeader bool) ([]Series, []string
 // dictionaries are re-indexed by column names to create the body
 func constructBodyFromReindexedColumns(orig []Series, names []string, columns *Index) []Series {
 	_, numRows := sizeOfBody(orig)
-	newBody := make([]Series, len(columns.texts))
-	for i, col := range columns.texts {
+	newBody := make([]Series, columns.Len())
+	for i, col := range columns.Columns() {
 		pos := findKeyPos(col, names)
 		if pos == -1 {
 			newBody[i] = newTypedSliceBuilderNaNFilled(numRows).toSeries(nil, "")
@@ -571,18 +571,19 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 
 	// If dataframe has no columns yet, create an empty index
 	if df.columns == nil {
-		df.columns = NewIndex([]string{}, "")
+		// TODO(dustmop): Use an empty index instead, test this case
+		df.columns = NewTextIndex([]string{}, "")
 	}
 
 	// Figure out if a column already exists with the given name
-	columnIndex := findKeyPos(name, df.columns.texts)
+	columnIndex := findKeyPos(name, df.columns.Columns())
 
 	// Either prepend the new column, or keep the names the same
 	var newNames []string
 	if columnIndex == -1 {
-		newNames = append(df.columns.texts, name)
+		newNames = append(df.columns.Columns(), name)
 	} else {
-		newNames = df.columns.texts
+		newNames = df.columns.Columns()
 	}
 
 	// Assignment of a scalar (int, bool, float, string) to the column
@@ -596,7 +597,8 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 			newBody = df.body
 			newBody[columnIndex] = *newCol
 		}
-		df.columns = NewIndex(newNames, "")
+		// TODO(dustmop): Test this case
+		df.columns = NewTextIndex(newNames, "")
 		df.body = newBody
 		return nil
 	}
@@ -626,7 +628,8 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 		newBody = df.body
 		newBody[columnIndex] = *series
 	}
-	df.columns = NewIndex(newNames, "")
+	// TODO(dustmop): Test this case
+	df.columns = NewTextIndex(newNames, "")
 	df.body = newBody
 	return nil
 }
@@ -675,14 +678,14 @@ func (df *DataFrame) accessDataFrameByString(key string) (starlark.Value, error)
 	}
 
 	// Find the column being retrieved, fail if not found
-	keyPos := findKeyPos(key, df.columns.texts)
+	keyPos := findKeyPos(key, df.columns.Columns())
 	if keyPos == -1 {
 		return starlark.None, fmt.Errorf("DataFrame.Get: key not found %q", key)
 	}
 
 	got := df.body[keyPos]
 	// TODO(dustmop): index should be the left-hand-side index, need a test
-	index := NewIndex(nil, "")
+	index := NewTextIndex(nil, "")
 
 	dtype := got.dtype
 	if dtype == "" {
@@ -737,7 +740,8 @@ func (df *DataFrame) accessDataFrameBySeries(series *Series) (starlark.Value, er
 	if err != nil {
 		return nil, err
 	}
-	return newDataFrameConstructor(body, df.columns, NewIndex(indexVals, ""), df.outconf)
+	// TODO(dustmop): Instead of stringifying, make a series of ints
+	return newDataFrameConstructor(body, df.columns, NewTextIndex(indexVals, ""), df.outconf)
 }
 
 // accessing a dataframe using a list of bools (example: df[[True, False, True]])
@@ -844,7 +848,7 @@ func (df *DataFrame) ColumnNamesTypes() ([]string, []string) {
 		dtypes[i] = series.dtype
 	}
 
-	return df.columns.texts, dtypes
+	return df.columns.Columns(), dtypes
 }
 
 // at returns an atIndexer which can retrieve or set individual cells
@@ -855,7 +859,7 @@ func dataframeAttrAt(self *DataFrame) (starlark.Value, error) {
 // columns returns the columns of the dataframe as an index
 func dataframeAttrColumns(self *DataFrame) (starlark.Value, error) {
 	if self.columns == nil {
-		return NewRangeIndex(self.NumCols()), nil
+		self.columns = NewRangeIndex(self.NumCols(), "")
 	}
 	return self.columns, nil
 }
@@ -863,7 +867,7 @@ func dataframeAttrColumns(self *DataFrame) (starlark.Value, error) {
 // index returns the index of the dataframe, or a rangeIndex if none exists
 func dataframeAttrIndex(self *DataFrame) (starlark.Value, error) {
 	if self.index == nil {
-		return NewRangeIndex(self.NumRows()), nil
+		self.index = NewRangeIndex(self.NumRows(), "")
 	}
 	return self.index, nil
 }
@@ -1002,7 +1006,7 @@ func dataframeGroupBy(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 	}
 
 	result := map[string][]*rowTuple{}
-	keyPos := findKeyPos(groupBy, self.columns.texts)
+	keyPos := findKeyPos(groupBy, self.columns.Columns())
 	if keyPos == -1 {
 		return starlark.None, nil
 	}
@@ -1066,8 +1070,8 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 
 	if columns != nil {
 		// Drop columns
-		colIndex := findKeyPos(columns[0], self.columns.texts)
-		newColumns := removeElemFromStringList(self.columns.texts, colIndex)
+		colIndex := findKeyPos(columns[0], self.columns.Columns())
+		newColumns := removeElemFromStringList(self.columns.Columns(), colIndex)
 
 		builder := newTableBuilder(self.NumCols()-1, self.NumRows())
 		for rowIter := newRowIter(self); !rowIter.Done(); rowIter.Next() {
@@ -1080,7 +1084,8 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 			return nil, err
 		}
 		// Return copy of the dataframe
-		return newDataFrameConstructor(body, NewIndex(newColumns, ""), nil, self.outconf)
+		// TODO(dustmop): Work with other index types
+		return newDataFrameConstructor(body, NewTextIndex(newColumns, ""), nil, self.outconf)
 	}
 
 	// Drop rows using index
@@ -1123,7 +1128,7 @@ func dataframeDropDuplicates(_ *starlark.Thread, b *starlark.Builtin, args starl
 		// TODO: Assuming len > 0
 		elem := subsetList.Index(0)
 		if text, ok := elem.(starlark.String); ok {
-			subsetPos = findKeyPos(string(text), self.columns.texts)
+			subsetPos = findKeyPos(string(text), self.columns.Columns())
 		}
 	}
 
@@ -1175,8 +1180,8 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	leftKey := 0
 	rightKey := 0
 	if leftOnStr != "" {
-		leftKey = findKeyPos(leftOnStr, self.columns.texts)
-		rightKey = findKeyPos(rightOnStr, rightFrame.columns.texts)
+		leftKey = findKeyPos(leftOnStr, self.columns.Columns())
+		rightKey = findKeyPos(rightOnStr, rightFrame.columns.Columns())
 		if leftKey == -1 {
 			return starlark.None, fmt.Errorf("left key %q not found", leftOnStr)
 		}
@@ -1230,10 +1235,10 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	}
 
 	// If column names of the merge key are the same, don't include the second one, ignore it
-	ignore := findKeyPos(self.columns.texts[leftKey], rightFrame.columns.texts)
+	ignore := findKeyPos(self.columns.Columns()[leftKey], rightFrame.columns.Columns())
 
-	leftColumns := addSuffixToStringList(self.columns.texts, suffixes[0], leftKey)
-	rightColumns := addSuffixToStringList(rightFrame.columns.texts, suffixes[1], rightKey)
+	leftColumns := addSuffixToStringList(self.columns.Columns(), suffixes[0], leftKey)
+	rightColumns := addSuffixToStringList(rightFrame.columns.Columns(), suffixes[1], rightKey)
 	if ignore != -1 {
 		rightColumns = removeElemFromStringList(rightColumns, ignore)
 	}
@@ -1255,7 +1260,8 @@ func dataframeMerge(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	if err != nil {
 		return nil, err
 	}
-	return newDataFrameConstructor(body, NewIndex(newColumns, ""), nil, self.outconf)
+	// TODO(dustmop): Work with other index types, test this case
+	return newDataFrameConstructor(body, NewTextIndex(newColumns, ""), nil, self.outconf)
 }
 
 func dataframeSortValues(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -1276,7 +1282,7 @@ func dataframeSortValues(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 	if byStrs == nil {
 		return nil, fmt.Errorf("invalid `by` value")
 	}
-	sortPos := findKeyPos(byStrs[0], self.columns.texts)
+	sortPos := findKeyPos(byStrs[0], self.columns.Columns())
 	values := self.body[sortPos].stringValues()
 
 	// Make an order list, indexes that refer to the sorted order
@@ -1303,7 +1309,7 @@ func dataframeSortValues(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 		if self.index == nil {
 			orderStr[i] = strconv.Itoa(order[i])
 		} else {
-			orderStr[i] = self.index.texts[order[i]]
+			orderStr[i] = self.index.Columns()[order[i]]
 		}
 	}
 
@@ -1317,7 +1323,8 @@ func dataframeSortValues(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 	if err != nil {
 		return nil, err
 	}
-	return newDataFrameConstructor(body, self.columns, NewIndex(orderStr, ""), self.outconf)
+	// TODO(dustomp): Work with other index types, test this case
+	return newDataFrameConstructor(body, self.columns, NewTextIndex(orderStr, ""), self.outconf)
 }
 
 // reset_index method turns the DataFrame index into a new column
@@ -1339,14 +1346,15 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 	if indexName == "" {
 		indexName = "index"
 	}
-	newColumns := append([]string{indexName}, self.columns.texts...)
+	newColumns := append([]string{indexName}, self.columns.Columns()...)
 	newBody := make([]Series, 0, self.NumCols())
 
-	objs := convertStringsToObjects(self.index.texts)
+	objs := convertStringsToObjects(self.index.Columns())
 	newBody = append(newBody, Series{which: typeObj, valObjs: objs})
 	newBody = append(newBody, self.body...)
 
-	return newDataFrameConstructor(newBody, NewIndex(newColumns, ""), nil, self.outconf)
+	// TODO(dustmop): Work with other index types, test this case
+	return newDataFrameConstructor(newBody, NewTextIndex(newColumns, ""), nil, self.outconf)
 }
 
 // append adds a new row to the body

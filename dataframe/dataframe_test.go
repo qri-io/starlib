@@ -438,7 +438,7 @@ func TestDataframeCopyAssignment(t *testing.T) {
 		[]interface{}{"last", 90.2, int64(493)},
 	}
 	columns := []string{"word", "num0", "num64"}
-	index := NewIndex([]string{"first", "second", "third"}, "labels")
+	index := NewTextIndex([]string{"first", "second", "third"}, "labels")
 
 	df, err := NewDataFrame(rows, columns, index, outconf)
 	if err != nil {

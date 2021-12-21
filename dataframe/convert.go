@@ -214,7 +214,7 @@ func toNativeValue(v starlark.Value) interface{} {
 func toIndexMaybe(v starlark.Value) (*Index, bool) {
 	texts := toStrSliceOrNil(v)
 	if texts != nil {
-		return NewIndex(texts, ""), true
+		return NewTextIndex(texts, ""), true
 	}
 	if index, ok := v.(*Index); ok {
 		return index, true

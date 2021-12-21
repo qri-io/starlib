@@ -11,7 +11,7 @@ import (
 // Used for storing axis labels in a Series or DataFrame.
 type Index struct {
 	frozen bool
-	texts  []string
+	impl   indexImpl
 	name   string
 }
 
@@ -22,17 +22,24 @@ var (
 	_ starlark.Sequence = (*Index)(nil)
 )
 
-// NewIndex returns a new Index with the text values and name
-func NewIndex(texts []string, name string) *Index {
-	return &Index{texts: texts, name: name}
+// NewTextIndex returns a new Index with the text values and name
+func NewTextIndex(texts []string, name string) *Index {
+	return &Index{impl: newTextIndexImpl(texts), name: name}
+}
+
+// NewRangeIndex returns a new Index with the text values and name
+func NewRangeIndex(size int, name string) *Index {
+	return &Index{impl: newRangeIndexImpl(size), name: name}
+}
+
+// NewInt64Index returns a new Index of integer values, with a name
+func NewInt64Index(nums []int, name string) *Index {
+	return &Index{impl: newInt64IndexImpl(nums), name: name}
 }
 
 // CloneWithStrings returns a clone of the index but with replaced string values
-func (i *Index) CloneWithStrings(txts []string) starlark.Value {
-	return &Index{
-		texts: txts,
-		name:  i.name,
-	}
+func (i *Index) CloneWithStrings(texts []string) starlark.Value {
+	return NewTextIndex(texts, i.name)
 }
 
 // Freeze prevents the index from being mutated
@@ -47,18 +54,15 @@ func (i *Index) Hash() (uint32, error) {
 
 // String returns the index as a string
 func (i *Index) String() string {
-	result := make([]string, 0, len(i.texts))
-	for _, col := range i.texts {
-		// TODO(dustmop): Use proper Starlark string literal quoting, to handle
-		// column names that have quotes in them.
-		text := fmt.Sprintf("'%s'", col)
-		result = append(result, text)
+	if i == nil || i.impl == nil {
+		return "<nil>"
 	}
-	cols := strings.Join(result, ", ")
+	typ := i.impl.Type()
+	cols := i.impl.ColumnsString()
 	if i.name == "" {
-		return fmt.Sprintf("Index([%s], dtype='object')", cols)
+		return fmt.Sprintf("%s(%s)", typ, cols)
 	}
-	return fmt.Sprintf("Index([%s], dtype='object', name='%s')", cols, i.name)
+	return fmt.Sprintf("%s(%s, name='%s')", typ, cols, i.name)
 }
 
 // Truth converts the index into a bool
@@ -97,22 +101,31 @@ func (i *Index) Iterate() starlark.Iterator {
 
 // Len returns the length of the index
 func (i *Index) Len() int {
-	if i == nil {
+	if i == nil || i.impl == nil {
 		return 0
 	}
-	return len(i.texts)
+	return i.impl.Len()
 }
 
 // StrAt returns the string at index k
 func (i *Index) StrAt(k int) string {
-	return i.texts[k]
+	return i.impl.StrAt(k)
+}
+
+// Columns returns the columns as string values
+func (i *Index) Columns() []string {
+	result := make([]string, i.impl.Len())
+	for k := 0; k < i.impl.Len(); k++ {
+		result[k] = i.impl.StrAt(k)
+	}
+	return result
 }
 
 func newIndex(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
 		dataVal, nameVal starlark.Value
 	)
-	if err := starlark.UnpackArgs("DataFrame", args, kwargs,
+	if err := starlark.UnpackArgs("Index", args, kwargs,
 		"data?", &dataVal,
 		"name?", &nameVal,
 	); err != nil {
@@ -120,7 +133,7 @@ func newIndex(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple,
 	}
 	data := toStrSliceOrNil(dataVal)
 	name := toStrOrEmpty(nameVal)
-	return NewIndex(data, name), nil
+	return NewTextIndex(data, name), nil
 }
 
 type indexIterator struct {
@@ -133,10 +146,116 @@ func (it *indexIterator) Done() {}
 
 // Next assigns the next item and returns whether one was found
 func (it *indexIterator) Next(p *starlark.Value) bool {
-	if it.count < len(it.idx.texts) {
-		*p = starlark.String(it.idx.texts[it.count])
+	if it.count < it.idx.Len() {
+		*p = starlark.String(it.idx.StrAt(it.count))
 		it.count++
 		return true
 	}
 	return false
+}
+
+// interface for implementations of the index
+type indexImpl interface {
+	Type() string
+	ColumnsString() string
+	Len() int
+	StrAt(int) string
+	At(int) interface{}
+}
+
+// text values for an index implementation
+type textIndexImpl struct {
+	texts []string
+}
+
+func newTextIndexImpl(texts []string) *textIndexImpl {
+	return &textIndexImpl{texts: texts}
+}
+
+func (ti *textIndexImpl) Type() string {
+	return "Index"
+}
+
+func (ti *textIndexImpl) ColumnsString() string {
+	result := make([]string, ti.Len())
+	for i, col := range ti.texts {
+		// TODO(dustmop): Use proper Starlark string literal quoting, to handle
+		// column names that have quotes in them.
+		result[i] = fmt.Sprintf("'%s'", col)
+	}
+	return fmt.Sprintf("[%s], dtype='object'", strings.Join(result, ", "))
+}
+
+func (ti *textIndexImpl) Len() int {
+	return len(ti.texts)
+}
+
+func (ti *textIndexImpl) StrAt(k int) string {
+	return ti.texts[k]
+}
+
+func (ti *textIndexImpl) At(k int) interface{} {
+	return ti.texts[k]
+}
+
+// range from 0 up to some limit for an index implementation
+type rangeIndexImpl struct {
+	size int
+}
+
+func newRangeIndexImpl(size int) *rangeIndexImpl {
+	return &rangeIndexImpl{size: size}
+}
+
+func (ri *rangeIndexImpl) Type() string {
+	return "RangeIndex"
+}
+
+func (ri *rangeIndexImpl) ColumnsString() string {
+	return fmt.Sprintf("start=0, stop=%d, step=1", ri.size)
+}
+
+func (ri *rangeIndexImpl) Len() int {
+	return ri.size
+}
+
+func (ri *rangeIndexImpl) StrAt(k int) string {
+	return fmt.Sprintf("%v", k)
+}
+
+func (ri *rangeIndexImpl) At(k int) interface{} {
+	return k
+}
+
+// list of integer values for an index implementation
+type int64IndexImpl struct {
+	nums []int
+}
+
+func newInt64IndexImpl(nums []int) *int64IndexImpl {
+	return &int64IndexImpl{nums: nums}
+}
+
+func (ii *int64IndexImpl) Type() string {
+	return "Int64Index"
+}
+
+func (ii *int64IndexImpl) ColumnsString() string {
+	result := make([]string, len(ii.nums))
+	for i, n := range ii.nums {
+		result[i] = fmt.Sprintf("%v", n)
+	}
+	return strings.Join(result, ", ")
+}
+
+func (ii *int64IndexImpl) Len() int {
+	return len(ii.nums)
+}
+
+func (ii *int64IndexImpl) StrAt(k int) string {
+	return fmt.Sprintf("%v", ii.nums[k])
+}
+
+func (ii *int64IndexImpl) At(k int) interface{} {
+	return ii.nums[k]
 }

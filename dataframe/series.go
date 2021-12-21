@@ -97,7 +97,7 @@ func (s *Series) AttrNames() []string {
 // Get retrieves a single cell from the Series
 func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, err error) {
 	if name, ok := toStrMaybe(keyVal); ok {
-		pos := findKeyPos(name, s.index.texts)
+		pos := findKeyPos(name, s.index.Columns())
 		if pos == -1 {
 			return starlark.None, false, fmt.Errorf("Series.Get: not found: %q", name)
 		}
@@ -130,7 +130,8 @@ func (s *Series) Get(keyVal starlark.Value) (value starlark.Value, found bool, e
 			newIdx = append(newIdx, fmt.Sprintf("%d", i))
 			newVals = append(newVals, vals[i])
 		}
-		return newSeriesFromObjects(newVals, NewIndex(newIdx, ""), s.name), true, nil
+		// TODO(dustmop): Support different index types, test this case
+		return newSeriesFromObjects(newVals, NewTextIndex(newIdx, ""), s.name), true, nil
 	}
 	return starlark.None, false, fmt.Errorf("Series.Get: not found: %q", keyVal)
 }
@@ -195,7 +196,7 @@ func (s *Series) stringify() string {
 	if s.index.Len() == 0 {
 		indexWidth = len(fmt.Sprintf("%d", s.Len()-1))
 	} else {
-		for _, elem := range s.index.texts {
+		for _, elem := range s.index.Columns() {
 			w := len(elem)
 			if w > indexWidth {
 				indexWidth = w
@@ -246,7 +247,7 @@ func (s *Series) stringify() string {
 		if s.index.Len() == 0 {
 			line = fmt.Sprintf(tmpl, i, elem)
 		} else {
-			line = fmt.Sprintf(tmpl, s.index.texts[i], elem)
+			line = fmt.Sprintf(tmpl, s.index.Columns()[i], elem)
 		}
 		render = append(render, line)
 	}
@@ -956,7 +957,7 @@ func newSeries(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 			return starlark.None, err
 		}
 		// TODO: If index is provided, reindex the series.
-		index := NewIndex(builder.keys(), "")
+		index := NewTextIndex(builder.keys(), "")
 		series := builder.toSeries(index, name)
 		return &series, nil
 	}
