@@ -1,38 +1,51 @@
        0     1    2
 0    cat  meow  123
 1    dog  bark  456
+RangeIndex(start=0, stop=2, step=1)
 
        0     1    2
 0    cat  meow  123
 1    dog  bark  456
-2    eel   zap  789
+0    eel   zap  789
+Int64Index([0, 1, 0], dtype='int64')
 
            0       1    2
 0        cat    meow  123
 1        dog    bark  456
-2        eel     zap  789
-3       frog  ribbit  321
-4    giraffe     hum  654
-5      hippo   grunt  987
+0        eel     zap  789
+0       frog  ribbit  321
+1    giraffe     hum  654
+2      hippo   grunt  987
 
-           0       1    2
-0        cat    meow  123
-1        dog    bark  456
-2        eel     zap  789
-3       frog  ribbit  321
-4    giraffe     hum  654
-5      hippo   grunt  987
-6     iguana  wheeze    0
+           0       1      2
+0        cat    meow  123.0
+1        dog    bark  456.0
+0        eel     zap  789.0
+0       frog  ribbit  321.0
+1    giraffe     hum  654.0
+2      hippo   grunt  987.0
+0     iguana  wheeze    NaN
 
-           0       1    2     3
-0        cat    meow  123  None
-1        dog    bark  456  None
-2        eel     zap  789  None
-3       frog  ribbit  321  None
-4    giraffe     hum  654  None
-5      hippo   grunt  987  None
-6     iguana  wheeze    0  None
-7     jaguar   growl  444   555
+           0       1      2      3
+0        cat    meow  123.0    NaN
+1        dog    bark  456.0    NaN
+0        eel     zap  789.0    NaN
+0       frog  ribbit  321.0    NaN
+1    giraffe     hum  654.0    NaN
+2      hippo   grunt  987.0    NaN
+0     iguana  wheeze    NaN    NaN
+0     jaguar   growl  444.0  555.0
 
           0      1    2    3
 0    jaguar  growl  444  555
+
+       0     1    2
+c    cat  meow  123
+d    dog  bark  456
+Index(['c', 'd'], dtype='object')
+
+       0     1    2
+c    cat  meow  123
+d    dog  bark  456
+0    eel   zap  789
+Index(['c', 'd', 0], dtype='object')

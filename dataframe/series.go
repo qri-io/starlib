@@ -606,7 +606,7 @@ func seriesCmp(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 	self := b.Receiver().(*Series)
 
 	if self.which != typeInt {
-		return starlark.None, fmt.Errorf("TODO(dustmlp): Series.cmp can only be used with a Series of int")
+		return starlark.None, fmt.Errorf("TODO(dustmop): Series.cmp can only be used with a Series of int")
 	}
 
 	oper := string(operStr)

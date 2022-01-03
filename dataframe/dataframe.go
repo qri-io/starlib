@@ -572,7 +572,7 @@ func (df *DataFrame) SetKey(nameVal, val starlark.Value) error {
 	// If dataframe has no columns yet, create an empty index
 	if df.columns == nil {
 		// TODO(dustmop): Use an empty index instead, test this case
-		df.columns = NewTextIndex([]string{}, "")
+		df.columns = NewObjIndex([]interface{}{}, "")
 	}
 
 	// Figure out if a column already exists with the given name
@@ -685,7 +685,7 @@ func (df *DataFrame) accessDataFrameByString(key string) (starlark.Value, error)
 
 	got := df.body[keyPos]
 	// TODO(dustmop): index should be the left-hand-side index, need a test
-	index := NewTextIndex(nil, "")
+	index := NewObjIndex(nil, "")
 
 	dtype := got.dtype
 	if dtype == "" {
@@ -1104,7 +1104,7 @@ func dataframeDrop(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	if err != nil {
 		return nil, err
 	}
-	// TODO(dustomp): Support indexes with names, remove from them
+	// TODO(dustmop): Support indexes with names, remove from them
 	// Return copy of the dataframe
 	return newDataFrameConstructor(body, self.columns, nil, self.outconf)
 }
@@ -1323,7 +1323,7 @@ func dataframeSortValues(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 	if err != nil {
 		return nil, err
 	}
-	// TODO(dustomp): Work with other index types, test this case
+	// TODO(dustmop): Work with other index types, test this case
 	return newDataFrameConstructor(body, self.columns, NewTextIndex(orderStr, ""), self.outconf)
 }
 
@@ -1357,7 +1357,7 @@ func dataframeResetIndex(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 	return newDataFrameConstructor(newBody, NewTextIndex(newColumns, ""), nil, self.outconf)
 }
 
-// append adds a new row to the body
+// append adds new rows to the body
 func dataframeAppend(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
 		otherVal starlark.Value
@@ -1370,70 +1370,65 @@ func dataframeAppend(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 		return nil, err
 	}
 
-	dataCols := -1
-	dataRows := -1
-	var data [][]interface{}
+	other, err := upgradeToDataFrame(otherVal, self.outconf)
+	if err != nil {
+		return starlark.None, err
+	}
 
-	switch item := otherVal.(type) {
+	// Take max number of columns, if either dataframe is too narrow,
+	// it will be padded with nils
+	newColSize := max(self.NumCols(), other.NumCols())
+
+	builder := newTableBuilder(newColSize, self.NumRows())
+	// TODO(dustmop): Add index to the table builder
+	newIndexVals := make([]interface{}, 0, self.NumRows())
+	currIndex := self.index
+	n := 0
+	for rowIter := newRowIter(self); !rowIter.Done(); rowIter.Next() {
+		builder.pushRow(rowIter.GetRow().padToSize(newColSize).data)
+		newIndexVals = append(newIndexVals, currIndex.At(n))
+		n++
+	}
+	currIndex = other.index
+	n = 0
+	for rowIter := newRowIter(other); !rowIter.Done(); rowIter.Next() {
+		builder.pushRow(rowIter.GetRow().padToSize(newColSize).data)
+		newIndexVals = append(newIndexVals, currIndex.At(n))
+		n++
+	}
+	body, err := builder.body()
+	if err != nil {
+		return nil, err
+	}
+	// TODO(dustmop): Test name of index
+	return newDataFrameConstructor(body, self.columns, newIndexFrom(newIndexVals, ""), self.outconf)
+}
+
+func upgradeToDataFrame(val starlark.Value, outconf *OutputConfig) (*DataFrame, error) {
+	switch item := val.(type) {
 	case *DataFrame:
-		data = item.toSliceBody()
-		dataRows = item.NumRows()
-		dataCols = item.NumCols()
+		return item, nil
 
 	case *starlark.List:
+		newBody := make([][]interface{}, 0, item.Len())
+		numCols := -1
 		for i := 0; i < item.Len(); i++ {
 			elem := item.Index(i)
 			arr := toInterfaceSliceOrNil(elem)
 			if arr == nil {
 				return nil, fmt.Errorf("append requires a list of lists")
 			}
-			if dataCols == -1 {
-				dataCols = len(arr)
-			} else if dataCols != len(arr) {
+			if numCols == -1 {
+				numCols = len(arr)
+			} else if numCols != len(arr) {
 				return nil, fmt.Errorf("append requires list to have the same length of each row")
 			}
-			data = append(data, arr)
+			newBody = append(newBody, arr)
 		}
-		dataRows = len(data)
+		return NewDataFrame(newBody, nil, NewRangeIndex(len(newBody), ""), outconf)
 	}
 
-	if self.NumCols() == 0 {
-		self.body = make([]Series, dataCols)
-	} else if dataCols > self.NumCols() {
-		numMore := dataCols - self.NumCols()
-		addition := make([]Series, numMore)
-		for x := 0; x < numMore; x++ {
-			series := newSeriesFromRepeatScalar(nil, self.NumRows())
-			addition[x] = *series
-		}
-		self.body = append(self.body, addition...)
-	}
-
-	newBody := make([]Series, len(self.body))
-	for x := 0; x < dataCols; x++ {
-		col := self.body[x]
-		builder := newTypedSliceBuilderFromSeries(&col)
-		for y := 0; y < dataRows; y++ {
-			builder.push(data[y][x])
-		}
-		if err := builder.error(); err != nil {
-			return nil, err
-		}
-		newBody[x] = builder.toSeries(nil, "")
-	}
-	for x := dataCols; x < self.NumCols(); x++ {
-		col := self.body[x]
-		builder := newTypedSliceBuilderFromSeries(&col)
-		for y := 0; y < dataRows; y++ {
-			builder.pushNil()
-		}
-		if err := builder.error(); err != nil {
-			return nil, err
-		}
-		newBody[x] = builder.toSeries(nil, "")
-	}
-
-	return newDataFrameConstructor(newBody, self.columns, self.index, self.outconf)
+	return nil, fmt.Errorf("could not convert to DataFrame: %v", val)
 }
 
 func dataframeShift(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {

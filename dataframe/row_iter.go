@@ -112,6 +112,14 @@ func (rt *rowTuple) concat(other *rowTuple) []interface{} {
 	return append(rt.data, other.data...)
 }
 
+func (rt *rowTuple) padToSize(num int) *rowTuple {
+	if len(rt.data) < num {
+		pad := make([]interface{}, num-len(rt.data))
+		rt.data = append(rt.data, pad...)
+	}
+	return rt
+}
+
 func (rt *rowTuple) toTuple() starlark.Tuple {
 	var items []interface{}
 	for _, r := range rt.data {

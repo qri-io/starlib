@@ -2,6 +2,7 @@ package dataframe
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"go.starlark.net/starlark"
@@ -22,12 +23,17 @@ var (
 	_ starlark.Sequence = (*Index)(nil)
 )
 
-// NewTextIndex returns a new Index with the text values and name
-func NewTextIndex(texts []string, name string) *Index {
-	return &Index{impl: newTextIndexImpl(texts), name: name}
+// NewObjIndex returns a new Index with the values and name
+func NewObjIndex(objs []interface{}, name string) *Index {
+	return &Index{impl: newObjIndexImpl(objs), name: name}
 }
 
-// NewRangeIndex returns a new Index with the text values and name
+// NewTextIndex returns a new Index with the strings and name
+func NewTextIndex(texts []string, name string) *Index {
+	return &Index{impl: newObjIndexImpl(convertStringsToObjects(texts)), name: name}
+}
+
+// NewRangeIndex returns a new Index with given range of ints
 func NewRangeIndex(size int, name string) *Index {
 	return &Index{impl: newRangeIndexImpl(size), name: name}
 }
@@ -35,6 +41,23 @@ func NewRangeIndex(size int, name string) *Index {
 // NewInt64Index returns a new Index of integer values, with a name
 func NewInt64Index(nums []int, name string) *Index {
 	return &Index{impl: newInt64IndexImpl(nums), name: name}
+}
+
+// construct a new index, of ints if possible, otherwise objects
+func newIndexFrom(vals []interface{}, name string) *Index {
+	tryNums := make([]int, len(vals))
+	for k, v := range vals {
+		if n, ok := v.(int); ok {
+			tryNums[k] = n
+		} else {
+			tryNums = nil
+			break
+		}
+	}
+	if tryNums != nil {
+		return NewInt64Index(tryNums, name)
+	}
+	return NewObjIndex(vals, name)
 }
 
 // CloneWithStrings returns a clone of the index but with replaced string values
@@ -109,7 +132,18 @@ func (i *Index) Len() int {
 
 // StrAt returns the string at index k
 func (i *Index) StrAt(k int) string {
+	if i == nil {
+		return strconv.Itoa(k)
+	}
 	return i.impl.StrAt(k)
+}
+
+// At returns the data at index k
+func (i *Index) At(k int) interface{} {
+	if i == nil {
+		return k
+	}
+	return i.impl.At(k)
 }
 
 // Columns returns the columns as string values
@@ -131,9 +165,9 @@ func newIndex(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple,
 	); err != nil {
 		return nil, err
 	}
-	data := toStrSliceOrNil(dataVal)
+	data := toInterfaceSliceOrNil(dataVal)
 	name := toStrOrEmpty(nameVal)
-	return NewTextIndex(data, name), nil
+	return newIndexFrom(data, name), nil
 }
 
 type indexIterator struct {
@@ -163,39 +197,43 @@ type indexImpl interface {
 	At(int) interface{}
 }
 
-// text values for an index implementation
-type textIndexImpl struct {
-	texts []string
+// objects for an index implementation
+type objIndexImpl struct {
+	objs []interface{}
 }
 
-func newTextIndexImpl(texts []string) *textIndexImpl {
-	return &textIndexImpl{texts: texts}
+func newObjIndexImpl(objs []interface{}) *objIndexImpl {
+	return &objIndexImpl{objs: objs}
 }
 
-func (ti *textIndexImpl) Type() string {
+func (ti *objIndexImpl) Type() string {
 	return "Index"
 }
 
-func (ti *textIndexImpl) ColumnsString() string {
+func (ti *objIndexImpl) ColumnsString() string {
 	result := make([]string, ti.Len())
-	for i, col := range ti.texts {
-		// TODO(dustmop): Use proper Starlark string literal quoting, to handle
-		// column names that have quotes in them.
-		result[i] = fmt.Sprintf("'%s'", col)
+	for i, col := range ti.objs {
+		if str, ok := col.(string); ok {
+			// TODO(dustmop): Use proper Starlark string literal quoting, to handle
+			// column names that have quotes in them.
+			result[i] = fmt.Sprintf("'%s'", str)
+			continue
+		}
+		result[i] = fmt.Sprintf("%v", col)
 	}
 	return fmt.Sprintf("[%s], dtype='object'", strings.Join(result, ", "))
 }
 
-func (ti *textIndexImpl) Len() int {
-	return len(ti.texts)
+func (ti *objIndexImpl) Len() int {
+	return len(ti.objs)
 }
 
-func (ti *textIndexImpl) StrAt(k int) string {
-	return ti.texts[k]
+func (ti *objIndexImpl) StrAt(k int) string {
+	return fmt.Sprintf("%v", ti.objs[k])
 }
 
-func (ti *textIndexImpl) At(k int) interface{} {
-	return ti.texts[k]
+func (ti *objIndexImpl) At(k int) interface{} {
+	return ti.objs[k]
 }
 
 // range from 0 up to some limit for an index implementation
@@ -245,7 +283,7 @@ func (ii *int64IndexImpl) ColumnsString() string {
 	for i, n := range ii.nums {
 		result[i] = fmt.Sprintf("%v", n)
 	}
-	return strings.Join(result, ", ")
+	return fmt.Sprintf("[%s], dtype='int64'", strings.Join(result, ", "))
 }
 
 func (ii *int64IndexImpl) Len() int {

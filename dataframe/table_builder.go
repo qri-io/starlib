@@ -72,7 +72,8 @@ func (b *tableBuilder) pushNamedRow(row *namedRow) {
 
 func (b *tableBuilder) pushRow(row []interface{}) {
 	if len(row) != b.numCols {
-		panic(fmt.Errorf("size of row %d does not match size of body: %d", len(row), b.numCols))
+		b.tableErr = fmt.Errorf("size of row %d does not match size of body: %d", len(row), b.numCols)
+		return
 	}
 	for x := 0; x < b.numCols; x++ {
 		b.builders[x].push(row[x])
@@ -81,7 +82,8 @@ func (b *tableBuilder) pushRow(row []interface{}) {
 
 func (b *tableBuilder) pushTextRow(row []string) {
 	if len(row) != b.numCols {
-		panic(fmt.Errorf("size of row %d does not match size of body: %d", len(row), b.numCols))
+		b.tableErr = fmt.Errorf("size of row %d does not match size of body: %d", len(row), b.numCols)
+		return
 	}
 	for x := 0; x < b.numCols; x++ {
 		b.builders[x].parsePush(row[x])

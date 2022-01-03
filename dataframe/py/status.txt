@@ -1,4 +1,4 @@
- 0: DIFFERENT ../testdata/dataframe_append.star
+ 0: ok ../testdata/dataframe_append.star
  1: ok ../testdata/dataframe_apply.star
  2: ok ../testdata/dataframe_assign.star
  3: DIFFERENT ../testdata/dataframe_at.star
@@ -25,7 +25,7 @@
 24: ok ../testdata/dataframe_size.star
 25: ok ../testdata/dataframe_sort.star
 26: ERROR ../testdata/dataframe_stringify.star
-27: DIFFERENT ../testdata/dataframe_type_keep.star
+27: ok ../testdata/dataframe_type_keep.star
 28: ERROR ../testdata/index.star
 29: ERROR ../testdata/series_astype.star
 30: ok ../testdata/series_basic.star
