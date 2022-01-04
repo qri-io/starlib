@@ -36,18 +36,6 @@ func newTypedSliceBuilder(capacityHint int) *typedSliceBuilder {
 	}
 }
 
-func newTypedSliceBuilderFromSeries(series *Series) *typedSliceBuilder {
-	return &typedSliceBuilder{
-		capHint:   series.Len(),
-		whichVals: series.which,
-		valInts:   series.valInts,
-		valFloats: series.valFloats,
-		valObjs:   series.valObjs,
-		dType:     series.dtype,
-		currType:  series.dtype,
-	}
-}
-
 func newTypedSliceBuilderNaNFilled(numRows int) *typedSliceBuilder {
 	builder := newTypedSliceBuilder(numRows)
 	for i := 0; i < numRows; i++ {

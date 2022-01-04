@@ -1488,22 +1488,6 @@ func dataframeShift(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	return newDataFrameConstructor(body, self.columns, self.index, self.outconf)
 }
 
-func (df *DataFrame) toSliceBody() [][]interface{} {
-	numRows := df.NumRows()
-	numCols := df.NumCols()
-	body := make([][]interface{}, numRows)
-	for y := 0; y < numRows; y++ {
-		body[y] = make([]interface{}, numCols)
-	}
-	for x := 0; x < numCols; x++ {
-		values := df.body[x].values()
-		for y := 0; y < numRows; y++ {
-			body[y][x] = values[y]
-		}
-	}
-	return body
-}
-
 func addSuffixToStringList(names []string, suffix string, keyPos int) []string {
 	result := make([]string, len(names))
 	for i, elem := range names {
