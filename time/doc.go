@@ -31,7 +31,7 @@ outline: time
       sequence of decimal numbers, each with optional fraction and a unit
       suffix, such as "300ms", "-1.5h" or "2h45m". Valid time units are "ns",
       "us" (or "µs"), "ms", "s", "m", "h".
-    parseTime(x, format, location) Time
+    parse_time(x, format, location) Time
       Parses the given time string using a specific time format and location.
       The expected arguments are a time string (mandatory), a time format
       (optional, set to RFC3339 by default, e.g. "2021-03-22T23:20:50.52Z")
