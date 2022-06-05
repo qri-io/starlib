@@ -3,6 +3,37 @@ re defines regular expression functions, it's intended to be a drop-in subset of
 
 ## Functions
 
+#### `search(pattern, text, flags=0`
+Scan through string looking for the first location where the regular expression pattern produces a match,
+and return a corresponding match object. Return None if no position in the string matches the pattern;
+note that this is different from finding a zero-length match at some point in the string.
+
+**parameters:**
+
+| name | type | description |
+|------|------|-------------|
+| `pattern` | `string` | regular expression pattern string |
+| `text` | `string` | string to find within |
+| `flags` | `int` | integer flags to control regex behaviour. reserved for future use |
+
+
+#### `match(pattern, text, flags=0)`
+If zero or more characters at the beginning of string match the regular expression pattern,
+return a corresponding match object. Return None if the string does not match the pattern;
+note that this is different from a zero-length match.
+
+`re.match()` will only match at the beginning of the string and not at the beginning of each line.
+If you want to locate a match anywhere in string, use `search()` instead
+
+**parameters:**
+
+| name | type | description |
+|------|------|-------------|
+| `pattern` | `string` | regular expression pattern string |
+| `text` | `string` | string to find within |
+| `flags` | `int` | integer flags to control regex behaviour. reserved for future use |
+
+
 #### `findall(pattern, text, flags=0)`
 Returns all non-overlapping matches of pattern in string, as a list of strings. The string is scanned left-to-right, and matches are returned in the order found. If one or more groups are present in the pattern, return a list of groups; this will be a list of tuples if the pattern has more than one group. Empty matches are included in the result.
 
@@ -42,3 +73,23 @@ Return the string obtained by replacing the leftmost non-overlapping occurrences
 | `flags` | `int` | integer flags to control regex behaviour. reserved for future use |
 
 
+#### `compile(pattern, flags=0)`
+Compile a regular expression pattern into a regular expression object, which
+can be used for matching using its match(), search() and other methods. This can be helpful for patterns that are used repeatedly.
+
+**parameters:**
+
+| name | type | description |
+|------|------|-------------|
+| `pattern` | `string` | regular expression pattern string |
+| `flags` | `int` | integer flags to control regex behaviour. reserved for future use |
+
+**usage**
+
+The compiled expression then supports the following methods, which are similar to those described above except that they pattern no longer needs to be specified:
+
+- `search(text, flags=0)`
+- `match(text, flags=0)`
+- `split(text, flags=0)`
+- `findall(text, flags=0)`
+- `sub(text, repl, flags=0)`
