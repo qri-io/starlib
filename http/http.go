@@ -234,6 +234,8 @@ func setBody(req *http.Request, body starlark.String, formData *starlark.Dict, f
 			return err
 		}
 		req.Body = ioutil.NopCloser(strings.NewReader(uq))
+		req.ContentLength = int64(len(uq))
+
 		return nil
 	}
 
@@ -249,6 +251,7 @@ func setBody(req *http.Request, body starlark.String, formData *starlark.Dict, f
 			return err
 		}
 		req.Body = ioutil.NopCloser(bytes.NewBuffer(data))
+		req.ContentLength = int64(len(data))
 	}
 
 	if formData != nil && formData.Len() > 0 {
@@ -279,6 +282,7 @@ func setBody(req *http.Request, body starlark.String, formData *starlark.Dict, f
 		case formEncodingURL, "":
 			contentType = formEncodingURL
 			req.Body = ioutil.NopCloser(strings.NewReader(form.Encode()))
+			req.ContentLength = int64(len(form.Encode()))
 
 		case formEncodingMultipart:
 			var b bytes.Buffer
