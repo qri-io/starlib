@@ -234,6 +234,8 @@ func setBody(req *http.Request, body starlark.String, formData *starlark.Dict, f
 			return err
 		}
 		req.Body = ioutil.NopCloser(strings.NewReader(uq))
+		// Specifying the Content-Length ensures that https://go.dev/src/net/http/transfer.go doesnt specify Transfer-Encoding: chunked which is not supported by some endpoints.
+		// This is required when using ioutil.NopCloser method for the request body (see ShouldSendChunkedRequestBody() in the library mentioned above).
 		req.ContentLength = int64(len(uq))
 
 		return nil
