@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/starlib/encoding/yaml"
 	"github.com/qri-io/starlib/geo"
 	"github.com/qri-io/starlib/hash"
+	"github.com/qri-io/starlib/hmac"
 	"github.com/qri-io/starlib/html"
 	"github.com/qri-io/starlib/http"
 	"github.com/qri-io/starlib/math"
@@ -58,6 +59,8 @@ func Loader(thread *starlark.Thread, module string) (dict starlark.StringDict, e
 		return starlark.StringDict{"math": math.Module}, nil
 	case hash.ModuleName:
 		return hash.LoadModule()
+	case hmac.ModuleName:
+		return hmac.LoadModule()
 	case dataframe.ModuleName:
 		return starlark.StringDict{"dataframe": dataframe.Module}, nil
 	}
