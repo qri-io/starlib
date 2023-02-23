@@ -41,6 +41,8 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 		} else {
 			val = f
 		}
+	case starlark.Bytes:
+		val = []byte(v)
 	case starlark.String:
 		val = v.GoString()
 	case startime.Time:
@@ -150,8 +152,6 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 		} else {
 			err = fmt.Errorf("constructor object from *starlarkstruct.Struct not supported Marshaler to starlark object: %s", v.Constructor().Type())
 		}
-	case starlark.Bytes:
-		val = []byte(v)
 	default:
 		fmt.Println("errbadtype:", x.Type())
 		err = fmt.Errorf("unrecognized starlark type: %s", x.Type())
