@@ -194,6 +194,8 @@ func Marshal(data interface{}) (v starlark.Value, err error) {
 		v = starlark.Float(x)
 	case time.Time:
 		v = startime.Time(x)
+	case []byte:
+		v = starlark.Bytes(x)
 	case []interface{}:
 		var elems = make([]starlark.Value, len(x))
 		for i, val := range x {
