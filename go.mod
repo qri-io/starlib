@@ -16,7 +16,7 @@ replace (
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/PuerkitoBio/goquery v1.5.1
-	github.com/b5/outline v0.0.0-20210930001007-03f1b39e3ab2 // indirect
+	github.com/b5/outline v0.0.0-20210930001007-03f1b39e3ab2
 	github.com/dustmop/soup v1.1.2-0.20190516214245-38228baa104e
 	github.com/google/go-cmp v0.5.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
@@ -24,7 +24,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.5.1
 	go.starlark.net v0.0.0-20210602144842-1cdb82c9e17a
-	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+	golang.org/x/net v0.7.0
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.2.8
 )
