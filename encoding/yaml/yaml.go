@@ -1,6 +1,7 @@
 package yaml
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/qri-io/starlib/util"
@@ -56,24 +57,39 @@ func Loads(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kw
 
 // Dumps serializes a starlark object to a yaml string
 func Dumps(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var (
-		source starlark.Value
-	)
+	values := make([]starlark.Value, len(args))
+	valuePtrs := make([]interface{}, len(args))
 
-	err := starlark.UnpackArgs("dumps", args, kwargs, "source", &source)
+	for idx, _ := range values {
+		valuePtrs[idx] = &values[idx]
+	}
+
+	err := starlark.UnpackPositionalArgs("dumps", args, kwargs, 1, valuePtrs...)
 	if err != nil {
 		return starlark.None, err
 	}
 
-	val, err := util.Unmarshal(source)
-	if err != nil {
-		return starlark.None, err
+	buffer := new(bytes.Buffer)
+	for idx, value := range values {
+
+		goValue, err := util.Unmarshal(value)
+		if err != nil {
+			return starlark.None, err
+		}
+
+		rawBytes, err := yaml.Marshal(goValue)
+		if err != nil {
+			return starlark.None, err
+		}
+
+		buffer.Write(rawBytes)
+
+		// Add the YAML document separator if, and only if,
+		// there are more values to be serialized.
+		if idx < len(values)-1 {
+			buffer.WriteString("---\n")
+		}
 	}
 
-	data, err := yaml.Marshal(val)
-	if err != nil {
-		return starlark.None, err
-	}
-
-	return starlark.String(string(data)), nil
+	return starlark.String(buffer.String()), nil
 }
