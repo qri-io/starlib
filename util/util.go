@@ -148,7 +148,12 @@ func Unmarshal(x starlark.Value) (val interface{}, err error) {
 			}
 			val = _var
 		} else {
-			err = fmt.Errorf("constructor object from *starlarkstruct.Struct not supported Marshaler to starlark object: %s", v.Constructor().Type())
+			dict := new(starlark.Dict)
+			for _, name := range v.AttrNames() {
+				val, _ := v.Attr(name)
+				dict.SetKey(starlark.String(name), val)
+			}
+			val, err = Unmarshal(dict)
 		}
 	default:
 		fmt.Println("errbadtype:", x.Type())
